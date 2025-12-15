@@ -47,48 +47,152 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
         vf: The verifiers module.
 
     Returns:
-        A vf.Environment instance.
-
-    Raises:
-        NotImplementedError: This needs to be wired to actual Verifiers APIs.
+        A vf.StatefulToolEnv instance.
     """
-    # TODO: Implement actual Verifiers integration
-    # This is the wiring point for the real environment.
-    #
-    # The implementation should:
-    # 1. Create a dataset using build_dataset(config)
-    # 2. Define tools using our tool schemas
-    # 3. Wire up the rubric using compute_reward
-    # 4. Return a vf.ToolEnv or vf.StatefulToolEnv
-    #
-    # Example structure (pseudocode):
-    #
-    # dataset = build_dataset(config)
-    #
-    # def reward_fn(output: str, info: dict) -> tuple[float, dict]:
-    #     return compute_reward(output, info)
-    #
-    # tools = [run_python_tool, get_metadata_tool, lint_json_tool]
-    #
-    # return vf.ToolEnv(
-    #     dataset=dataset,
-    #     tools=tools,
-    #     reward_fn=reward_fn,
-    # )
+    from bs4_env.tools.executor import get_executor
+    from bs4_env.tools.harness import build_runner_script, build_tool_response
 
-    raise NotImplementedError(
-        "Real Verifiers integration is not yet implemented.\n"
-        "\n"
-        "To implement:\n"
-        "1. Review Verifiers documentation for ToolEnv/StatefulToolEnv patterns\n"
-        "2. Wire build_dataset() to create the HF dataset\n"
-        "3. Wire tool schemas from bs4_env.tools.tool_defs\n"
-        "4. Wire compute_reward() as the reward function\n"
-        "5. Handle sandbox state if using StatefulToolEnv\n"
-        "\n"
-        "For now, use MinimalEnv for local development:\n"
-        "  env = MinimalEnv(config)"
+    # Build the HuggingFace dataset
+    dataset = build_dataset(config)
+
+    # Create executor for code execution
+    executor = get_executor(
+        backend=config.executor_backend,
+        max_output_chars=config.max_output_chars,
     )
+
+    # Define the run_python tool
+    # Note: html, query, constraints are injected via update_tool_args and skipped from schema
+    def run_python(
+        code: str,
+        html: str = "",
+        query: str = "",
+        constraints_json: str = "{}",
+    ) -> str:
+        """Execute Python code with BeautifulSoup to parse the HTML.
+
+        The following globals are available:
+        - HTML: The HTML content to parse
+        - QUERY: The task description
+        - CONSTRAINTS: Task constraints and output schema
+        - make_soup(parser='html.parser'): Helper to create BeautifulSoup object
+
+        Args:
+            code: Python code to execute. Must print JSON output.
+
+        Returns:
+            Execution result with stdout, stderr, and exit code.
+        """
+        constraints = json.loads(constraints_json) if constraints_json else {}
+
+        globals_dict = {
+            "HTML": html,
+            "QUERY": query,
+            "CONSTRAINTS": constraints,
+        }
+
+        result = executor.run(code, globals_dict, timeout_s=config.timeout_s)
+        return build_tool_response(result.to_dict())
+
+    # Define reward function
+    def bs4_reward(prompt: Any, response: str, answer: Any, state: dict) -> float:
+        """Compute reward for BeautifulSoup task completion.
+
+        Args:
+            prompt: The prompt messages (unused, info is in state).
+            response: The model's final response containing JSON output.
+            answer: The expected answer (unused, info is in state).
+            state: Task state containing html and task_info.
+
+        Returns:
+            Reward value: 1.0 correct, 0.5 valid limitation, 0.0 wrong, -0.5 safety violation.
+        """
+        task_info = state.get("task_info", {})
+        html = state.get("html", "")
+
+        reward, metrics = compute_reward(
+            raw_output=response,
+            task_info=task_info,
+            html=html,
+        )
+        return reward
+
+    # Create the rubric
+    rubric = vf.Rubric(funcs=[bs4_reward], weights=[1.0])
+
+    # Create StatefulToolEnv subclass to handle per-task state
+    class BeautifulSoupEnv(vf.StatefulToolEnv):
+        """BeautifulSoup RL environment with per-task state."""
+
+        async def setup_state(self, state: dict, **kwargs) -> dict:
+            """Set up task-specific state from the dataset row."""
+            state = await super().setup_state(state, **kwargs)
+
+            # Get the current example's info
+            row = kwargs.get("row", {})
+            info = row.get("info", {})
+            if isinstance(info, str):
+                info = json.loads(info)
+
+            # Extract HTML and query from prompt
+            prompt = row.get("prompt", [])
+            user_msg = next((m for m in prompt if m.get("role") == "user"), {})
+            content = user_msg.get("content", "")
+
+            # Parse HTML from prompt
+            html = ""
+            start = content.find("```html")
+            if start >= 0:
+                start += 7
+                end = content.find("```", start)
+                html = content[start:end].strip() if end > start else content[start:].strip()
+
+            # Parse query from prompt
+            query = ""
+            start = content.find("## Task")
+            if start >= 0:
+                start += 7
+                end = content.find("##", start)
+                query = content[start:end].strip() if end > start else content[start:].strip()
+
+            # Build constraints
+            constraints = {
+                "output_schema": info.get("answer_schema", {}),
+                "allowed_limit_reasons": info.get("limit_info", {}).get("allowed_reasons", []),
+            }
+
+            # Store in state
+            state["html"] = html
+            state["query"] = query
+            state["constraints"] = constraints
+            state["task_info"] = info
+
+            return state
+
+        def update_tool_args(
+            self, tool_name: str, tool_args: dict, messages: Any, state: dict, **kwargs
+        ) -> dict:
+            """Inject state into tool arguments."""
+            if tool_name == "run_python":
+                return {
+                    **tool_args,
+                    "html": state.get("html", ""),
+                    "query": state.get("query", ""),
+                    "constraints_json": json.dumps(state.get("constraints", {})),
+                }
+            return tool_args
+
+    # Create environment and add tool with skipped args
+    env = BeautifulSoupEnv(
+        dataset=dataset,
+        tools=[],  # Add tools after construction
+        max_turns=10,
+        rubric=rubric,
+    )
+    # Add the run_python tool, skipping state-injected args from schema
+    env.add_tool(run_python, args_to_skip=["html", "query", "constraints_json"])
+
+    return env
 
 
 class MinimalEnv:
