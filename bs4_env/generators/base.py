@@ -1024,6 +1024,7 @@ def wrap_with_realistic_chrome(
     complexity: str = "medium",
     include_nav: bool = True,
     include_footer: bool = True,
+    target_size: int | None = None,
 ) -> str:
     """Wrap body content with realistic HTML document structure.
 
@@ -1036,14 +1037,21 @@ def wrap_with_realistic_chrome(
         style: The HTML framework style to use.
         rng: Random instance for deterministic generation.
         title: Page title.
-        complexity: "low", "medium", or "high" - affects head content richness.
+        complexity: "low", "medium", "high", or "realistic".
+            - low: ~2KB, minimal chrome
+            - medium: ~3KB, standard chrome
+            - high: ~4KB, full meta tags and analytics
+            - realistic: 50KB+, matches real website sizes
         include_nav: Whether to include navigation.
         include_footer: Whether to include footer.
+        target_size: Optional explicit target size for "realistic" mode.
 
     Returns:
         Complete HTML document string.
     """
-    head_content = generate_head_content(rng, style, title, complexity)
+    # For realistic complexity, treat as "high" for head content
+    head_complexity = "high" if complexity == "realistic" else complexity
+    head_content = generate_head_content(rng, style, title, head_complexity)
 
     # Build body parts
     body_parts = []
@@ -1108,6 +1116,34 @@ def wrap_with_realistic_chrome(
     if include_footer:
         body_parts.append(generate_footer(rng, style))
 
+    # For realistic complexity, add bulk content to reach target size
+    if complexity == "realistic":
+        # Default target: 50KB-100KB (matches real website median)
+        actual_target = target_size or rng.randint(50000, 100000)
+
+        # Add sidebar
+        body_parts.insert(1, generate_sidebar_content(rng, style, items=25))
+
+        # Add product grid or comments after main content
+        if rng.random() < 0.5:
+            body_parts.insert(-1, generate_product_grid(rng, style, count=12))
+        else:
+            body_parts.insert(-1, generate_comments_section(rng, style, count=15))
+
+        # Generate additional bulk to reach target
+        current_size = sum(len(p) for p in body_parts)
+        if current_size < actual_target:
+            bulk = generate_bulk_noise(rng, style, target_size=actual_target - current_size)
+            body_parts.insert(-1, bulk)
+
+        # Apply deep nesting to main content area
+        for i, part in enumerate(body_parts):
+            if "<main" in part or "<article" in part:
+                body_parts[i] = generate_deep_nested_wrapper(
+                    part, rng, style, depth=rng.randint(8, 15)
+                )
+                break
+
     body_html = "\n".join(body_parts)
 
     # Assemble full document
@@ -1120,3 +1156,376 @@ def wrap_with_realistic_chrome(
 {body_html}
 </body>
 </html>'''
+
+
+# =============================================================================
+# Bulk Content Generators (for realistic HTML sizes)
+# =============================================================================
+
+
+def generate_sidebar_content(rng: random.Random, style: HtmlStyle, items: int = 20) -> str:
+    """Generate sidebar content with links, widgets, and noise.
+
+    Real websites have sidebars with 20-50 links, widgets, ads, etc.
+    This adds realistic bulk to HTML documents.
+
+    Args:
+        rng: Random instance.
+        style: The HTML style.
+        items: Number of sidebar items to generate.
+
+    Returns:
+        HTML string for sidebar content.
+    """
+    # Recent posts/articles section
+    recent_titles = [random_paragraph(rng, sentences=1).split('.')[0] for _ in range(items // 2)]
+    recent_items = "\n".join(
+        f'<li class="{random_class_for_style(rng, style, 2)}"><a href="/post/{i}">{title}</a></li>'
+        for i, title in enumerate(recent_titles)
+    )
+
+    # Categories section
+    categories = ["Technology", "Business", "Health", "Science", "Entertainment",
+                  "Sports", "Travel", "Food", "Fashion", "Finance"]
+    cat_items = "\n".join(
+        f'<li class="{random_class_for_style(rng, style, 2)}"><a href="/category/{cat.lower()}">{cat}</a> <span>({rng.randint(5, 50)})</span></li>'
+        for cat in rng.sample(categories, min(len(categories), items // 3))
+    )
+
+    # Tags cloud
+    tags = ["python", "javascript", "react", "vue", "angular", "css", "html",
+            "nodejs", "django", "flask", "aws", "docker", "kubernetes", "ml", "ai"]
+    tag_items = " ".join(
+        f'<a href="/tag/{tag}" class="{random_class_for_style(rng, style, 3)}">{tag}</a>'
+        for tag in rng.sample(tags, min(len(tags), items // 2))
+    )
+
+    # Archive section
+    months = ["January", "February", "March", "April", "May", "June",
+              "July", "August", "September", "October", "November", "December"]
+    archive_items = "\n".join(
+        f'<li><a href="/archive/2024/{i+1:02d}">{month} 2024</a></li>'
+        for i, month in enumerate(months[:items // 3])
+    )
+
+    if style == HtmlStyle.BOOTSTRAP:
+        return f'''<aside class="col-lg-4">
+    <div class="card mb-4">
+        <div class="card-header">Recent Posts</div>
+        <ul class="list-group list-group-flush">
+            {recent_items}
+        </ul>
+    </div>
+    <div class="card mb-4">
+        <div class="card-header">Categories</div>
+        <ul class="list-group list-group-flush">
+            {cat_items}
+        </ul>
+    </div>
+    <div class="card mb-4">
+        <div class="card-header">Tags</div>
+        <div class="card-body">
+            {tag_items}
+        </div>
+    </div>
+    <div class="card mb-4">
+        <div class="card-header">Archive</div>
+        <ul class="list-group list-group-flush">
+            {archive_items}
+        </ul>
+    </div>
+</aside>'''
+
+    elif style == HtmlStyle.TAILWIND:
+        return f'''<aside class="w-full lg:w-1/4 px-4">
+    <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
+        <h3 class="text-lg font-semibold mb-3">Recent Posts</h3>
+        <ul class="space-y-2">
+            {recent_items}
+        </ul>
+    </div>
+    <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
+        <h3 class="text-lg font-semibold mb-3">Categories</h3>
+        <ul class="space-y-2">
+            {cat_items}
+        </ul>
+    </div>
+    <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
+        <h3 class="text-lg font-semibold mb-3">Tags</h3>
+        <div class="flex flex-wrap gap-2">
+            {tag_items}
+        </div>
+    </div>
+</aside>'''
+
+    else:
+        return f'''<aside class="sidebar">
+    <section class="widget">
+        <h3>Recent Posts</h3>
+        <ul>{recent_items}</ul>
+    </section>
+    <section class="widget">
+        <h3>Categories</h3>
+        <ul>{cat_items}</ul>
+    </section>
+    <section class="widget">
+        <h3>Tags</h3>
+        <div class="tag-cloud">{tag_items}</div>
+    </section>
+    <section class="widget">
+        <h3>Archive</h3>
+        <ul>{archive_items}</ul>
+    </section>
+</aside>'''
+
+
+def generate_product_grid(rng: random.Random, style: HtmlStyle, count: int = 12) -> str:
+    """Generate e-commerce style product grid.
+
+    Real e-commerce sites have grids of 12-48 products with images,
+    titles, prices, ratings, etc. This adds significant bulk.
+
+    Args:
+        rng: Random instance.
+        style: The HTML style.
+        count: Number of products.
+
+    Returns:
+        HTML string for product grid.
+    """
+    products = []
+    for i in range(count):
+        name = random_product_name(rng)
+        price = random_price(rng)
+        rating = round(rng.uniform(3.0, 5.0), 1)
+        reviews = rng.randint(10, 500)
+        desc = random_paragraph(rng, sentences=2)
+
+        if style == HtmlStyle.BOOTSTRAP:
+            product = f'''<div class="col-md-4 col-sm-6 mb-4">
+    <div class="card h-100">
+        <img src="/images/product-{i}.jpg" class="card-img-top" alt="{name}">
+        <div class="card-body">
+            <h5 class="card-title">{name}</h5>
+            <p class="card-text text-muted">{desc}</p>
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="h5 mb-0">{price}</span>
+                <span class="badge bg-warning text-dark">{rating} ({reviews})</span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <button class="btn btn-primary w-100">Add to Cart</button>
+        </div>
+    </div>
+</div>'''
+
+        elif style == HtmlStyle.TAILWIND:
+            product = f'''<div class="bg-white rounded-lg shadow-sm overflow-hidden">
+    <img src="/images/product-{i}.jpg" class="w-full h-48 object-cover" alt="{name}">
+    <div class="p-4">
+        <h3 class="text-lg font-semibold text-gray-900">{name}</h3>
+        <p class="text-sm text-gray-500 mt-1">{desc}</p>
+        <div class="flex justify-between items-center mt-4">
+            <span class="text-xl font-bold text-gray-900">{price}</span>
+            <span class="text-sm text-yellow-600">{rating} ({reviews} reviews)</span>
+        </div>
+        <button class="mt-4 w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">
+            Add to Cart
+        </button>
+    </div>
+</div>'''
+
+        else:
+            product = f'''<div class="product-card">
+    <img src="/images/product-{i}.jpg" alt="{name}">
+    <div class="product-info">
+        <h3 class="product-title">{name}</h3>
+        <p class="product-desc">{desc}</p>
+        <span class="product-price">{price}</span>
+        <span class="product-rating">{rating} ({reviews})</span>
+        <button class="add-to-cart">Add to Cart</button>
+    </div>
+</div>'''
+
+        products.append(product)
+
+    grid_class = {
+        HtmlStyle.BOOTSTRAP: "row",
+        HtmlStyle.TAILWIND: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6",
+    }.get(style, "product-grid")
+
+    return f'<div class="{grid_class}">\n{"".join(products)}\n</div>'
+
+
+def generate_comments_section(rng: random.Random, style: HtmlStyle, count: int = 10) -> str:
+    """Generate comments section with nested replies.
+
+    Real websites have comment sections with 5-50 comments,
+    nested replies, avatars, timestamps, etc.
+
+    Args:
+        rng: Random instance.
+        style: The HTML style.
+        count: Number of comments.
+
+    Returns:
+        HTML string for comments section.
+    """
+    comments = []
+    for i in range(count):
+        author = random_person_name(rng)
+        date = random_date(rng)
+        content = random_paragraph(rng, sentences=rng.randint(2, 5))
+        likes = rng.randint(0, 50)
+
+        # Sometimes add nested replies
+        replies_html = ""
+        if rng.random() < 0.3:
+            reply_author = random_person_name(rng)
+            reply_content = random_paragraph(rng, sentences=rng.randint(1, 3))
+            if style == HtmlStyle.BOOTSTRAP:
+                replies_html = f'''<div class="ms-4 mt-3 p-3 bg-light rounded">
+    <div class="d-flex">
+        <img src="/avatars/default.jpg" class="rounded-circle me-2" width="32" height="32">
+        <div>
+            <strong>{reply_author}</strong> <small class="text-muted">in reply</small>
+            <p class="mb-0">{reply_content}</p>
+        </div>
+    </div>
+</div>'''
+            else:
+                replies_html = f'''<div class="comment-reply">
+    <img src="/avatars/default.jpg" class="avatar-small">
+    <div class="reply-content">
+        <strong>{reply_author}</strong>
+        <p>{reply_content}</p>
+    </div>
+</div>'''
+
+        if style == HtmlStyle.BOOTSTRAP:
+            comment = f'''<div class="card mb-3">
+    <div class="card-body">
+        <div class="d-flex">
+            <img src="/avatars/user-{i}.jpg" class="rounded-circle me-3" width="48" height="48">
+            <div class="flex-grow-1">
+                <div class="d-flex justify-content-between">
+                    <strong>{author}</strong>
+                    <small class="text-muted">{date}</small>
+                </div>
+                <p class="mt-2">{content}</p>
+                <div class="d-flex gap-3">
+                    <a href="#" class="text-decoration-none"><i class="bi bi-hand-thumbs-up"></i> {likes}</a>
+                    <a href="#" class="text-decoration-none">Reply</a>
+                </div>
+                {replies_html}
+            </div>
+        </div>
+    </div>
+</div>'''
+
+        elif style == HtmlStyle.TAILWIND:
+            comment = f'''<div class="bg-white rounded-lg shadow-sm p-4 mb-4">
+    <div class="flex">
+        <img src="/avatars/user-{i}.jpg" class="w-12 h-12 rounded-full mr-4">
+        <div class="flex-1">
+            <div class="flex justify-between items-center">
+                <span class="font-semibold">{author}</span>
+                <span class="text-sm text-gray-500">{date}</span>
+            </div>
+            <p class="mt-2 text-gray-700">{content}</p>
+            <div class="flex gap-4 mt-3 text-sm">
+                <button class="text-gray-500 hover:text-blue-600">Like ({likes})</button>
+                <button class="text-gray-500 hover:text-blue-600">Reply</button>
+            </div>
+            {replies_html}
+        </div>
+    </div>
+</div>'''
+
+        else:
+            comment = f'''<div class="comment">
+    <img src="/avatars/user-{i}.jpg" class="avatar">
+    <div class="comment-body">
+        <div class="comment-header">
+            <span class="author">{author}</span>
+            <span class="date">{date}</span>
+        </div>
+        <p class="comment-text">{content}</p>
+        <div class="comment-actions">
+            <a href="#">Like ({likes})</a>
+            <a href="#">Reply</a>
+        </div>
+        {replies_html}
+    </div>
+</div>'''
+
+        comments.append(comment)
+
+    return f'''<section class="comments-section">
+    <h3>Comments ({count})</h3>
+    {"".join(comments)}
+</section>'''
+
+
+def generate_deep_nested_wrapper(
+    content: str,
+    rng: random.Random,
+    style: HtmlStyle,
+    depth: int = 10,
+) -> str:
+    """Wrap content in deeply nested div structure.
+
+    Real websites have average nesting depth of 25 levels.
+    This adds realistic structural complexity.
+
+    Args:
+        content: Content to wrap.
+        rng: Random instance.
+        style: The HTML style.
+        depth: How many levels to nest.
+
+    Returns:
+        Deeply nested HTML string.
+    """
+    result = content
+    for i in range(depth):
+        class_attr = random_class_for_style(rng, style, count=rng.randint(1, 4))
+        data_attrs = format_attributes(random_data_attributes(rng, style))
+        result = f'<div class="{class_attr}"{data_attrs}>\n{result}\n</div>'
+    return result
+
+
+def generate_bulk_noise(rng: random.Random, style: HtmlStyle, target_size: int = 50000) -> str:
+    """Generate bulk noise content to reach target HTML size.
+
+    This combines various content types to build up to a target size,
+    making the HTML more realistic.
+
+    Args:
+        rng: Random instance.
+        style: The HTML style.
+        target_size: Target HTML size in characters.
+
+    Returns:
+        HTML string of bulk content.
+    """
+    parts = []
+    current_size = 0
+
+    generators = [
+        lambda: generate_product_grid(rng, style, count=rng.randint(6, 12)),
+        lambda: generate_comments_section(rng, style, count=rng.randint(5, 15)),
+        lambda: generate_sidebar_content(rng, style, items=rng.randint(15, 30)),
+        lambda: "".join(
+            f'<div class="{random_class_for_style(rng, style, 4)}">{random_paragraph(rng, rng.randint(3, 8))}</div>'
+            for _ in range(rng.randint(5, 10))
+        ),
+    ]
+
+    while current_size < target_size:
+        generator = rng.choice(generators)
+        chunk = generator()
+        parts.append(chunk)
+        current_size += len(chunk)
+
+    return "\n".join(parts)
