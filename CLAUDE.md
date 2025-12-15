@@ -168,11 +168,26 @@ Dev:
 
 ## Git Workflow
 
-- Atomic commits (one logical change per commit)
+### Atomic Commits (Mandatory)
+Each commit should be ONE coherent change for reviewability. Commit after completing each logical unit, not at the end of a phase.
+
+**Good examples:**
+- "Add config loader utility" (one file, one purpose)
+- "Add retry logic to executor" (single feature)
+- "Fix token estimation for long messages" (one bug fix)
+
+**Bad examples:**
+- "Phase 2 - implement grading pipeline" (20 files, multiple features)
+- "Add schema and normalize modules" (two separate concerns)
+- "Various fixes and improvements" (meaningless batching)
+
+**Rule of thumb:** If the commit message needs "and" or a list, split it.
+
+### Other Git Rules
 - Run tests before committing
 - No force pushes to main
 - **CRITICAL: No AI attribution in commits**
   - Do NOT add "Co-Authored-By: Claude" or any Anthropic attribution
   - Do NOT add "Generated with Claude Code" footers
   - Keep commit messages clean and professional
-  - This is enforced by a pre-commit hook
+  - This is enforced by a commit-msg hook
