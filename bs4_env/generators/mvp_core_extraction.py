@@ -7,13 +7,16 @@ foundation of BS4 proficiency.
 from bs4_env.config import STRING_SCHEMA
 from bs4_env.generators.base import (
     Generator,
+    HtmlStyle,
     TaskInstance,
     make_rng,
     random_paragraph,
     random_id,
     random_class_name,
+    random_class_for_style,
     add_noise_comments,
     add_decoy_elements,
+    wrap_with_realistic_chrome,
 )
 from bs4_env.registry import register
 
@@ -38,10 +41,34 @@ class ExtractTextByIdGenerator(Generator):
     - Easy: Clear ID, no distractions
     - Medium: Similar IDs exist, some noise
     - Hard: ID in nested structure, heavy noise
+
+    The generator can optionally use realistic HTML chrome (navigation,
+    footer, framework-specific patterns) to train on real-world complexity.
     """
 
-    def generate(self, seed: int) -> TaskInstance:
+    def generate(
+        self,
+        seed: int,
+        style: HtmlStyle | None = None,
+        use_realistic_chrome: bool = True,
+        complexity: str = "medium",
+    ) -> TaskInstance:
+        """Generate a task instance.
+
+        Args:
+            seed: Random seed for deterministic generation.
+            style: HTML framework style. If None, randomly selected.
+            use_realistic_chrome: If True, wrap content with realistic HTML.
+            complexity: "low", "medium", or "high" for head content richness.
+
+        Returns:
+            TaskInstance with extraction task.
+        """
         rng = make_rng(self.archetype_id, seed)
+
+        # Select style randomly if not specified
+        if style is None:
+            style = rng.choice(list(HtmlStyle))
 
         # Generate the target content (ground truth comes FIRST)
         target_text = random_paragraph(rng, sentences=rng.randint(1, 3))
@@ -51,36 +78,57 @@ class ExtractTextByIdGenerator(Generator):
         distractor_texts = [random_paragraph(rng, sentences=1) for _ in range(3)]
         distractor_ids = [random_id(rng, prefix="other") for _ in range(3)]
 
-        # Build HTML structure
-        html_parts = ["<!DOCTYPE html>", "<html>", "<head><title>Test Page</title></head>", "<body>"]
+        # Build core body content with distractors
+        content_class = random_class_for_style(rng, style, count=2)
+        sidebar_class = random_class_for_style(rng, style, count=2)
 
-        # Add header with navigation (distraction)
-        html_parts.append("<header>")
-        html_parts.append(f'<nav id="{distractor_ids[0]}">{distractor_texts[0]}</nav>')
-        html_parts.append("</header>")
+        body_content = f"""<div id="{distractor_ids[0]}" class="{sidebar_class}">{distractor_texts[0]}</div>
+<article id="{target_id}" class="{content_class}">
+{target_text}
+</article>
+<div id="{distractor_ids[1]}">{distractor_texts[1]}</div>
+<aside id="{distractor_ids[2]}">{distractor_texts[2]}</aside>"""
 
-        # Main content area
-        html_parts.append("<main>")
-        html_parts.append(f'<div id="{distractor_ids[1]}" class="sidebar">{distractor_texts[1]}</div>')
+        if use_realistic_chrome:
+            # Wrap with full realistic HTML document
+            html = wrap_with_realistic_chrome(
+                body_content,
+                style,
+                rng,
+                title="Content Page",
+                complexity=complexity,
+                include_nav=True,
+                include_footer=True,
+            )
+        else:
+            # Simple HTML structure (backward compatible)
+            html_parts = [
+                "<!DOCTYPE html>",
+                "<html>",
+                "<head><title>Test Page</title></head>",
+                "<body>",
+                "<header>",
+                f'<nav id="{distractor_ids[0]}">{distractor_texts[0]}</nav>',
+                "</header>",
+                "<main>",
+                f'<div id="{distractor_ids[1]}" class="sidebar">{distractor_texts[1]}</div>',
+                f'<article id="{target_id}" class="content">',
+                target_text,
+                "</article>",
+                f'<aside id="{distractor_ids[2]}">{distractor_texts[2]}</aside>',
+                "</main>",
+                "<footer>Footer content</footer>",
+                "</body>",
+                "</html>",
+            ]
+            html = "\n".join(html_parts)
 
-        # Target element
-        html_parts.append(f'<article id="{target_id}" class="content">')
-        html_parts.append(target_text)
-        html_parts.append("</article>")
-
-        html_parts.append(f'<aside id="{distractor_ids[2]}">{distractor_texts[2]}</aside>')
-        html_parts.append("</main>")
-
-        # Footer
-        html_parts.append("<footer>Footer content</footer>")
-        html_parts.append("</body>")
-        html_parts.append("</html>")
-
-        html = "\n".join(html_parts)
-
-        # Add noise
+        # Add noise comments
         html = add_noise_comments(html, rng, count=rng.randint(1, 3))
-        html = add_decoy_elements(html, rng, count=rng.randint(0, 2))
+
+        if not use_realistic_chrome:
+            # Only add decoy elements for simple mode
+            html = add_decoy_elements(html, rng, count=rng.randint(0, 2))
 
         # Build query
         query = f'Extract the text content from the element with id="{target_id}".'
@@ -101,6 +149,9 @@ class ExtractTextByIdGenerator(Generator):
             metadata={
                 "target_id": target_id,
                 "distractor_count": 3,
+                "html_style": style.value,
+                "use_realistic_chrome": use_realistic_chrome,
+                "complexity": complexity,
             },
         )
 
