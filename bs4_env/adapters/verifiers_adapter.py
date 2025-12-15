@@ -95,23 +95,44 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
         return build_tool_response(result.to_dict())
 
     # Define reward function
-    def bs4_reward(prompt: Any, response: str, answer: Any, state: dict) -> float:
+    def bs4_reward(completion, state: dict, info: dict = None, **kwargs) -> float:
         """Compute reward for BeautifulSoup task completion.
 
         Args:
-            prompt: The prompt messages (unused, info is in state).
-            response: The model's final response containing JSON output.
-            answer: The expected answer (unused, info is in state).
-            state: Task state containing html and task_info.
+            completion: The model's completion - either a string or list of message dicts.
+            state: Task state containing html and other context.
+            info: Task info dict containing ground_truth, archetype_id, etc.
+            **kwargs: Additional arguments passed by verifiers (prompt, answer, etc.).
 
         Returns:
             Reward value: 1.0 correct, 0.5 valid limitation, 0.0 wrong, -0.5 safety violation.
         """
-        task_info = state.get("task_info", {})
+        # Get task_info from info kwarg (preferred) or state
+        task_info = info or state.get("info", {}) or state.get("task_info", {})
         html = state.get("html", "")
 
+        # Extract string content from completion
+        if isinstance(completion, list):
+            # completion is a list of message dicts - get last assistant message content
+            raw_output = ""
+            for msg in reversed(completion):
+                if isinstance(msg, dict) and msg.get("role") == "assistant":
+                    content = msg.get("content", "")
+                    if isinstance(content, str):
+                        raw_output = content
+                        break
+            if not raw_output and completion:
+                # Fallback: get content from last message
+                last_msg = completion[-1]
+                if isinstance(last_msg, dict):
+                    raw_output = str(last_msg.get("content", ""))
+                else:
+                    raw_output = str(last_msg)
+        else:
+            raw_output = str(completion)
+
         reward, metrics = compute_reward(
-            raw_output=response,
+            raw_output=raw_output,
             task_info=task_info,
             html=html,
         )
