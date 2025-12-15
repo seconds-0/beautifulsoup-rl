@@ -7,6 +7,7 @@ This module provides the foundational classes and utilities for task generation:
 - Generator: The protocol that all archetype generators must follow
 - RNG utilities: Deterministic random number generation
 - HTML noise helpers: Functions to add realistic noise to HTML
+- HtmlStyle: Framework-specific HTML generation patterns
 """
 
 import hashlib
@@ -15,7 +16,28 @@ import re
 import string
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Sequence
+
+
+# =============================================================================
+# HTML Style System - Framework-Specific Patterns
+# =============================================================================
+
+
+class HtmlStyle(Enum):
+    """HTML generation styles matching real-world frameworks.
+
+    Each style produces HTML with characteristic patterns that train models
+    to handle the diversity of real-world websites.
+    """
+
+    TRADITIONAL = "traditional"  # Wikipedia, docs sites, semantic HTML
+    BOOTSTRAP = "bootstrap"  # Bootstrap 4/5 grid, component classes
+    TAILWIND = "tailwind"  # Utility-class explosion
+    REACT_SPA = "react_spa"  # data-reactroot, hashed classes, hydration
+    ANGULAR = "angular"  # ng-* attributes, _ngcontent-* scopes
+    VUE = "vue"  # data-v-* attributes, v-* directives
 
 
 @dataclass
@@ -468,3 +490,633 @@ def random_paragraph(rng: random.Random, sentences: int = 3) -> str:
         result.append(sentence)
 
     return " ".join(result)
+
+
+# =============================================================================
+# Framework-Specific Class Name Generators
+# =============================================================================
+
+
+def random_traditional_class(rng: random.Random) -> str:
+    """Generate traditional semantic class names (Wikipedia, docs style)."""
+    prefixes = ["", "mw-", "wiki-", "doc-", "content-", "page-"]
+    words = [
+        "content", "wrapper", "container", "section", "article", "sidebar",
+        "navigation", "header", "footer", "main", "body", "text", "parser-output",
+    ]
+    modifiers = ["", "-inner", "-outer", "-left", "-right", "-primary", "-secondary"]
+
+    return f"{rng.choice(prefixes)}{rng.choice(words)}{rng.choice(modifiers)}"
+
+
+def random_bootstrap_classes(rng: random.Random, count: int = 3) -> str:
+    """Generate Bootstrap-style utility and component classes."""
+    grid_classes = [
+        "container", "container-fluid", "row", "col", "col-sm-6", "col-md-4",
+        "col-lg-3", "col-xl-2", "col-12", "col-auto", "g-3", "g-4", "gy-4", "gx-3",
+    ]
+    spacing = [
+        "p-0", "p-1", "p-2", "p-3", "p-4", "p-5", "m-0", "m-1", "m-2", "m-3",
+        "mt-3", "mb-4", "ms-2", "me-2", "mx-auto", "my-3", "px-4", "py-2",
+    ]
+    display = [
+        "d-none", "d-block", "d-flex", "d-inline", "d-inline-block", "d-grid",
+    ]
+    flex = [
+        "flex-row", "flex-column", "justify-content-center", "justify-content-between",
+        "align-items-center", "align-items-start", "flex-wrap", "flex-nowrap",
+    ]
+    components = [
+        "card", "card-body", "card-header", "card-footer", "btn", "btn-primary",
+        "btn-secondary", "btn-outline-primary", "navbar", "nav-item", "nav-link",
+        "list-group", "list-group-item", "badge", "alert", "alert-info",
+    ]
+    text = [
+        "text-center", "text-start", "text-end", "text-muted", "text-primary",
+        "fw-bold", "fw-light", "fs-4", "fs-5", "lh-sm", "lh-lg",
+    ]
+
+    all_classes = grid_classes + spacing + display + flex + components + text
+    return " ".join(rng.sample(all_classes, min(count, len(all_classes))))
+
+
+def random_tailwind_classes(rng: random.Random, count: int = 8) -> str:
+    """Generate Tailwind CSS utility class explosion."""
+    layout = [
+        "flex", "inline-flex", "grid", "block", "inline-block", "hidden",
+        "flex-col", "flex-row", "flex-wrap", "flex-nowrap",
+    ]
+    spacing = [
+        "p-0", "p-1", "p-2", "p-3", "p-4", "p-6", "p-8", "px-4", "py-2", "py-6",
+        "m-0", "m-1", "m-2", "m-4", "mx-auto", "my-4", "mt-2", "mb-4", "ml-2", "mr-2",
+        "space-x-2", "space-x-4", "space-y-2", "space-y-4", "gap-2", "gap-4",
+    ]
+    sizing = [
+        "w-full", "w-1/2", "w-1/3", "w-1/4", "w-auto", "w-screen", "w-64", "w-96",
+        "h-full", "h-auto", "h-screen", "h-12", "h-16", "h-24", "min-h-screen",
+        "max-w-md", "max-w-lg", "max-w-xl", "max-w-2xl", "max-w-7xl",
+    ]
+    colors = [
+        "bg-white", "bg-gray-50", "bg-gray-100", "bg-gray-200", "bg-blue-500",
+        "bg-indigo-600", "bg-green-500", "bg-red-500", "bg-yellow-400",
+        "text-gray-500", "text-gray-700", "text-gray-900", "text-white",
+        "text-blue-600", "text-indigo-600", "border-gray-200", "border-gray-300",
+    ]
+    typography = [
+        "text-xs", "text-sm", "text-base", "text-lg", "text-xl", "text-2xl",
+        "font-normal", "font-medium", "font-semibold", "font-bold",
+        "leading-tight", "leading-relaxed", "tracking-tight", "tracking-wide",
+    ]
+    effects = [
+        "rounded", "rounded-md", "rounded-lg", "rounded-full", "rounded-none",
+        "shadow", "shadow-sm", "shadow-md", "shadow-lg", "shadow-xl",
+        "opacity-50", "opacity-75", "opacity-100",
+    ]
+    borders = [
+        "border", "border-0", "border-2", "border-t", "border-b", "border-l", "border-r",
+    ]
+    interactivity = [
+        "cursor-pointer", "cursor-default", "hover:bg-gray-100", "hover:text-blue-600",
+        "focus:outline-none", "focus:ring-2", "focus:ring-blue-500",
+        "transition", "transition-all", "duration-150", "duration-300",
+    ]
+    alignment = [
+        "items-center", "items-start", "items-end", "justify-center",
+        "justify-between", "justify-start", "justify-end", "self-center",
+    ]
+
+    all_classes = (
+        layout + spacing + sizing + colors + typography +
+        effects + borders + interactivity + alignment
+    )
+    return " ".join(rng.sample(all_classes, min(count, len(all_classes))))
+
+
+def random_react_class(rng: random.Random) -> str:
+    """Generate React/CSS Modules style hashed class names."""
+    # CSS Modules pattern: ComponentName_className__hash
+    components = [
+        "Button", "Card", "Header", "Footer", "Sidebar", "Modal", "Input",
+        "Form", "List", "Item", "Container", "Wrapper", "Content", "Title",
+    ]
+    class_names = [
+        "root", "container", "wrapper", "inner", "content", "header",
+        "body", "footer", "item", "active", "disabled", "primary",
+    ]
+    # Generate hash-like suffix
+    hash_chars = string.ascii_lowercase + string.digits
+    hash_suffix = "".join(rng.choices(hash_chars, k=5))
+
+    component = rng.choice(components)
+    class_name = rng.choice(class_names)
+
+    # 50% chance of CSS Modules format, 50% chance of styled-components
+    if rng.random() < 0.5:
+        return f"{component}_{class_name}__{hash_suffix}"
+    else:
+        # styled-components format: sc-hash
+        return f"sc-{hash_suffix}"
+
+
+def random_angular_class(rng: random.Random) -> str:
+    """Generate Angular-style class names with scoped attributes."""
+    material_classes = [
+        "mat-button", "mat-raised-button", "mat-card", "mat-card-content",
+        "mat-form-field", "mat-input", "mat-select", "mat-option",
+        "mat-list", "mat-list-item", "mat-toolbar", "mat-sidenav",
+        "mat-icon", "mat-checkbox", "mat-radio-button", "mat-slide-toggle",
+    ]
+    ng_classes = [
+        "ng-star-inserted", "ng-trigger", "ng-animating", "ng-valid",
+        "ng-invalid", "ng-pristine", "ng-dirty", "ng-touched", "ng-untouched",
+    ]
+
+    if rng.random() < 0.6:
+        return rng.choice(material_classes)
+    else:
+        return rng.choice(ng_classes)
+
+
+def random_vue_class(rng: random.Random) -> str:
+    """Generate Vue-style class names."""
+    vue_classes = [
+        "v-enter-active", "v-leave-active", "v-enter-from", "v-leave-to",
+        "v-move", "fade-enter-active", "fade-leave-active", "slide-fade-enter",
+    ]
+    component_classes = [
+        "vue-component", "v-btn", "v-card", "v-list", "v-list-item",
+        "v-container", "v-row", "v-col", "v-app-bar", "v-navigation-drawer",
+    ]
+
+    all_classes = vue_classes + component_classes
+    return rng.choice(all_classes)
+
+
+def random_class_for_style(
+    rng: random.Random,
+    style: HtmlStyle,
+    count: int | None = None,
+) -> str:
+    """Generate class name(s) appropriate for the given HTML style.
+
+    Args:
+        rng: Random instance.
+        style: The HTML style to generate classes for.
+        count: Number of classes (for styles that support multiple).
+
+    Returns:
+        Space-separated class names.
+    """
+    if style == HtmlStyle.TRADITIONAL:
+        return random_traditional_class(rng)
+    elif style == HtmlStyle.BOOTSTRAP:
+        return random_bootstrap_classes(rng, count or 4)
+    elif style == HtmlStyle.TAILWIND:
+        return random_tailwind_classes(rng, count or 10)
+    elif style == HtmlStyle.REACT_SPA:
+        # React often has 1-2 classes per element
+        classes = [random_react_class(rng) for _ in range(count or 2)]
+        return " ".join(classes)
+    elif style == HtmlStyle.ANGULAR:
+        classes = [random_angular_class(rng) for _ in range(count or 2)]
+        return " ".join(classes)
+    elif style == HtmlStyle.VUE:
+        return random_vue_class(rng)
+    else:
+        return random_class_name(rng)
+
+
+def random_data_attributes(rng: random.Random, style: HtmlStyle) -> dict[str, str]:
+    """Generate framework-specific data attributes.
+
+    Args:
+        rng: Random instance.
+        style: The HTML style.
+
+    Returns:
+        Dictionary of attribute name -> value pairs.
+    """
+    attrs = {}
+    hash_chars = string.ascii_lowercase + string.digits
+
+    if style == HtmlStyle.REACT_SPA:
+        if rng.random() < 0.3:
+            attrs["data-reactroot"] = ""
+        if rng.random() < 0.4:
+            attrs["data-testid"] = f"test-{''.join(rng.choices(hash_chars, k=6))}"
+
+    elif style == HtmlStyle.ANGULAR:
+        scope_hash = "".join(rng.choices(hash_chars, k=8))
+        attrs[f"_ngcontent-ng-c{rng.randint(100, 999)}"] = ""
+        if rng.random() < 0.3:
+            attrs["ng-reflect-ng-class"] = rng.choice(["active", "disabled", "primary"])
+
+    elif style == HtmlStyle.VUE:
+        vue_hash = "".join(rng.choices(hash_chars, k=7))
+        attrs[f"data-v-{vue_hash}"] = ""
+
+    # Common modern attributes
+    if rng.random() < 0.2:
+        roles = ["main", "navigation", "banner", "contentinfo", "article", "region"]
+        attrs["role"] = rng.choice(roles)
+    if rng.random() < 0.15:
+        attrs["aria-label"] = rng.choice(["Main content", "Navigation", "Close", "Menu"])
+
+    return attrs
+
+
+def format_attributes(attrs: dict[str, str]) -> str:
+    """Format a dictionary of attributes as HTML attribute string.
+
+    Args:
+        attrs: Dictionary of attribute name -> value.
+
+    Returns:
+        Formatted attribute string (with leading space if non-empty).
+    """
+    if not attrs:
+        return ""
+
+    parts = []
+    for name, value in attrs.items():
+        if value == "":
+            parts.append(name)
+        else:
+            parts.append(f'{name}="{value}"')
+
+    return " " + " ".join(parts) if parts else ""
+
+
+# =============================================================================
+# HTML Document Chrome (Head, Scripts, Meta Tags)
+# =============================================================================
+
+
+def generate_head_content(
+    rng: random.Random,
+    style: HtmlStyle,
+    title: str = "Page Title",
+    complexity: str = "medium",
+) -> str:
+    """Generate realistic <head> content based on style and complexity.
+
+    Args:
+        rng: Random instance.
+        style: The HTML style.
+        title: Page title.
+        complexity: "low", "medium", or "high".
+
+    Returns:
+        HTML string for head content (without <head> tags).
+    """
+    parts = [
+        '<meta charset="utf-8">',
+        f"<title>{title}</title>",
+    ]
+
+    # Basic meta tags (all complexity levels)
+    parts.append('<meta name="viewport" content="width=device-width, initial-scale=1.0">')
+
+    if complexity in ("medium", "high"):
+        description = rng.choice([
+            "Welcome to our website with great content.",
+            "Find the best products and services here.",
+            "Your source for quality information.",
+            "Discover amazing content on our platform.",
+        ])
+        parts.append(f'<meta name="description" content="{description}">')
+        parts.append('<meta name="robots" content="index, follow">')
+
+    if complexity == "high":
+        # Open Graph tags
+        parts.extend([
+            f'<meta property="og:title" content="{title}">',
+            '<meta property="og:type" content="website">',
+            '<meta property="og:url" content="https://example.com/page">',
+            '<meta property="og:image" content="https://example.com/image.jpg">',
+            # Twitter cards
+            '<meta name="twitter:card" content="summary_large_image">',
+            f'<meta name="twitter:title" content="{title}">',
+        ])
+
+    # Style-specific assets
+    if style == HtmlStyle.TRADITIONAL:
+        parts.append('<link rel="stylesheet" href="/static/styles.css">')
+
+    elif style == HtmlStyle.BOOTSTRAP:
+        parts.extend([
+            '<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">',
+        ])
+        if complexity in ("medium", "high"):
+            parts.append('<link rel="stylesheet" href="/static/custom.css">')
+
+    elif style == HtmlStyle.TAILWIND:
+        parts.append('<script src="https://cdn.tailwindcss.com"></script>')
+
+    elif style == HtmlStyle.REACT_SPA:
+        parts.extend([
+            '<link rel="stylesheet" href="/static/main.css">',
+            '<script defer src="/static/bundle.js"></script>',
+        ])
+
+    elif style == HtmlStyle.ANGULAR:
+        parts.extend([
+            '<link rel="stylesheet" href="styles.css">',
+            '<script src="runtime.js" defer></script>',
+            '<script src="polyfills.js" defer></script>',
+            '<script src="main.js" defer></script>',
+        ])
+
+    elif style == HtmlStyle.VUE:
+        parts.extend([
+            '<link rel="stylesheet" href="/css/app.css">',
+            '<script type="module" src="/js/app.js"></script>',
+        ])
+
+    # Favicon
+    if complexity in ("medium", "high"):
+        parts.append('<link rel="icon" href="/favicon.ico">')
+
+    # Analytics (high complexity only)
+    if complexity == "high":
+        analytics_snippet = '''<script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'GA_MEASUREMENT_ID');
+</script>'''
+        parts.append(analytics_snippet)
+
+    return "\n    ".join(parts)
+
+
+def generate_navigation(rng: random.Random, style: HtmlStyle) -> str:
+    """Generate style-appropriate navigation markup.
+
+    Args:
+        rng: Random instance.
+        style: The HTML style.
+
+    Returns:
+        HTML string for navigation.
+    """
+    nav_items = rng.sample(
+        ["Home", "About", "Products", "Services", "Blog", "Contact", "FAQ", "Support"],
+        k=rng.randint(4, 6),
+    )
+
+    if style == HtmlStyle.TRADITIONAL:
+        links = "\n        ".join(
+            f'<li><a href="/{item.lower()}">{item}</a></li>' for item in nav_items
+        )
+        return f'''<nav class="main-navigation">
+    <ul class="nav-list">
+        {links}
+    </ul>
+</nav>'''
+
+    elif style == HtmlStyle.BOOTSTRAP:
+        links = "\n            ".join(
+            f'<li class="nav-item"><a class="nav-link" href="/{item.lower()}">{item}</a></li>'
+            for item in nav_items
+        )
+        return f'''<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#">Brand</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+            {links}
+            </ul>
+        </div>
+    </div>
+</nav>'''
+
+    elif style == HtmlStyle.TAILWIND:
+        links = "\n                ".join(
+            f'<a href="/{item.lower()}" class="text-gray-700 hover:text-blue-600 px-3 py-2">{item}</a>'
+            for item in nav_items
+        )
+        return f'''<nav class="bg-white shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+            <div class="flex items-center">
+                <span class="text-xl font-bold text-gray-900">Brand</span>
+            </div>
+            <div class="hidden md:flex items-center space-x-4">
+                {links}
+            </div>
+        </div>
+    </div>
+</nav>'''
+
+    elif style == HtmlStyle.REACT_SPA:
+        links = "\n            ".join(
+            f'<a href="/{item.lower()}" class="NavLink_item__x7k2j">{item}</a>'
+            for item in nav_items
+        )
+        return f'''<nav class="Navigation_root__abc12" data-testid="main-nav">
+    <div class="Navigation_container__def34">
+        <div class="Navigation_brand__ghi56">Brand</div>
+        <div class="Navigation_links__jkl78">
+            {links}
+        </div>
+    </div>
+</nav>'''
+
+    elif style == HtmlStyle.ANGULAR:
+        links = "\n            ".join(
+            f'<a mat-button routerLink="/{item.lower()}">{item}</a>' for item in nav_items
+        )
+        return f'''<mat-toolbar color="primary" _ngcontent-ng-c123>
+    <span>Brand</span>
+    <span class="spacer"></span>
+    <nav _ngcontent-ng-c124>
+        {links}
+    </nav>
+</mat-toolbar>'''
+
+    elif style == HtmlStyle.VUE:
+        links = "\n            ".join(
+            f'<router-link to="/{item.lower()}" class="nav-link" data-v-abc1234>{item}</router-link>'
+            for item in nav_items
+        )
+        return f'''<nav class="v-navigation-drawer" data-v-abc1234>
+    <div class="v-list" data-v-abc1234>
+        {links}
+    </div>
+</nav>'''
+
+    return ""
+
+
+def generate_footer(rng: random.Random, style: HtmlStyle) -> str:
+    """Generate style-appropriate footer markup.
+
+    Args:
+        rng: Random instance.
+        style: The HTML style.
+
+    Returns:
+        HTML string for footer.
+    """
+    year = rng.randint(2020, 2025)
+    company = rng.choice(["Acme Corp", "Example Inc", "Demo LLC", "Sample Co"])
+
+    if style == HtmlStyle.TRADITIONAL:
+        return f'''<footer class="site-footer">
+    <div class="footer-content">
+        <p>&copy; {year} {company}. All rights reserved.</p>
+        <nav class="footer-nav">
+            <a href="/privacy">Privacy Policy</a>
+            <a href="/terms">Terms of Service</a>
+        </nav>
+    </div>
+</footer>'''
+
+    elif style == HtmlStyle.BOOTSTRAP:
+        return f'''<footer class="bg-light py-4 mt-auto">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6">
+                <p class="text-muted mb-0">&copy; {year} {company}</p>
+            </div>
+            <div class="col-md-6 text-md-end">
+                <a href="/privacy" class="text-muted me-3">Privacy</a>
+                <a href="/terms" class="text-muted">Terms</a>
+            </div>
+        </div>
+    </div>
+</footer>'''
+
+    elif style == HtmlStyle.TAILWIND:
+        return f'''<footer class="bg-gray-100 border-t border-gray-200">
+    <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col md:flex-row justify-between items-center">
+            <p class="text-gray-500 text-sm">&copy; {year} {company}</p>
+            <div class="flex space-x-6 mt-4 md:mt-0">
+                <a href="/privacy" class="text-gray-400 hover:text-gray-500 text-sm">Privacy</a>
+                <a href="/terms" class="text-gray-400 hover:text-gray-500 text-sm">Terms</a>
+            </div>
+        </div>
+    </div>
+</footer>'''
+
+    elif style in (HtmlStyle.REACT_SPA, HtmlStyle.ANGULAR, HtmlStyle.VUE):
+        class_suffix = "".join(rng.choices(string.ascii_lowercase, k=5))
+        return f'''<footer class="Footer_root__{class_suffix}">
+    <div class="Footer_container__{class_suffix}">
+        <p>&copy; {year} {company}</p>
+    </div>
+</footer>'''
+
+    return f"<footer>Footer content</footer>"
+
+
+def wrap_with_realistic_chrome(
+    body_content: str,
+    style: HtmlStyle,
+    rng: random.Random,
+    title: str = "Page Title",
+    complexity: str = "medium",
+    include_nav: bool = True,
+    include_footer: bool = True,
+) -> str:
+    """Wrap body content with realistic HTML document structure.
+
+    This function takes minimal body content (like a target element) and
+    wraps it with realistic HTML chrome including head content, navigation,
+    main wrapper, and footer based on the specified framework style.
+
+    Args:
+        body_content: The core content to wrap.
+        style: The HTML framework style to use.
+        rng: Random instance for deterministic generation.
+        title: Page title.
+        complexity: "low", "medium", or "high" - affects head content richness.
+        include_nav: Whether to include navigation.
+        include_footer: Whether to include footer.
+
+    Returns:
+        Complete HTML document string.
+    """
+    head_content = generate_head_content(rng, style, title, complexity)
+
+    # Build body parts
+    body_parts = []
+
+    if include_nav:
+        body_parts.append(generate_navigation(rng, style))
+
+    # Main content wrapper based on style
+    if style == HtmlStyle.TRADITIONAL:
+        body_parts.append(f'''<main class="main-content" role="main">
+    <article class="page-article">
+        {body_content}
+    </article>
+</main>''')
+
+    elif style == HtmlStyle.BOOTSTRAP:
+        body_parts.append(f'''<main class="container py-4">
+    <div class="row">
+        <div class="col-lg-8 col-md-10 mx-auto">
+            {body_content}
+        </div>
+    </div>
+</main>''')
+
+    elif style == HtmlStyle.TAILWIND:
+        body_parts.append(f'''<main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="bg-white rounded-lg shadow-sm p-6">
+        {body_content}
+    </div>
+</main>''')
+
+    elif style == HtmlStyle.REACT_SPA:
+        body_parts.append(f'''<div id="root" data-reactroot>
+    <main class="App_main__xyz12">
+        <div class="Content_wrapper__abc34">
+            {body_content}
+        </div>
+    </main>
+</div>''')
+
+    elif style == HtmlStyle.ANGULAR:
+        body_parts.append(f'''<app-root _nghost-ng-c100>
+    <main class="mat-app-background" _ngcontent-ng-c101>
+        <div class="content-wrapper" _ngcontent-ng-c102>
+            {body_content}
+        </div>
+    </main>
+</app-root>''')
+
+    elif style == HtmlStyle.VUE:
+        body_parts.append(f'''<div id="app" data-v-app>
+    <main class="v-main" data-v-main>
+        <div class="v-container" data-v-container>
+            {body_content}
+        </div>
+    </main>
+</div>''')
+
+    else:
+        body_parts.append(f"<main>{body_content}</main>")
+
+    if include_footer:
+        body_parts.append(generate_footer(rng, style))
+
+    body_html = "\n".join(body_parts)
+
+    # Assemble full document
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+    {head_content}
+</head>
+<body>
+{body_html}
+</body>
+</html>'''
