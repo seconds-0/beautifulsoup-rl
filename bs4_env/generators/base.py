@@ -509,6 +509,89 @@ def random_traditional_class(rng: random.Random) -> str:
     return f"{rng.choice(prefixes)}{rng.choice(words)}{rng.choice(modifiers)}"
 
 
+# =============================================================================
+# Realistic Patterns from Mind2Web Analysis
+# =============================================================================
+
+# State/visibility classes observed in real websites
+STATE_CLASSES = [
+    # Visibility
+    "hide", "hidden", "show", "visible", "invisible",
+    "visually-hidden", "sr-only", "d-none", "d-block",
+    # State
+    "active", "inactive", "disabled", "enabled",
+    "selected", "unselected", "checked", "unchecked",
+    "collapsed", "expanded", "open", "closed",
+    "authenticated", "unauthenticated", "logged-in", "logged-out",
+    # Loading
+    "loading", "loaded", "pending", "complete",
+    # Validation
+    "valid", "invalid", "error", "success", "warning",
+    # Angular-specific state
+    "ng-pristine", "ng-valid", "ng-invalid", "ng-touched", "ng-dirty",
+]
+
+
+def random_branded_prefix(rng: random.Random) -> str:
+    """Generate company-branded class prefixes like real sites use.
+
+    Examples from Mind2Web:
+    - Tesla: tds-* (tds-link, tds-banner, tds--product-name)
+    - Uniqlo: fr-ec-*, uq-ec-* (fr-ec-button-reset, uq-ec-link-primary-nav)
+    - JetBlue: jb* (jbSurvey)
+
+    Args:
+        rng: Random instance.
+
+    Returns:
+        Branded prefix string like "acme-" or "corp--".
+    """
+    # Company-like prefixes
+    companies = [
+        "acme", "app", "site", "brand", "corp", "ui", "core", "base",
+        "web", "my", "pro", "ec", "shop", "biz", "tech", "data",
+    ]
+    # Different separator styles
+    separators = ["-", "--", "_", ""]
+
+    company = rng.choice(companies)
+    sep = rng.choice(separators)
+
+    return f"{company}{sep}"
+
+
+def random_branded_class(rng: random.Random) -> str:
+    """Generate a full branded class name.
+
+    Args:
+        rng: Random instance.
+
+    Returns:
+        Full class name like "acme-container" or "corp--button-primary".
+    """
+    prefix = random_branded_prefix(rng)
+    words = [
+        "container", "wrapper", "item", "link", "button", "nav", "header",
+        "footer", "content", "card", "list", "menu", "panel", "modal",
+        "form", "input", "label", "text", "icon", "image", "badge",
+    ]
+    modifiers = ["", "-primary", "-secondary", "-active", "-disabled", "-lg", "-sm"]
+
+    return f"{prefix}{rng.choice(words)}{rng.choice(modifiers)}"
+
+
+def random_state_class(rng: random.Random) -> str:
+    """Get a random state/visibility class.
+
+    Args:
+        rng: Random instance.
+
+    Returns:
+        State class like "active" or "collapsed".
+    """
+    return rng.choice(STATE_CLASSES)
+
+
 def random_bootstrap_classes(rng: random.Random, count: int = 3) -> str:
     """Generate Bootstrap-style utility and component classes."""
     grid_classes = [
@@ -723,6 +806,194 @@ def random_data_attributes(rng: random.Random, style: HtmlStyle) -> dict[str, st
         attrs["aria-label"] = rng.choice(["Main content", "Navigation", "Close", "Menu"])
 
     return attrs
+
+
+# =============================================================================
+# Mixed Framework and Repeated Element Generators
+# =============================================================================
+
+
+def generate_mixed_framework_classes(
+    rng: random.Random,
+    primary_style: HtmlStyle,
+    count: int = 3,
+) -> str:
+    """Generate classes that mix framework patterns like real sites.
+
+    Real sites often have:
+    - Bootstrap layout with React components inside
+    - Angular app with Bootstrap CSS utilities
+    - Styled-components hashes mixed with semantic classes
+
+    Args:
+        rng: Random instance.
+        primary_style: The primary framework style.
+        count: Base number of classes.
+
+    Returns:
+        Space-separated class string mixing patterns.
+    """
+    classes = []
+
+    # Primary framework classes
+    primary = random_class_for_style(rng, primary_style, count=count)
+    classes.append(primary)
+
+    # 30% chance: Add styled-components/CSS modules hash
+    if rng.random() < 0.3:
+        classes.append(random_react_class(rng))
+
+    # 25% chance: Add state class
+    if rng.random() < 0.25:
+        classes.append(random_state_class(rng))
+
+    # 20% chance: Add branded prefix class
+    if rng.random() < 0.2:
+        classes.append(random_branded_class(rng))
+
+    # 15% chance: Add JSX/Emotion hash (like jsx-3292870850)
+    if rng.random() < 0.15:
+        hash_num = rng.randint(1000000000, 9999999999)
+        classes.append(f"jsx-{hash_num}")
+
+    # 10% chance: Add CSS-in-JS pattern (like css-19jssuo-ComponentName)
+    if rng.random() < 0.1:
+        hash_chars = string.ascii_lowercase + string.digits
+        hash_str = "".join(rng.choices(hash_chars, k=6))
+        component = rng.choice(["Container", "Wrapper", "Item", "Button", "Card"])
+        classes.append(f"css-{hash_str}-{component}")
+
+    return " ".join(classes)
+
+
+def generate_mixed_framework_element(
+    rng: random.Random,
+    primary_style: HtmlStyle,
+    content: str,
+    tag: str = "div",
+) -> str:
+    """Generate an element with mixed framework classes.
+
+    Args:
+        rng: Random instance.
+        primary_style: The primary framework style.
+        content: Inner HTML content.
+        tag: HTML tag to use.
+
+    Returns:
+        HTML element string.
+    """
+    classes = generate_mixed_framework_classes(rng, primary_style)
+    data_attrs = format_attributes(random_data_attributes(rng, primary_style))
+    return f'<{tag} class="{classes}"{data_attrs}>{content}</{tag}>'
+
+
+def generate_repeated_elements(
+    rng: random.Random,
+    style: HtmlStyle,
+    count: int = 20,
+    element_type: str = "li",
+    wrapper_tag: str | None = None,
+    wrapper_class: str | None = None,
+) -> str:
+    """Generate many elements with the same class repeated.
+
+    Real sites have high class repetition:
+    - Mind2Web: dropdown-link appeared 56 times
+    - Mind2Web: col-xs-4 appeared 49 times
+    - Mind2Web: ng-star-inserted appeared 26 times
+
+    This trains models to handle long lists of similar elements.
+
+    Args:
+        rng: Random instance.
+        style: The HTML style.
+        count: Number of elements to generate.
+        element_type: HTML tag for each element.
+        wrapper_tag: Optional wrapper tag (e.g., "ul", "div").
+        wrapper_class: Optional class for wrapper.
+
+    Returns:
+        HTML string with repeated elements.
+    """
+    # Pick a class that will repeat across all elements
+    repeated_class = random_class_for_style(rng, style, count=1)
+
+    # Sometimes add a state class that varies
+    add_state = rng.random() < 0.3
+
+    elements = []
+    for i in range(count):
+        # Same base class for all
+        classes = [repeated_class]
+
+        # Vary state on some elements
+        if add_state and i == rng.randint(0, count - 1):
+            classes.append(random_state_class(rng))
+
+        class_str = " ".join(classes)
+
+        # Generate varied content
+        if element_type == "li":
+            content = f"Item {i + 1}"
+        elif element_type == "option":
+            content = f"Option {i + 1}"
+        else:
+            content = random_paragraph(rng, sentences=1).split('.')[0]
+
+        elements.append(f'<{element_type} class="{class_str}">{content}</{element_type}>')
+
+    result = "\n".join(elements)
+
+    if wrapper_tag:
+        wrapper_cls = f' class="{wrapper_class}"' if wrapper_class else ""
+        result = f"<{wrapper_tag}{wrapper_cls}>\n{result}\n</{wrapper_tag}>"
+
+    return result
+
+
+def generate_repeated_navigation(rng: random.Random, style: HtmlStyle, count: int = 25) -> str:
+    """Generate a long navigation list with repeated classes.
+
+    Real navigation menus have 20-50 items with the same class structure.
+
+    Args:
+        rng: Random instance.
+        style: The HTML style.
+        count: Number of nav items.
+
+    Returns:
+        HTML string for navigation.
+    """
+    nav_class = random_class_for_style(rng, style, count=2)
+    item_class = random_class_for_style(rng, style, count=1)
+    link_class = random_class_for_style(rng, style, count=1)
+
+    # Add branded class to nav
+    if rng.random() < 0.3:
+        nav_class += " " + random_branded_class(rng)
+
+    pages = [
+        "Home", "About", "Products", "Services", "Blog", "News", "Contact",
+        "FAQ", "Support", "Pricing", "Features", "Team", "Careers", "Press",
+        "Partners", "Investors", "Legal", "Privacy", "Terms", "Help",
+        "Documentation", "API", "Status", "Community", "Forums", "Events",
+        "Webinars", "Resources", "Downloads", "Updates", "Changelog",
+    ]
+
+    items = []
+    selected_pages = rng.sample(pages, min(count, len(pages)))
+
+    for i, page in enumerate(selected_pages):
+        # First item often has "active" state
+        state = " active" if i == 0 and rng.random() < 0.5 else ""
+        items.append(
+            f'<li class="{item_class}{state}">'
+            f'<a href="/{page.lower().replace(" ", "-")}" class="{link_class}">{page}</a>'
+            f'</li>'
+        )
+
+    return f'<nav class="{nav_class}"><ul>\n{"".join(items)}\n</ul></nav>'
 
 
 def format_attributes(attrs: dict[str, str]) -> str:
@@ -1121,8 +1392,20 @@ def wrap_with_realistic_chrome(
         # Default target: 50KB-100KB (matches real website median)
         actual_target = target_size or rng.randint(50000, 100000)
 
-        # Add sidebar
+        # Replace simple nav with extended navigation (20-30 items with repeated classes)
+        body_parts[0] = generate_repeated_navigation(rng, style, count=rng.randint(20, 30))
+
+        # Add sidebar with mixed framework classes
         body_parts.insert(1, generate_sidebar_content(rng, style, items=25))
+
+        # Add repeated elements section (like long dropdown menus)
+        repeated_dropdown = generate_repeated_elements(
+            rng, style, count=rng.randint(30, 50),
+            element_type="li",
+            wrapper_tag="ul",
+            wrapper_class=f"mega-menu {random_branded_class(rng)}",
+        )
+        body_parts.insert(2, f'<div class="dropdown-container">{repeated_dropdown}</div>')
 
         # Add product grid or comments after main content
         if rng.random() < 0.5:
@@ -1130,13 +1413,13 @@ def wrap_with_realistic_chrome(
         else:
             body_parts.insert(-1, generate_comments_section(rng, style, count=15))
 
-        # Generate additional bulk to reach target
+        # Generate additional bulk to reach target (using mixed framework elements)
         current_size = sum(len(p) for p in body_parts)
         if current_size < actual_target:
             bulk = generate_bulk_noise(rng, style, target_size=actual_target - current_size)
             body_parts.insert(-1, bulk)
 
-        # Apply deep nesting to main content area
+        # Apply deep nesting with mixed framework classes to main content area
         for i, part in enumerate(body_parts):
             if "<main" in part or "<article" in part:
                 body_parts[i] = generate_deep_nested_wrapper(
@@ -1489,7 +1772,8 @@ def generate_deep_nested_wrapper(
     """
     result = content
     for i in range(depth):
-        class_attr = random_class_for_style(rng, style, count=rng.randint(1, 4))
+        # Use mixed framework classes for more realistic nesting
+        class_attr = generate_mixed_framework_classes(rng, style, count=rng.randint(1, 3))
         data_attrs = format_attributes(random_data_attributes(rng, style))
         result = f'<div class="{class_attr}"{data_attrs}>\n{result}\n</div>'
     return result
@@ -1499,7 +1783,8 @@ def generate_bulk_noise(rng: random.Random, style: HtmlStyle, target_size: int =
     """Generate bulk noise content to reach target HTML size.
 
     This combines various content types to build up to a target size,
-    making the HTML more realistic.
+    making the HTML more realistic. Uses mixed framework patterns and
+    repeated elements based on Mind2Web analysis.
 
     Args:
         rng: Random instance.
@@ -1513,13 +1798,32 @@ def generate_bulk_noise(rng: random.Random, style: HtmlStyle, target_size: int =
     current_size = 0
 
     generators = [
+        # Standard content generators
         lambda: generate_product_grid(rng, style, count=rng.randint(6, 12)),
         lambda: generate_comments_section(rng, style, count=rng.randint(5, 15)),
         lambda: generate_sidebar_content(rng, style, items=rng.randint(15, 30)),
+
+        # Mixed framework content blocks
         lambda: "".join(
-            f'<div class="{random_class_for_style(rng, style, 4)}">{random_paragraph(rng, rng.randint(3, 8))}</div>'
+            generate_mixed_framework_element(rng, style, random_paragraph(rng, rng.randint(2, 5)))
             for _ in range(rng.randint(5, 10))
         ),
+
+        # Repeated elements with same class (like real dropdown menus)
+        lambda: generate_repeated_elements(
+            rng, style, count=rng.randint(20, 40),
+            element_type="li", wrapper_tag="ul",
+            wrapper_class=random_branded_class(rng),
+        ),
+
+        # Repeated navigation-style sections
+        lambda: generate_repeated_navigation(rng, style, count=rng.randint(15, 25)),
+
+        # Branded content sections
+        lambda: f'''<section class="{random_branded_class(rng)} {random_state_class(rng)}">
+    <h2 class="{random_branded_class(rng)}">{random_paragraph(rng, 1).split('.')[0]}</h2>
+    {generate_repeated_elements(rng, style, count=rng.randint(10, 20), element_type="div")}
+</section>''',
     ]
 
     while current_size < target_size:
