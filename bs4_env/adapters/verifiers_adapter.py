@@ -358,12 +358,18 @@ class MinimalEnv:
             timeout_s=self.config.timeout_s,
         )
 
-    def grade(self, output: str, example: dict) -> tuple[float, dict]:
+    def grade(
+        self,
+        output: str,
+        example: dict,
+        tool_call_count: int | None = None,
+    ) -> tuple[float, dict]:
         """Grade a model output.
 
         Args:
             output: The raw model output string.
             example: The example dictionary.
+            tool_call_count: Number of tool calls made (for efficiency penalty).
 
         Returns:
             Tuple of (reward, metrics).
@@ -372,6 +378,7 @@ class MinimalEnv:
             raw_output=output,
             task_info=example["info"],
             html=example["html"],
+            tool_call_count=tool_call_count,
         )
 
     def run_episode(
