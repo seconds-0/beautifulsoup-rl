@@ -21,11 +21,42 @@ REWARD_WRONG = 0.0
 REWARD_SAFETY_VIOLATION = -0.5
 REWARD_FORMAT_ERROR = 0.0
 
+# Efficiency settings
+MAX_TOOL_CALLS = 10  # Hard cutoff - more than this is considered failure
+EFFICIENCY_PENALTY_PER_CALL = 0.1  # -10% per additional call after first
+EFFICIENCY_FLOOR = 0.2  # Minimum multiplier before hard cutoff
+
+
+def compute_efficiency_multiplier(tool_call_count: int) -> float:
+    """Compute efficiency multiplier based on tool call count.
+
+    Rewards efficient solutions that solve in fewer calls.
+    Creates gradient signal for RL to optimize efficiency, not just correctness.
+
+    Args:
+        tool_call_count: Number of tool calls made during the episode.
+
+    Returns:
+        Multiplier in range [0.0, 1.0]:
+        - 1 call: 1.0 (full credit)
+        - 2 calls: 0.9
+        - 3 calls: 0.8
+        - ...
+        - 9-10 calls: 0.2 (floor)
+        - 11+ calls: 0.0 (hard cutoff - treated as failure)
+    """
+    if tool_call_count > MAX_TOOL_CALLS:
+        return 0.0  # Hard cutoff - brute force isn't skill
+    if tool_call_count <= 1:
+        return 1.0
+    return max(EFFICIENCY_FLOOR, 1.0 - EFFICIENCY_PENALTY_PER_CALL * (tool_call_count - 1))
+
 
 def compute_reward(
     raw_output: str,
     task_info: dict,
     html: str | None = None,
+    tool_call_count: int | None = None,
 ) -> tuple[float, dict[str, Any]]:
     """Compute reward for a model output.
 
@@ -33,11 +64,14 @@ def compute_reward(
     1. Validates output format
     2. Checks for safety violations
     3. Computes correctness based on task type
+    4. Applies efficiency multiplier based on tool call count
 
     Args:
         raw_output: The raw string output from the model.
         task_info: The task info dictionary containing ground_truth, etc.
         html: The original HTML (for safety checking and evidence verification).
+        tool_call_count: Number of tool calls made. If provided, applies efficiency
+            multiplier to reward (fewer calls = higher reward).
 
     Returns:
         Tuple of (reward, metrics). Metrics include detailed breakdown of
@@ -51,6 +85,8 @@ def compute_reward(
         "status": None,
         "errors": [],
         "warnings": [],
+        "tool_calls": tool_call_count,
+        "efficiency_multiplier": None,
     }
 
     # Step 1: Validate output format
@@ -92,12 +128,29 @@ def compute_reward(
     solvable = task_info.get("solvable", True)
 
     if status == "ok":
-        return _grade_ok_response(output, task_info, metrics)
+        base_reward, metrics = _grade_ok_response(output, task_info, metrics)
     elif status == "limit":
-        return _grade_limit_response(output, task_info, html, solvable, metrics)
+        base_reward, metrics = _grade_limit_response(output, task_info, html, solvable, metrics)
     else:
         metrics["errors"].append(f"Unknown status: {status}")
         return REWARD_FORMAT_ERROR, metrics
+
+    # Step 4: Apply efficiency multiplier (only for positive rewards)
+    if tool_call_count is not None and base_reward > 0:
+        efficiency = compute_efficiency_multiplier(tool_call_count)
+        metrics["efficiency_multiplier"] = efficiency
+        final_reward = base_reward * efficiency
+
+        # If efficiency multiplier is 0 (too many calls), mark as failure
+        if efficiency == 0.0:
+            metrics["errors"].append(
+                f"Exceeded max tool calls ({tool_call_count} > {MAX_TOOL_CALLS})"
+            )
+            metrics["correct"] = False
+
+        return final_reward, metrics
+
+    return base_reward, metrics
 
 
 def _grade_ok_response(

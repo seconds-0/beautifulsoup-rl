@@ -105,11 +105,21 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
             **kwargs: Additional arguments passed by verifiers (prompt, answer, etc.).
 
         Returns:
-            Reward value: 1.0 correct, 0.5 valid limitation, 0.0 wrong, -0.5 safety violation.
+            Reward value: 1.0 correct (efficiency-adjusted), 0.5 valid limitation,
+            0.0 wrong or too many tool calls, -0.5 safety violation.
         """
         # Get task_info from info kwarg (preferred) or state
         task_info = info or state.get("info", {}) or state.get("task_info", {})
         html = state.get("html", "")
+
+        # Count tool calls from completion history for efficiency penalty
+        tool_call_count = 0
+        if isinstance(completion, list):
+            for msg in completion:
+                if isinstance(msg, dict) and msg.get("role") == "assistant":
+                    tool_calls = msg.get("tool_calls", [])
+                    if tool_calls:
+                        tool_call_count += len(tool_calls)
 
         # Extract string content from completion
         if isinstance(completion, list):
@@ -135,6 +145,7 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
             raw_output=raw_output,
             task_info=task_info,
             html=html,
+            tool_call_count=tool_call_count if tool_call_count > 0 else None,
         )
         return reward
 
