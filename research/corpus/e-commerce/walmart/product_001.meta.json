@@ -1,0 +1,59 @@
+{
+  "fetch": {
+    "url": "https://www.walmart.com/ip/Apple-AirPods-Pro-2nd-Generation/1752657021",
+    "status_code": 200,
+    "content_length": 557786,
+    "encoding": "utf-8",
+    "fetched_at": "2025-12-16T23:35:27.371580",
+    "headers": {
+      "Accept-CH": "Downlink, DPR",
+      "Accept-Ranges": "bytes",
+      "Content-Encoding": "gzip",
+      "Content-Security-Policy": "frame-ancestors 'self' *.wal.co *.walmart-customcards.com *.walmart.com:* *.walmart.net *.walmartimages.com; report-uri https://csp.walmart.com/c/r/gl",
+      "Content-Type": "text/html; charset=utf-8",
+      "Traceparent": "00-0c351fced29f2d0543156fa9d7742790-bcdd5893991e88ae-00",
+      "X-Envoy-Upstream-Service-Time": "518",
+      "X-Frame-Options": "SAMEORIGIN",
+      "X-Opt-Inj": "true",
+      "X-Origin-Stock-Status": "OUT_OF_STOCK",
+      "X-Pagebank-Cache-Control": "max-age=-1",
+      "X-Tb": "0",
+      "X-EdgeConnect-MidMile-RTT": "0",
+      "X-EdgeConnect-Origin-MEX-Latency": "686",
+      "Expires": "Wed, 17 Dec 2025 07:35:27 GMT",
+      "Cache-Control": "max-age=0, no-cache, no-store",
+      "Pragma": "no-cache",
+      "Date": "Wed, 17 Dec 2025 07:35:27 GMT",
+      "Transfer-Encoding": "chunked",
+      "Connection": "keep-alive, Transfer-Encoding",
+      "Vary": "Accept-Encoding",
+      "Set-Cookie": "AID=wmlspartner=0:reflectorid=0000000000000000000000:lastupd=1765956926555; Domain=.walmart.com; Path=/; Expires=Sat, 15 Dec 2035 07:35:26 GMT; HttpOnly; SameSite=Strict, com.wm.reflector=reflectorid:0000000000000000000000@lastupd:1765956926555@firstcreate:1765956926555; Domain=.walmart.com; Path=/; Expires=Sat, 15 Dec 2035 07:35:26 GMT; SameSite=Strict, visitCount=1; Max-Age=31536000, ACID=f5fd06ad-dd6e-47fd-8cfe-8be6965faec3; Max-Age=31536000; Domain=.www.walmart.com; Path=/; HttpOnly; Secure; SameSite=Lax, _intlbu=false; Max-Age=3600; Path=/; Secure; SameSite=Lax, _m=9; Max-Age=5184000; Domain=.www.walmart.com; Path=/; HttpOnly; Secure; SameSite=Lax, _shcc=US; Max-Age=3600; Path=/; Secure; SameSite=Lax, assortmentStoreId=2550; Max-Age=604800; Path=/; Secure; SameSite=Lax, hasACID=true; Max-Age=31536000; Domain=.www.walmart.com; Path=/; SameSite=Lax, hasLocData=1; Max-Age=604800; Path=/; Secure; SameSite=Lax, locDataV3=eyJpc0RlZmF1bHRlZCI6ZmFsc2UsImlzRXhwbGljaXQiOmZhbHNlLCJpbnRlbnQiOiJTSElQUElORyIsInBpY2t1cCI6W3sibm9kZUlkIjoiMjU1MCIsImRpc3BsYXlOYW1lIjoiVmFuY291dmVyIFN1cGVyY2VudGVyIiwiYWRkcmVzcyI6eyJwb3N0YWxDb2RlIjoiOTg2NjQiLCJhZGRyZXNzTGluZTEiOiIyMjFFIE5FIDEwNFRIIEFWRSIsImNpdHkiOiJWYW5jb3V2ZXIiLCJzdGF0ZSI6IldBIiwiY291bnRyeSI6IlVTIn0sImdlb1BvaW50Ijp7ImxhdGl0dWRlIjo0NS42MjM5MDMsImxvbmdpdHVkZSI6LTEyMi41NjIwMTF9LCJzY2hlZHVsZWRFbmFibGVkIjp0cnVlLCJ1blNjaGVkdWxlZEVuYWJsZWQiOnRydWUsInN0b3JlSHJzIjoiMDY6MDAtMjM6MDAiLCJhbGxvd2VkV0lDQWdlbmNpZXMiOlsiV0EiXSwic3VwcG9ydGVkQWNjZXNzVHlwZXMiOlsiUElDS1VQX1NQRUNJQUxfRVZFTlQiLCJQSUNLVVBfQkFLRVJZIiwiQUNDIiwiUElDS1VQX0NVUkJTSURFIiwiQUNDX0lOR1JPVU5EIiwiV0lSRUxFU1NfU0VSVklDRSIsIlBJQ0tVUF9JTlNUT1JFIl0sInRpbWVab25lIjoiUFNUIiwic2VsZWN0aW9uVHlwZSI6IkxTX1NFTEVDVEVEIn0seyJub2RlSWQiOiI1NDQwIn0seyJub2RlSWQiOiI1OTM1In0seyJub2RlSWQiOiI1NDYyIn0seyJub2RlSWQiOiIzMTQ1In0seyJub2RlSWQiOiIzMTQ0In0seyJub2RlSWQiOiI1NjI3In0seyJub2RlSWQiOiI1OTkzIn0seyJub2RlSWQiOiIyOTQ3In1dLCJzaGlwcGluZ0FkZHJlc3MiOnsibGF0aXR1ZGUiOjQ1LjU0MTk2OTksImxvbmdpdHVkZSI6LTEyMi42NDg2MTM0LCJwb3N0YWxDb2RlIjoiOTcyMTIiLCJjaXR5IjoiUG9ydGxhbmQiLCJzdGF0ZSI6Ik9SIiwiY291bnRyeUNvZGUiOiJVU0EiLCJsb2NhdGlvbkFjY3VyYWN5IjoibG93IiwiZ2lmdEFkZHJlc3MiOmZhbHNlLCJ0aW1lWm9uZSI6IkFtZXJpY2EvTG9zX0FuZ2VsZXMiLCJhbGxvd2VkV0lDQWdlbmNpZXMiOlsiT1IiXX0sImFzc29ydG1lbnQiOnsibm9kZUlkIjoiMjU1MCIsImRpc3BsYXlOYW1lIjoiVmFuY291dmVyIFN1cGVyY2VudGVyIiwiaW50ZW50IjoiUElDS1VQIn0sImluc3RvcmUiOmZhbHNlLCJkZWxpdmVyeSI6eyJub2RlSWQiOiIyNTUwIiwiZGlzcGxheU5hbWUiOiJWYW5jb3V2ZXIgU3VwZXJjZW50ZXIiLCJhZGRyZXNzIjp7InBvc3RhbENvZGUiOiI5ODY2NCIsImFkZHJlc3NMaW5lMSI6IjIyMUUgTkUgMTA0VEggQVZFIiwiY2l0eSI6IlZhbmNvdXZlciIsInN0YXRlIjoiV0EiLCJjb3VudHJ5IjoiVVMifSwiZ2VvUG9pbnQiOnsibGF0aXR1ZGUiOjQ1LjYyMzkwMywibG9uZ2l0dWRlIjotMTIyLjU2MjAxMX0sInNjaGVkdWxlZEVuYWJsZWQiOmZhbHNlLCJ1blNjaGVkdWxlZEVuYWJsZWQiOmZhbHNlLCJhY2Nlc3NQb2ludHMiOlt7ImFjY2Vzc1R5cGUiOiJERUxJVkVSWV9BRERSRVNTIn1dLCJpc0V4cHJlc3NEZWxpdmVyeU9ubHkiOmZhbHNlLCJhbGxvd2VkV0lDQWdlbmNpZXMiOlsiT1IiXSwic3VwcG9ydGVkQWNjZXNzVHlwZXMiOlsiREVMSVZFUllfQUREUkVTUyIsIkFDQyJdLCJ0aW1lWm9uZSI6IkFtZXJpY2EvTG9zX0FuZ2VsZXMiLCJzdG9yZUJyYW5kRm9ybWF0IjoiV2FsbWFydCBTdXBlcmNlbnRlciIsInNlbGVjdGlvblR5cGUiOiJMU19TRUxFQ1RFRCJ9LCJpc2dlb0ludGxVc2VyIjpmYWxzZSwibXBEZWxTdG9yZUNvdW50IjowLCJyZWZyZXNoQXQiOjE3NjU5Nzg1MjY1ODksInZhbGlkYXRlS2V5IjoicHJvZDp2MjpmNWZkMDZhZC1kZDZlLTQ3ZmQtOGNmZS04YmU2OTY1ZmFlYzMifQ==; Max-Age=604800; Path=/; HttpOnly; Secure; SameSite=Lax, locGuestData=eyJpbnRlbnQiOiJTSElQUElORyIsImlzRXhwbGljaXQiOmZhbHNlLCJzdG9yZUludGVudCI6IlBJQ0tVUCIsIm1lcmdlRmxhZyI6ZmFsc2UsImlzRGVmYXVsdGVkIjpmYWxzZSwicGlja3VwIjp7Im5vZGVJZCI6IjI1NTAiLCJ0aW1lc3RhbXAiOjE3NjU5NTY5MjY1ODcsInNlbGVjdGlvblR5cGUiOiJMU19TRUxFQ1RFRCIsInNlbGVjdGlvblNvdXJjZSI6IklQX1NOSUZGRURfQllfTFMifSwic2hpcHBpbmdBZGRyZXNzIjp7InRpbWVzdGFtcCI6MTc2NTk1NjkyNjU4NywidHlwZSI6InBhcnRpYWwtbG9jYXRpb24iLCJnaWZ0QWRkcmVzcyI6ZmFsc2UsInBvc3RhbENvZGUiOiI5NzIxMiIsImRlbGl2ZXJ5U3RvcmVMaXN0IjpbeyJub2RlSWQiOiIyNTUwIiwidHlwZSI6IkRFTElWRVJZIiwidGltZXN0YW1wIjoxNzY1OTQ2NDUxOTY5LCJkZWxpdmVyeVRpZXIiOm51bGwsInNlbGVjdGlvblR5cGUiOiJMU19TRUxFQ1RFRCIsInNlbGVjdGlvblNvdXJjZSI6IklQX1NOSUZGRURfQllfTFMifV0sImNpdHkiOiJQb3J0bGFuZCIsInN0YXRlIjoiT1IifSwicG9zdGFsQ29kZSI6eyJ0aW1lc3RhbXAiOjE3NjU5NTY5MjY1ODcsImJhc2UiOiI5NzIxMiJ9LCJtcCI6W10sIm1zcCI6eyJub2RlSWRzIjpbIjU0NDAiLCI1OTM1IiwiNTQ2MiIsIjMxNDUiLCIzMTQ0IiwiNTYyNyIsIjU5OTMiLCIyOTQ3Il0sInRpbWVzdGFtcCI6MTc2NTk1NjkyNjU4NX0sIm1wRGVsU3RvcmVDb3VudCI6MCwic2hvd0xvY2FsRXhwZXJpZW5jZSI6ZmFsc2UsInNob3dMTVBFbnRyeVBvaW50IjpmYWxzZSwibXBVbmlxdWVTZWxsZXJDb3VudCI6MCwidmFsaWRhdGVLZXkiOiJwcm9kOnYyOmY1ZmQwNmFkLWRkNmUtNDdmZC04Y2ZlLThiZTY5NjVmYWVjMyJ9; Max-Age=31536000; Path=/; HttpOnly; Secure; SameSite=Lax, mhmd=ETCN@lastupd:1765956926586|ETSN@lastupd:1765956926586|ATSN@lastupd:1765956926586; Max-Age=31540000; Domain=.walmart.com; Path=/; Secure; SameSite=Lax, mocksConfig.v2=; Expires=Wed, 17 Dec 2025 07:18:46 GMT, ACID=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax, _m=; Max-Age=0; Domain=.walmart.com; Path=/; HttpOnly; Secure; SameSite=Lax, hasACID=; Max-Age=0; Path=/; SameSite=Lax, userAppVersion=usweb-1.232.0-82c61aeb2b6f1a8e6c44bde3af6756e13f9f4346-2090934r; Path=/; Expires=Thu, 17 Dec 2026 07:35:26 GMT; Secure; SameSite=Strict, abqme=true; Path=/; Domain=www.walmart.com; Max-Age=2592000, vtc=XpNddiQpu9Bvz8EVAQ9xTE;Path=/;Domain=.walmart.com;Expires=Mon, 17 Dec 2035 19:35:27 GMT;Max-Age=315576000, bstc=XpNddiQpu9Bvz8EVAQ9xTE;Path=/;Domain=.walmart.com;Expires=Wed, 17 Dec 2025 08:05:27 GMT;Max-Age=1800, xptc=; Max-Age=-1; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; Domain=.walmart.com, xpth=x-o-mart%2BB2C~x-o-mverified%2Bfalse; Path=/; Domain=walmart.com; Expires=Wed, 17 Dec 2025 08:05:27 GMT; Max-Age=1800, xpa=AELqi|H89YY|Nhde5|R2YI1|TCS94|bdtXX|eqxfC|f4Hz-|fdm-7|jM1ax|okBZA|tMXpc|xByE7; Path=/; Domain=walmart.com; Expires=Wed, 17 Dec 2025 08:05:27 GMT; Max-Age=1800, xpm=0%2B1765956926%2BXpNddiQpu9Bvz8EVAQ9xTE~%2B0; Path=/; Domain=walmart.com; Expires=Wed, 17 Dec 2025 08:05:27 GMT; Max-Age=1800, exp-ck=AELqi1H89YY1Nhde51TCS941bdtXX1eqxfC1f4Hz-2fdm-71okBZA3tMXpc1; Path=/; Domain=walmart.com; Expires=Wed, 17 Dec 2025 08:05:27 GMT; Max-Age=1800, _pxhd=fb8a0e764a9c71c8484c72ea420b03fa3ba03859205dfeb96486c8c9fca87e6c:f46f009b-db1a-11f0-aea1-256cd432a367; Path=/; Expires=Thu, 17 Dec 2026 07:35:26 GMT, xptwg=1775571360:1A90419C000F310:409AD6F:FBDD95AC:5954FB21:EE3338B6:; Path=/; Domain=walmart.com, xptwj=uz:e749a5615322822ea571:njUJRA6AGjjn7oc4I5gA8PbD/CnuYbgPkoT6mhuXUb56DWgc+eCBigCZZu9Pq+8FK16NSt+hriG7fHgXwiUEnOvdhw7740vvwyZiJnvhJR62TDojuBsqigojvCNi1HQSkM9oy5BZKfg4dDB3ZYC2m3kIXB2ZI7cwI8Vz7wcvEUqdKTdPX7kK; Path=/; Domain=walmart.com; max-age=31536000, TS012768cf=01fd5ac6fff67a7453c26e2ef14e8b99eaffe7377602883a5e98bc19fd58821edfb310a0d856172edb6c964bb6708d04f475bde577; Path=/; Domain=.www.walmart.com, TS01a90220=01fd5ac6fff67a7453c26e2ef14e8b99eaffe7377602883a5e98bc19fd58821edfb310a0d856172edb6c964bb6708d04f475bde577; path=/; domain=walmart.com, TS2a5e0c5c027=083dee06ebab20007aafd83dcebb1b53259fcb3676e5ffc38f73e8a0bac8799bd4d438bda596958f08921eb81a113000b21fb639d28e06e06bc669d054862e34d959e3ec72c61df2816af21a23731e8432e9768b697279bedacd7d5da9e317b8; Path=/, isoLoc=US_OR_t3; path=/; domain=.www.walmart.com, akavpau_p2=1765957527~id=f6b8c15afcdc869848ba87cb952b5446; Path=/; HttpOnly; Secure; SameSite=None",
+      "Cache-Status": "Miss",
+      "Server-Timing": "cdn-cache; desc=MISS, edge; dur=220, origin; dur=686, product;desc=\"edge\",host;desc=\"2c2c82b96939\",dc;desc=\"a652627\",fetch-ms;dur=520,req-proc-ms;dur=70,resp-proc-ms;dur=20, ak_p; desc=\"1765956926248_388944042_237009003_90426_126881_18_33_-\";dur=1",
+      "Origin-EX": "",
+      "Origin-CC": "no-cache,no-store",
+      "Strict-Transport-Security": "max-age=31536000"
+    }
+  },
+  "analysis": {
+    "size_bytes": 557786,
+    "size_kb": 544.71,
+    "max_nesting_depth": 30,
+    "frameworks_detected": [],
+    "js_indicators": [
+      "loading_placeholder",
+      "noscript_fallback"
+    ],
+    "script_count": 139,
+    "inline_script_chars": 366040,
+    "has_json_ld": true,
+    "tag_counts": {
+      "div": 444,
+      "span": 150,
+      "a": 53,
+      "img": 29,
+      "table": 0,
+      "form": 1
+    }
+  }
+}

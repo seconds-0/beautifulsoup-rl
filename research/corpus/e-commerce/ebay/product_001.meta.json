@@ -1,0 +1,49 @@
+{
+  "fetch": {
+    "url": "https://www.ebay.com/itm/389028214648",
+    "status_code": 200,
+    "content_length": 800007,
+    "encoding": "utf-8",
+    "fetched_at": "2025-12-16T23:32:28.415505",
+    "headers": {
+      "x-content-type-options": "nosniff",
+      "x-xss-protection": "1; mode=block",
+      "x-frame-options": "SAMEORIGIN",
+      "Accept-CH": "sec-ch-ua-model,sec-ch-ua-full-version,sec-ch-ua-platform-version",
+      "Content-Type": "text/html; charset=utf-8",
+      "rlogid": "t6q4pnmjbb70ehmq%3C%3Dq4pnmjbb70ehmq%2B%3F7%3C0e%60f02.qctp2%3F*%7B%7Dqvu-19b2b39822c-0x3",
+      "x-envoy-upstream-service-time": "489",
+      "Server": "ebay-proxy-server",
+      "Content-Encoding": "gzip",
+      "strict-transport-security": "max-age=31536000",
+      "Date": "Wed, 17 Dec 2025 07:32:28 GMT",
+      "Transfer-Encoding": "chunked",
+      "Connection": "keep-alive, Transfer-Encoding",
+      "Vary": "Accept-Encoding",
+      "Set-Cookie": "dp1=bbl/US6d04c38b^; Domain=.ebay.com; Path=/; Expires=Fri, 17 Dec 2027 07:32:28 GMT; Secure, nonsession=BAQAAAZpgwzgIAAaAADMABWsjkAs5NzIxMQDKACBtBMOLMmIzOTgyNDExOWIwYWFiMjI2NGJlZjBiZmZjMDAyZDMAywABaUJjkzHlXKx/58QWS62B6Sq4fOep4QKtWg**; Domain=.ebay.com; Path=/; Expires=Fri, 17 Dec 2027 07:32:28 GMT; HttpOnly; Secure, s=CgAD4ACBpQ64LMmIzOTgyNDExOWIwYWFiMjI2NGJlZjBiZmZjMDAyZDP7Y0Bv; Domain=.ebay.com; Path=/; HttpOnly; Secure, ds2=amsg/2b39824119b0aab2264bef0bffc002d3^; Domain=.ebay.com; Path=/; SameSite=None; Secure, ebay=%5Esbf%3D%23000000%5E; Domain=.ebay.com; Path=/; Secure, __uzma=90aaeed0-a9f9-4a40-8d63-29e37aa2bf31; Path=/; Domain=.ebay.com; Expires=Mon, 15 Jun 2026 07:32:27 UTC, __uzmb=1765956747; Path=/; Domain=.ebay.com; Expires=Mon, 15 Jun 2026 07:32:27 UTC, __uzmc=110811038336; Path=/; Domain=.ebay.com; Expires=Mon, 15 Jun 2026 07:32:27 UTC, __uzmd=1765956747; Path=/; Domain=.ebay.com; Expires=Mon, 15 Jun 2026 07:32:27 UTC, __uzme=5645; Path=/; Domain=.ebay.com; Expires=Mon, 15 Jun 2026 07:32:27 UTC, __uzmf=7f6000b599055e-dee2-4298-9866-0f36b12bb01d17659567478060-cc8ac5454d5a3cc010; Path=/; Domain=.ebay.com; Expires=Mon, 15 Jun 2026 07:32:27 UTC"
+    }
+  },
+  "analysis": {
+    "size_bytes": 800007,
+    "size_kb": 781.26,
+    "max_nesting_depth": 35,
+    "frameworks_detected": [
+      "Bootstrap"
+    ],
+    "js_indicators": [
+      "loading_placeholder",
+      "noscript_fallback"
+    ],
+    "script_count": 40,
+    "inline_script_chars": 522050,
+    "has_json_ld": true,
+    "tag_counts": {
+      "div": 901,
+      "span": 517,
+      "a": 135,
+      "img": 31,
+      "table": 0,
+      "form": 1
+    }
+  }
+}

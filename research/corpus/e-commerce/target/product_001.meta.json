@@ -1,0 +1,47 @@
+{
+  "fetch": {
+    "url": "https://www.target.com/p/apple-airpods-4-wireless-earbuds/-/A-93208030",
+    "status_code": 200,
+    "content_length": 337590,
+    "encoding": "utf-8",
+    "fetched_at": "2025-12-16T23:37:32.979364",
+    "headers": {
+      "Connection": "keep-alive",
+      "cache-control": "private, no-cache",
+      "x-frame-options": "SAMEORIGIN",
+      "accept-ranges": "bytes",
+      "x-content-type-options": "nosniff",
+      "referrer-policy": "no-referrer-when-downgrade",
+      "content-type": "text/html; charset=utf-8",
+      "content-encoding": "gzip",
+      "etag": "\"30zlrlaaeg78hi\"",
+      "Date": "Wed, 17 Dec 2025 07:37:32 GMT",
+      "Vary": "Accept-Encoding",
+      "Content-Security-Policy": "frame-ancestors 'self' https://*.target.com;",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+      "Set-Cookie": "refreshToken=3a-9Su4RLi3YkBkG7ECEHGz24jJ-xeP2VudQaZgewAout1aJqZZ9XuIxMwLMuiXi1nwRBKOXNQXh7QjQurYjoA; Domain=target.com; Path=/; SameSite=none; Secure; HttpOnly; Max-Age=15552000;, adScriptData=OR; Domain=target.com; Path=/; SameSite=none; Secure; Max-Age=86400;, sapphire=1; Max-Age=2629746; Expires=Fri, 16 Jan 2026 18:06:37 GMT; Path=/; Domain=.target.com; Secure; SameSite=None, onboardingGuest=timestamp=1765957051996; Domain=.target.com; Path=/; Secure; SameSite=Lax, fiatsCookie=DSI_1419|DSN_Portland%20East%20Washington%20Street|DSZ_97216|server; Domain=.target.com; Path=/; Secure; SameSite=Lax, sddStore=DSI_1419|DSN_Portland%20East%20Washington%20Street|DSZ_97216|server; Domain=.target.com; Path=/, TealeafAkaSid=PPTKUl5IofizVe9C-QoqfL6IHISo-Z8A; Expires=Fri, 16 Jan 2026 07:37:32 GMT; Path=/; Domain=target.com;, GuestLocation=97212|45.550|-122.640|OR|US;Path=/; Secure; Max-Age=86400, visitorId=019B2B3E25B40201AA8A3E43BE69EEA8; Max-Age=63072000; Expires=Fri, 17 Dec 2027 07:37:31 GMT; Path=/; Domain=.target.com; Secure; SameSite=None, idToken=eyJhbGciOiJub25lIn0.eyJzdWIiOiJjMDRkMTExMy0yMDQ5LTRjMjgtYjkwZS0zNTRhMDZmOWMxOTIiLCJpc3MiOiJNSTYiLCJleHAiOjE3NjYwNDM0NTEsImlhdCI6MTc2NTk1NzA1MSwiYXNzIjoiTCIsInN1dCI6IkciLCJjbGkiOiJlY29tLXdlYi0xLjAuMCIsInBybyI6eyJmbiI6bnVsbCwiZm51IjpudWxsLCJlbSI6bnVsbCwicGgiOmZhbHNlLCJsZWQiOm51bGwsImx0eSI6ZmFsc2UsInN0IjoiT1IiLCJzbiI6bnVsbH19.; Domain=target.com; Path=/; SameSite=none; Secure;, accessToken=eyJraWQiOiJlYXMyIiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJjMDRkMTExMy0yMDQ5LTRjMjgtYjkwZS0zNTRhMDZmOWMxOTIiLCJpc3MiOiJNSTYiLCJleHAiOjE3NjYwNDM0NTEsImlhdCI6MTc2NTk1NzA1MSwianRpIjoiVEdULjBjNDJlZjU1Mzg4YjRhNTliYzRmZTY3MDEzZmYzNWFmLWwiLCJza3kiOiJlYXMyIiwic3V0IjoiRyIsImRpZCI6IjdlYzI1OWZmYjc0MGZjYzVjZTFmMmQ4YjYyN2JiZmNlNWM3YjI3ZGQwYTQ0ODYwMGU2MjFmMWJiOWQ1YzgxMjciLCJzY28iOiJlY29tLm5vbmUsb3BlbmlkIiwiY2xpIjoiZWNvbS13ZWItMS4wLjAiLCJhc2wiOiJMIn0.GaGKT1DA9lqPsh6g13NU1i5XmDmC-1yXVtKkgtZAjQesopZCqOkhxZpwstzwCj0wZh2zSngNKVBWE8DsfTMrN7LpJ9WI2kYzBhccPszFXYJRtyElZ5MX6mWlrMvfFZymarj4dfcrc6iU-toANKFV5O9cunFdu8d-xaLiembKt3Y_WAvrl4Yd9alzhT02rshPrV1Qy2sONp8H2DU5dORTpT-GpAKGE0pCQnyK6JhZ5py_12nw17b19OrygMFRubE6dCSlT5eMNLWCSS0TK-uhVxGhkTW-wYMvoel8xdEXvxJhutFrQeK6PRxQXB7OmugsrLK94DkAz4J5LKPCopL6ug; Domain=target.com; Path=/; SameSite=none; Secure; HttpOnly;, egsSessionId=9867ba57-8065-402d-b4cf-b01e45498999; Domain=target.com; Path=/; SameSite=none; Secure; HttpOnly; Max-Age=3600;",
+      "transfer-encoding": "chunked"
+    }
+  },
+  "analysis": {
+    "size_bytes": 337590,
+    "size_kb": 329.68,
+    "max_nesting_depth": 21,
+    "frameworks_detected": [],
+    "js_indicators": [
+      "loading_placeholder",
+      "noscript_fallback"
+    ],
+    "script_count": 110,
+    "inline_script_chars": 203231,
+    "has_json_ld": false,
+    "tag_counts": {
+      "div": 320,
+      "span": 41,
+      "a": 34,
+      "img": 7,
+      "table": 0,
+      "form": 3
+    }
+  }
+}
