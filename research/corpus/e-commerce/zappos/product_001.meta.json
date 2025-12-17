@@ -1,0 +1,59 @@
+{
+  "fetch": {
+    "url": "https://www.zappos.com/p/mens-nike-pegasus-41/product/10020696",
+    "status_code": 200,
+    "content_length": 1326686,
+    "encoding": "utf-8",
+    "fetched_at": "2025-12-16T23:50:07.962932",
+    "headers": {
+      "Content-Type": "text/html; charset=utf-8",
+      "Server": "Server",
+      "Vary": "Accept-Encoding, Accept-Encoding",
+      "X-DNS-Prefetch-Control": "off",
+      "X-Frame-Options": "SAMEORIGIN",
+      "X-Download-Options": "noopen",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "1; mode=block",
+      "Surrogate-Control": "no-store",
+      "Content-Security-Policy": "frame-ancestors na.amzheimdall.com delorean-na.amazon.com delorean-prod.corp.amazon.com delorean-na.sandbox.amazon.com delorean-sandbox.corp.amazon.com delorean-preprod.corp.amazon.com delorean-beta.corp.amazon.com delorean-alpha.corp.amazon.com potserviceui-gamma.zappos.com potserviceui-gamma.6pm.com drive-render.corp.amazon.com cscentral-na-beta.vipinteg.amazon.com cscentral.amazon.com delorean-6pm-gamma.corp.amazon.com delorean-6pm-preprod.corp.amazon.com delorean-6pm-prod.corp.amazon.com delorean-6pm-na.amazon.com; report-uri /marty/api/csp-report",
+      "Link": "</marty-assets/marty-zappos.app.be951b7c148ab1800161.css>; rel=preload; as=style, </marty-assets/marty-zappos.8809.53573d23eb6a8fef8388.css>; rel=preload; as=style, </marty-assets/marty-zappos.8647.53573d23eb6a8fef8388.css>; rel=preload; as=style, </marty-assets/marty-zappos.5465.53573d23eb6a8fef8388.css>; rel=preload; as=style, </marty-assets/marty-zappos.9205.53573d23eb6a8fef8388.css>; rel=preload; as=style, </marty-assets/marty-zappos.3075.53573d23eb6a8fef8388.css>; rel=preload; as=style, </marty-assets/marty-zappos.ProductDetail.53573d23eb6a8fef8388.css>; rel=preload; as=style",
+      "x-robots-tag": "noarchive",
+      "X-Core-Value": "5. Pursue Growth and Learning",
+      "X-Recruiting": "If you're reading this, maybe you should be working at Zappos instead.  Check out jobs.zappos.com",
+      "X-UUID": "01bc19c0-db1d-11f0-964f-a1594ef76aef",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+      "Content-Encoding": "gzip",
+      "Expires": "Wed, 17 Dec 2025 07:50:07 GMT",
+      "Cache-Control": "max-age=0, no-cache, no-store",
+      "Pragma": "no-cache",
+      "Date": "Wed, 17 Dec 2025 07:50:07 GMT",
+      "Transfer-Encoding": "chunked",
+      "Connection": "keep-alive, Transfer-Encoding",
+      "Set-Cookie": "session-id=134-5150583-1812524; Domain=.zappos.com; Path=/; Expires=Sun, 01 Jan 2045 00:00:00 GMT, ubid-main=130-3725785-9414858; Domain=.zappos.com; Path=/; Expires=Sun, 01 Jan 2045 00:00:00 GMT, zfc=Cg0I6d7KvpHEkQMQ9tkT; path=/; domain=.zappos.com; expires=Tue, 09-Jan-2035 00:00:00 GMT, clouddc=west1; Path=/; Domain=.zappos.com, akacd_zappos_prod=1765958107~rv=80~id=1e6c6c09d697aba47201b6d53a3c3125; path=/; Expires=Wed, 17 Dec 2025 07:55:07 GMT; Secure; SameSite=None",
+      "Alt-Svc": "h3=\":443\"; ma=93600",
+      "Permissions-Policy": "interest-cohort=()",
+      "X-No-Hints-Enabled": "Yes"
+    }
+  },
+  "analysis": {
+    "size_bytes": 1326686,
+    "size_kb": 1295.59,
+    "max_nesting_depth": 27,
+    "frameworks_detected": [],
+    "js_indicators": [
+      "loading_placeholder",
+      "noscript_fallback"
+    ],
+    "script_count": 35,
+    "inline_script_chars": 1238807,
+    "has_json_ld": true,
+    "tag_counts": {
+      "div": 242,
+      "span": 86,
+      "a": 55,
+      "img": 52,
+      "table": 0,
+      "form": 3
+    }
+  }
+}

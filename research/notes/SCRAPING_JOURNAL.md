@@ -939,3 +939,237 @@ result = title.get_text(strip=True)
 6. **Deep nesting is universal**: 21-35 levels across all major sites
 7. **Testing IDs are selector gold**: data-testid, data-test, data-automation-id
 8. **get_text() needs separator**: Without it, spans concatenate without spaces
+
+---
+
+# Day 2: E-commerce (Part 2)
+
+## Sites: Best Buy, Newegg, Wayfair, Zappos
+
+---
+
+## Best Buy
+
+### Site Overview
+- **URL**: https://www.bestbuy.com
+- **Tech Stack**: Unknown (blocked)
+- **Anti-bot**: **EXTREME - Akamai Bot Manager** 🚫
+- **Overall Difficulty**: N/A (blocked)
+
+### Key Discovery: Akamai Bot Manager
+
+Best Buy uses **Akamai Bot Manager** - even more aggressive than Etsy's DataDome:
+- DNS resolves to Akamai CDN (23.x.x.x)
+- Connections **hang indefinitely** - no response at all
+- No 403 error, just timeout (stealthier anti-bot)
+- curl, wget, requests all fail the same way
+
+### Task 1: Fetch Any Page ❌ (TIMEOUT)
+
+**URL**: https://www.bestbuy.com/site/apple-airpods-4-white/6574420.p
+
+**Solution**:
+```python
+# BS4 CANNOT scrape Best Buy
+# Akamai Bot Manager blocks at TCP/TLS level
+# Connection hangs indefinitely - no response
+# Would need browser automation + residential proxies
+```
+
+**Current Archetype Coverage**: mvp.limit_antibot ✅
+
+---
+
+## Newegg
+
+### Site Overview
+- **URL**: https://www.newegg.com
+- **Tech Stack**: Custom, Bootstrap CSS
+- **Anti-bot**: Low (accepts requests)
+- **Overall Difficulty**: 3/5
+
+### Key Discovery: JSON-LD Rich, HTML Price Missing
+
+Newegg has **5 JSON-LD scripts** with rich structured data:
+- Product data with price in JSON-LD
+- BreadcrumbList, FAQPage, VideoObject schemas
+- But visible price element (`price-current`) NOT in static HTML!
+
+### Task 1: Extract Product Title ✅
+
+**URL**: https://www.newegg.com/p/N82E16811139251
+
+**HTML Snippet**:
+```html
+<h1 class="product-title">Corsair AIR 5400 RS-R ARGB Triple Chamber Mid-Tower PC Case</h1>
+```
+
+**Solution**:
+```python
+title = soup.find("h1", class_="product-title")
+result = title.get_text(strip=True)
+```
+
+**Difficulty**: 2/5
+
+---
+
+### Task 2: Extract Product Price (JSON-LD only) ✅
+
+**HTML Snippet**:
+```html
+<script type="application/ld+json">
+{"@type": "Product", "offers": {"price": "229.99", "priceCurrency": "USD"}}
+</script>
+```
+
+**Solution**:
+```python
+import json
+scripts = soup.find_all("script", type="application/ld+json")
+for script in scripts:
+    data = json.loads(script.string)
+    if data.get("@type") == "Product":
+        price = data["offers"]["price"]  # "229.99"
+```
+
+**BS4 Gotchas**:
+- Price NOT in visible HTML (price-current class missing)
+- Must parse JSON-LD to get price
+- Hybrid pattern: title in HTML, price in structured data
+
+**Current Archetype Coverage**: mvp.json_ld_extraction ✅
+
+---
+
+### Newegg Summary
+
+| Task | Extractable | Method |
+|------|-------------|--------|
+| Title | ✅ | Class selector |
+| Price | ✅ (JSON-LD only) | Structured data |
+| Visible price | ❌ | JS-rendered |
+
+---
+
+## Wayfair
+
+### Site Overview
+- **URL**: https://www.wayfair.com
+- **Tech Stack**: Heavy JS SPA
+- **Anti-bot**: Low (accepts requests)
+- **Overall Difficulty**: 5/5
+
+### Key Discovery: Pure JS SPA - No Static Content
+
+Wayfair returns an **empty shell**:
+- No `<h1>` tag in static HTML
+- No JSON-LD structured data
+- No microdata
+- Depth: 0 levels (body is nearly empty!)
+- Everything is client-side rendered
+
+### Task 1: Extract Anything ❌ (JS-REQUIRED)
+
+**Solution**:
+```python
+# BS4 CANNOT extract ANYTHING from Wayfair
+# Page is pure SPA - entire content is JS-rendered
+# Even product title is not in static HTML
+```
+
+**Current Archetype Coverage**: mvp.limit_js_required ✅
+
+**Key Insight**: Some sites return HTML that's effectively empty - pure SPA architecture.
+
+---
+
+## Zappos
+
+### Site Overview
+- **URL**: https://www.zappos.com
+- **Tech Stack**: Custom framework, rich microdata
+- **Anti-bot**: Low (accepts requests)
+- **Overall Difficulty**: 2/5
+
+### Key Discovery: Microdata Paradise
+
+Zappos is **extremely BS4-friendly**:
+- 33 `itemprop` attributes throughout the page!
+- Price, brand, name all in microdata
+- 1.3MB page but well-structured
+- Price includes MSRP and discount in text
+
+### Task 1: Extract Product Title ✅
+
+**HTML Snippet**:
+```html
+<span itemprop="name">Nike Pegasus 41</span>
+```
+
+**Solution**:
+```python
+title = soup.find(attrs={"itemprop": "name"})
+result = title.get_text(strip=True)
+```
+
+**Difficulty**: 1/5
+
+---
+
+### Task 2: Extract Product Price ✅
+
+**HTML Snippet**:
+```html
+<span itemprop="price">$134.97MSRP:$145(7%OFF)</span>
+```
+
+**Solution**:
+```python
+price = soup.find(attrs={"itemprop": "price"})
+result = price.get_text(strip=True)  # "$134.97MSRP:$145(7%OFF)"
+# Need regex to extract just "$134.97"
+```
+
+**BS4 Gotchas**:
+- Price includes MSRP and discount text concatenated
+- Need string parsing for clean numeric value
+
+**Difficulty**: 2/5 (extraction easy, parsing moderate)
+
+---
+
+### Zappos Summary
+
+| Task | Extractable | Method |
+|------|-------------|--------|
+| Title | ✅ | Microdata |
+| Price | ✅ | Microdata |
+| Brand | ✅ | Microdata |
+
+**Key Insight**: Zappos is one of the most BS4-friendly e-commerce sites!
+
+---
+
+# Day 2 Summary
+
+| Site | Anti-bot | Price Static? | Method | Key Finding |
+|------|----------|---------------|--------|-------------|
+| Best Buy | EXTREME | N/A | BLOCKED | Akamai hangs connections |
+| Newegg | Low | JSON-LD only | Structured data | Title HTML, price JSON-LD |
+| Wayfair | Low | ❌ | NONE | Pure SPA, empty HTML |
+| Zappos | Low | ✅ | Microdata | 33 itemprop attrs! |
+
+## Running Totals
+
+- **Sites analyzed**: 9
+- **Extractable**: 5 (Amazon, eBay, Walmart, Newegg, Zappos)
+- **Blocked**: 2 (Etsy, Best Buy)
+- **Pure JS SPA**: 2 (Wayfair, Target-price)
+
+## New Patterns
+
+1. **Akamai vs DataDome**: Akamai hangs silently, DataDome returns 403
+2. **JSON-LD as price source**: Newegg has price only in structured data
+3. **Pure SPA detection**: Wayfair returns depth=0, no h1
+4. **Microdata variance**: Zappos (33 attrs) vs Target (0 attrs)
