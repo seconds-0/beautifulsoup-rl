@@ -1,0 +1,56 @@
+{
+  "fetch": {
+    "url": "https://www.amazon.com/dp/B0BDHWDR12",
+    "status_code": 200,
+    "content_length": 893831,
+    "encoding": "UTF-8",
+    "fetched_at": "2025-12-16T23:29:16.489811",
+    "headers": {
+      "Content-Type": "text/html;charset=UTF-8",
+      "Transfer-Encoding": "chunked",
+      "Connection": "keep-alive",
+      "Date": "Wed, 17 Dec 2025 07:29:15 GMT",
+      "vary": "Content-Type,Accept-Encoding,User-Agent",
+      "x-frame-options": "SAMEORIGIN",
+      "server": "Server",
+      "x-amz-rid": "QY3B3ZSQZEWN1YXTXZW1",
+      "set-cookie": "session-id=136-3155738-0745941; Domain=.amazon.com; Expires=Thu, 17-Dec-2026 07:29:15 GMT; Path=/; Secure, session-id-time=2082787201l; Domain=.amazon.com; Expires=Thu, 17-Dec-2026 07:29:15 GMT; Path=/; Secure, i18n-prefs=USD; Domain=.amazon.com; Expires=Thu, 17-Dec-2026 07:29:15 GMT; Path=/, lc-main=en_US; Domain=.amazon.com; Expires=Thu, 17-Dec-2026 07:29:15 GMT; Path=/",
+      "content-encoding": "gzip",
+      "x-xss-protection": "1;",
+      "accept-ch": "ect,rtt,downlink,device-memory,sec-ch-device-memory,viewport-width,sec-ch-viewport-width,dpr,sec-ch-dpr",
+      "accept-ch-lifetime": "86400",
+      "cache-control": "no-cache, no-transform",
+      "x-content-type-options": "nosniff",
+      "content-security-policy": "upgrade-insecure-requests;report-uri https://metrics.media-amazon.com/",
+      "p3p": "policyref=\"https://www.amazon.com/w3c/p3p.xml\",CP=\"CAO DSP LAW CUR ADM IVAo IVDo CONo OTPo OUR DELi PUBi OTRi BUS PHY ONL UNI PUR FIN COM NAV INT DEM CNT STA HEA PRE LOC GOV OTC \"",
+      "content-security-policy-report-only": "default-src 'self' blob: https: data: mediastream: 'unsafe-eval' 'unsafe-inline';report-uri https://metrics.media-amazon.com/",
+      "strict-transport-security": "max-age=47474747; includeSubDomains; preload",
+      "X-Cache": "Miss from cloudfront",
+      "Via": "1.1 7f51caabae8141bdcde4283a42be2a56.cloudfront.net (CloudFront)",
+      "X-Amz-Cf-Pop": "HIO52-P2",
+      "Alt-Svc": "h3=\":443\"; ma=86400",
+      "X-Amz-Cf-Id": "NYKIeT-hRTGiAuK3Py5h3Cclm-7ocggdUik63-DrpjlaACxJtWVC5w=="
+    }
+  },
+  "analysis": {
+    "size_bytes": 893831,
+    "size_kb": 872.88,
+    "max_nesting_depth": 32,
+    "frameworks_detected": [],
+    "js_indicators": [
+      "loading_placeholder",
+      "noscript_fallback"
+    ],
+    "script_count": 212,
+    "inline_script_chars": 303824,
+    "has_json_ld": false,
+    "tag_counts": {
+      "div": 1152,
+      "span": 627,
+      "a": 267,
+      "img": 92,
+      "table": 7,
+      "form": 9
+    }
+  }
+}
