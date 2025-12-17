@@ -1,0 +1,48 @@
+{
+  "fetch": {
+    "url": "https://www.indeed.com/jobs?q=software+engineer&l=San+Francisco",
+    "status_code": 200,
+    "content_length": 154379,
+    "encoding": "utf-8",
+    "fetched_at": "2025-12-16T23:55:14.198993",
+    "headers": {
+      "Date": "Wed, 17 Dec 2025 07:55:13 GMT",
+      "Content-Type": "text/html; charset=utf-8",
+      "Transfer-Encoding": "chunked",
+      "Connection": "keep-alive",
+      "CF-Ray": "9af4db61ab4cbd22-PDX",
+      "CF-Cache-Status": "DYNAMIC",
+      "Expires": "Thu, 01 Jan 1970 00:00:00 GMT",
+      "Set-Cookie": "CTK=; Max-Age=0; Path=/; Secure; SameSite=None, CTK=1jclksm8vggm0800; Domain=.indeed.com; Max-Age=157680000; Path=/; Secure; SameSite=None, mobnode=\"\";Version=1;Domain=.indeed.com;Path=/;Expires=Thu, 01 Jan 1970 00:00:00 GMT;Max-Age=0, CSRF=2nTzcT13Xym1SSsNLyOrlc4YDKPF5Wz3;Domain=.indeed.com;Path=/, INDEED_CSRF_TOKEN=3xxnjtDjm389uTlj6iH3EjpE25tK6anD;Path=/;Secure, LV=LA=1765958113:CV=1765958113:TS=1765958113;Path=/;Expires=Mon, 16 Dec 2030 07:55:13 GMT;Max-Age=157680000, PREF=\"\";Version=1;Domain=.indeed.com;Path=/;Expires=Thu, 01 Jan 1970 00:00:00 GMT;Max-Age=0, PREF=\"TM=1765958113588:L=San+Francisco\";Version=1;Path=/;Expires=Mon, 16 Dec 2030 07:55:13 GMT;Max-Age=157680000, ras=\"\";Version=1;Path=/;Expires=Thu, 01 Jan 1970 00:00:00 GMT;Max-Age=0, RQ=q=software+engineer&l=San+Francisco&ts=1765958113589;Path=/;Expires=Mon, 16 Dec 2030 07:55:13 GMT;Max-Age=157680000, PP=1;Path=/m, __cf_bm=sOCq_ATfrC32lwWe.heoV39.KRekX_xTIWTWACDgNio-1765958113-1.0.1.1-IdTcfqqinyDqNJ7BPzYF6ksm9qMMuUPaa.ImMlWrGCY8GwB1AsZa2XBCUYoRddjwQhAnnrSO.ZwsFTj8fbPImP8ogpqW09DsxjimedTzwYo; path=/; expires=Wed, 17-Dec-25 08:25:13 GMT; domain=.indeed.com; HttpOnly; Secure; SameSite=None, _cfuvid=2pDfv5RWqYYf11MNdCaAQPN34OG99Y1FOY4fylwYs68-1765958113858-0.0.1.1-604800000; path=/; domain=.indeed.com; HttpOnly; Secure; SameSite=None",
+      "Vary": "accept-encoding",
+      "content-security-policy": "upgrade-insecure-requests; object-src 'none'; form-action 'self' *.indeed.com  indeedapply.indeedusercontent.com/callback/ go.indeedassessments.com/ take.indeedassessments.com/; frame-src 'self' *.indeed.com  smartlock.google.com/ accounts.google.com/ www.accounts.google.com/ www.google.com/recaptcha/ hcaptcha.com *.hcaptcha.com www.youtube.com/embed/ indeedapply.indeedusercontent.com/callback/ 6927552.fls.doubleclick.net/ 8232301.fls.doubleclick.net/ d1kxbtm38oz100.cloudfront.net/ *.indeedassessments.com challenges.cloudflare.com; frame-ancestors 'self' *.indeed.com  ; img-src 'self' *.indeed.com  data: smartlock.google.com/ accounts.google.com/ googletagmanager.com d2q79iu7y748jz.cloudfront.net ds61c5zfdq8r8.cloudfront.net d3s4xzh46vzktb.cloudfront.net d3fw5vlhllyvee.cloudfront.net d3hbwax96mbv6t.cloudfront.net dl76z5cuv1as3.cloudfront.net www.facebook.com/tr/ sb.scorecardresearch.com bs.serving-sys.com maps.googleapis.com csi.gstatic.com maps.gstatic.com www.youtube.com www.google-analytics.com/collect ad.doubleclick.net/ddm/ adservice.google.com www.googletagmanager.com/ stats.g.doubleclick.net www.google.co.jp/ads/ga-audiences www.google.com/ads/ga-audience www.google.com/ads/ga-audiences jas.indeednps.com api.pitneybowes.com api.precisely.com locate.pitneybowes.com api-maps.precisely.com res.cloudinary.com staging-pt.ispot.tv pt.ispot.tv developer.precisely.com/images/precisely-logo-purple.gif firebaseinstallations.googleapis.com fcmregistrations.googleapis.com 6927552.fls.doubleclick.net/ 8232301.fls.doubleclick.net/ i.ytimg.com/ ucarecdn.com app.appsflyer.com https://d23zm5r1n38khq.cloudfront.net https://click.appcast.io; script-src 'self' *.indeed.com  'unsafe-inline' 'unsafe-eval' data: blob: smartlock.google.com/ accounts.google.com/ d3hbwax96mbv6t.cloudfront.net d2q79iu7y748jz.cloudfront.net d13w2n5a9i6r56.cloudfront.net d3fw5vlhllyvee.cloudfront.net dl76z5cuv1as3.cloudfront.net www.google-analytics.com sb.scorecardresearch.com connect.facebook.net *.serving-sys.com maps.googleapis.com csi.gstatic.com ad.doubleclick.net/ddm/ www.google.com/recaptcha/ hcaptcha.com *.hcaptcha.com www.gstatic.com www.youtube.com maps.gstatic.com adservice.google.com www.googletagmanager.com/ stats.g.doubleclick.net www.google.co.jp/ads/ga-audiences www.google.com/ads/ga-audience www.google.com/ads/ga-audiences firebaseinstallations.googleapis.com fcmregistrations.googleapis.com static.cloudflareinsights.com *.browser-intake-datadoghq.com https://www.datadoghq-browser-agent.com *.s3.indeed.com https://challenges.cloudflare.com t.indeed.com q.indeed.com *.indeed.com/m/ *.indeed.com/hp/ sgtm.indeed.com apply.indeed.com; style-src 'self' 'unsafe-inline' data: *.indeed.com c03.s3.indeed.com c03.s3.indeed.com c03.s3.indeed.com c03.s3.indeed.com  accounts.google.com/ d3hbwax96mbv6t.cloudfront.net d12632ofg6v5f7.cloudfront.net d3fw5vlhllyvee.cloudfront.net d13w2n5a9i6r56.cloudfront.net dl76z5cuv1as3.cloudfront.net fonts.googleapis.com/ *.s3.indeed.com; default-src 'self' 'unsafe-inline' data: *.indeed.com  c03.s3.indeed.com c03.s3.indeed.com c03.s3.indeed.com c03.s3.indeed.com accounts.google.com/ d1ymdoy4af119w.cloudfront.net/ d3fw5vlhllyvee.cloudfront.net dl76z5cuv1as3.cloudfront.net www.google-analytics.com www.google.com/maps/search/ hcaptcha.com *.hcaptcha.com stats.g.doubleclick.net privacyportal.onetrust.com https://resumecontacts.indeed.com api.pitneybowes.com api.precisely.com api-maps.precisely.com fonts.gstatic.com/ res.cloudinary.com developer.precisely.com/images/precisely-logo-purple.gif firebaseinstallations.googleapis.com fcmregistrations.googleapis.com rs.fullstory.com/rec/ i.ytimg.com/ static.cloudflareinsights.com *.browser-intake-datadoghq.com browser-intake-datadoghq.com https://www.datadoghq-browser-agent.com *.s3.indeed.com challenges.cloudflare.com https://click.appcast.io;",
+      "dc": "pdxprod1",
+      "deployment_group": "canary-pdx",
+      "indeed-jsf": "1",
+      "x-envoy-decorator-operation": "incoming_http http",
+      "x-envoy-upstream-service-time": "287",
+      "x-frame-options": "SAMEORIGIN",
+      "Server": "cloudflare",
+      "Content-Encoding": "br",
+      "alt-svc": "h3=\":443\"; ma=86400"
+    }
+  },
+  "analysis": {
+    "size_bytes": 154379,
+    "size_kb": 150.76,
+    "max_nesting_depth": 0,
+    "frameworks_detected": [],
+    "js_indicators": [],
+    "script_count": 0,
+    "inline_script_chars": 0,
+    "has_json_ld": false,
+    "tag_counts": {
+      "div": 0,
+      "span": 0,
+      "a": 0,
+      "img": 0,
+      "table": 0,
+      "form": 0
+    }
+  }
+}

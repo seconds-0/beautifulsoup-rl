@@ -1,0 +1,54 @@
+{
+  "fetch": {
+    "url": "https://www.monster.com/jobs/search?q=software+engineer&where=San+Francisco",
+    "status_code": 200,
+    "content_length": 217766,
+    "encoding": "utf-8",
+    "fetched_at": "2025-12-17T00:01:06.890094",
+    "headers": {
+      "Content-Type": "text/html; charset=utf-8",
+      "Transfer-Encoding": "chunked",
+      "Connection": "keep-alive",
+      "Server": "istio-envoy",
+      "Date": "Wed, 17 Dec 2025 08:01:06 GMT",
+      "access-control-expose-headers": "Server-Timing",
+      "server-timing": "traceparent;desc=\"00-1bf2853950d5af1716149107a23a0c11-635283ed2fc2b5b1-01\"",
+      "x-xss-protection": "1; mode=block",
+      "Set-Cookie": "mn_geo=%7B%22loaded%22%3Atrue%2C%22status%22%3A%22success%22%2C%22locationName%22%3A%22Portland%2C%20OR%22%2C%22originalLocationName%22%3A%22Portland%2C%20OR%22%2C%22validUntil%22%3A%222025-12-17T11%3A01%3A06.779Z%22%7D;path=/;expires=1765969266779, mn_ja3=84442eae56523a0a09a58c8ad56661b2;Path=/;Max-Age=31536000",
+      "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "Content-Encoding": "gzip",
+      "x-envoy-upstream-service-time": "67",
+      "x-frame-options": "SAMEORIGIN",
+      "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+      "x-content-type-options": "nosniff",
+      "referrer-policy": "strict-origin",
+      "x-ja3-fingerprint": "84442eae56523a0a09a58c8ad56661b2",
+      "Vary": "Accept-Encoding",
+      "X-Cache": "Miss from cloudfront",
+      "Via": "1.1 bafc250db6f7cbd43d1e23b2a31d8002.cloudfront.net (CloudFront)",
+      "X-Amz-Cf-Pop": "HIO52-P2",
+      "X-Amz-Cf-Id": "Vu7Va5vAs-SvOroKw2U0X4Iwkkmg_g2hwI0Fme5B5wDkXpC7j5aIDw=="
+    }
+  },
+  "analysis": {
+    "size_bytes": 217766,
+    "size_kb": 212.66,
+    "max_nesting_depth": 20,
+    "frameworks_detected": [],
+    "js_indicators": [
+      "loading_placeholder",
+      "noscript_fallback"
+    ],
+    "script_count": 15,
+    "inline_script_chars": 34188,
+    "has_json_ld": false,
+    "tag_counts": {
+      "div": 389,
+      "span": 18,
+      "a": 61,
+      "img": 1,
+      "table": 0,
+      "form": 1
+    }
+  }
+}
