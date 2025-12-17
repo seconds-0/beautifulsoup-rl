@@ -1,0 +1,46 @@
+{
+  "fetch": {
+    "url": "https://www.booking.com/searchresults.html?ss=San+Francisco",
+    "status_code": 202,
+    "content_length": 3962,
+    "encoding": "ISO-8859-1",
+    "fetched_at": "2025-12-17T00:08:16.845857",
+    "headers": {
+      "Content-Type": "text/html",
+      "Content-Length": "3962",
+      "Connection": "keep-alive",
+      "server": "nginx",
+      "date": "Wed, 17 Dec 2025 08:08:16 GMT",
+      "set-cookie": "_implmdnbl=2__1__0; path=/; expires=Fri, 18-Dec-2020 08:08:16 GMT; HttpOnly, bkng=11UmFuZG9tSVYkc2RlIyh9Yaa29%2F3xUOLbiKbS0JOgDBIeAUv7r%2BvxyRtaZwehiV%2FUNQx1eHypCgM0646sl%2Fne6iVNQ0Ot1XwD%2BgAhGRE3sQcqkldsOIjK6LXxwiP%2Bsg6xXRK4713bFtOqhYZR%2BzDKOVzBWjR4WMNubS4noplnEsk6EUHbOmUL%2FNM5fOnIIwPG; domain=.booking.com; path=/; expires=Mon, 16-Dec-2030 08:08:16 GMT; Secure; HTTPOnly; SameSite=None, bkng_sso_auth=CAIQm8CWywYaZs0JIoCPgm0NmdxyJPkfyw5JEBOQsJvAG0GT+95UvNkAU2K0wuiKq45mXY85FVAzTDGaMWPbXdNaSeqPTP4gltLg663+qjB5voaoe0UdkJfuiDs/OTv/vi41JHGAeZqCz8Ef+VMCeA==; Domain=.booking.com; Path=/; Expires=Fri, 17 Dec 2027 08:08:16 GMT; HttpOnly; Secure; SameSite=Lax, pcm_consent=analytical%3Dtrue%26countryCode%3DUS%26consentId%3D3e8c8ea4-b1bb-4eed-a713-69576fabfa5e%26consentedAt%3D2025-12-17T08%3A08%3A16.673Z%26expiresAt%3D2026-06-15T08%3A08%3A16.673Z%26implicit%3Dtrue%26marketing%3Dtrue%26regionCode%3DOR%26regulation%3Dnone%26legacyRegulation%3Dnone; Domain=.booking.com; Path=/; Expires=Thu, 17 Dec 2026 08:08:16 GMT; HttpOnly; Secure; SameSite=Lax",
+      "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+      "content-security-policy-report-only": "frame-ancestors 'none'; report-uri https://nellie.booking.com/csp-report-uri?type=report&tag=112&pid=15c53938a38f0022&e=UmFuZG9tSVYkc2RlIyh9YXZqW3zWGZ0-0WRWNuR2jaaAL-ohLQJ09BIZW0mIXsxuwPL-mRUYVgzdDSpFsMP9TRHcKAYRyCkn",
+      "x-xss-protection": "1; mode=block",
+      "X-Cache": "Miss from cloudfront",
+      "Via": "1.1 f193acd25f2604e189bfbfaf539aaa06.cloudfront.net (CloudFront)",
+      "X-Amz-Cf-Pop": "HIO52-P1",
+      "X-Amz-Cf-Id": "2LDuMiuPsdu6PlThsNTVOW8MjwyEY48Uy1GNdqSZ687BK7koePdIvw==",
+      "Accept-CH": "ECT",
+      "Server-Timing": "cdn-upstream-layer;desc=\"REC\",cdn-upstream-dns;dur=0,cdn-upstream-connect;dur=1,cdn-upstream-fbl;dur=209,cdn-cache-miss,cdn-pop;desc=\"HIO52-P1\",cdn-rid;desc=\"2LDuMiuPsdu6PlThsNTVOW8MjwyEY48Uy1GNdqSZ687BK7koePdIvw==\",cdn-downstream-fbl;dur=240"
+    }
+  },
+  "analysis": {
+    "size_bytes": 3962,
+    "size_kb": 3.87,
+    "max_nesting_depth": 2,
+    "frameworks_detected": [],
+    "js_indicators": [
+      "noscript_fallback"
+    ],
+    "script_count": 5,
+    "inline_script_chars": 2944,
+    "has_json_ld": false,
+    "tag_counts": {
+      "div": 1,
+      "span": 0,
+      "a": 0,
+      "img": 0,
+      "table": 0,
+      "form": 0
+    }
+  }
+}
