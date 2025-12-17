@@ -1,0 +1,52 @@
+{
+  "fetch": {
+    "url": "https://www.cnn.com/2025/12/16/politics/travel-ban-trump-expands-countries",
+    "status_code": 200,
+    "content_length": 624135,
+    "encoding": "utf-8",
+    "fetched_at": "2025-12-16T23:52:56.093042",
+    "headers": {
+      "Connection": "keep-alive",
+      "Content-Length": "659232",
+      "access-control-allow-origin": "*",
+      "content-type": "text/html; charset=utf-8",
+      "x-live-story-updates-allow": "true",
+      "x-xss-protection": "1; mode=block",
+      "x-content-hub": "build-env=prod; unique-deployment-key=rn11206n; build-version=v6.11.35-0-g559258f21b; build-commit-hash=559258f21b89aafbcb21e9ca48a1f4d50c4f773e",
+      "content-security-policy": "default-src 'self' blob: https://*.cnn.com:* http://*.cnn.com:* *.cnn.io:* *.cnn.net:* *.turner.com:* *.turner.io:* *.ugdturner.com:* courageousstudio.com *.vgtf.net:*; script-src 'unsafe-eval' 'unsafe-inline' 'self' *; style-src 'unsafe-inline' 'self' blob: *; child-src 'self' blob: *; frame-src 'self' *; object-src 'self' *; img-src 'self' data: blob: *; media-src 'self' data: blob: *; font-src 'self' data: *; connect-src 'self' data: *; frame-ancestors 'self' https://*.cnn.com:* http://*.cnn.com https://*.cnn.io:* http://*.cnn.io:* *.turner.com:* courageousstudio.com;",
+      "x-last-modified": "Wed, 17 Dec 2025 00:14:36 GMT",
+      "x-content-type-options": "nosniff",
+      "cache-control": "max-age=60",
+      "Content-Encoding": "br",
+      "Via": "1.1 varnish, 1.1 varnish",
+      "Accept-Ranges": "bytes",
+      "Age": "2429",
+      "Date": "Wed, 17 Dec 2025 07:52:56 GMT",
+      "set-cookie": "SecGpc=0; Domain=.cnn.com; Path=/; SameSite=None; Secure, countryCode=US; Domain=.cnn.com; Path=/; SameSite=None; Secure, stateCode=OR; Domain=.cnn.com; Path=/; SameSite=None; Secure, geoData=portland|OR|97212|US|NA|-800|cable|45.550|-122.640|820; Domain=.cnn.com; Path=/; SameSite=None; Secure, FastAB=0=272,1=695,2=812,3=639,4=083,5=227,6=168,7=350,8=357,9=537,10=548,11=325,12=217,13=856,14=011,15=883,16=306,17=150,18=369,19=624,h=80,c=69426158,u=69426158; Domain=.cnn.com; Path=/; Expires=Thu, 17 Dec 2026 07:52:56 GMT; HttpOnly; SameSite=None; Secure, wbdFch=c2ded2160a3c7225f242e80b7bf6fcb207de74b0; Domain=www.cnn.com; Path=/2025/12/16/politics/travel-ban-trump-expands-countries; Max-Age=30; SameSite=None; Secure",
+      "X-Served-By": "cache-iad-kjyo7100074-IAD, cache-iad-kjyo7100063-IAD, cache-pdx12331-PDX",
+      "X-Cache": "MISS, HIT, HIT",
+      "X-Cache-Hits": "0, 11, 0",
+      "X-Timer": "S1765957976.029642,VS0,VE2",
+      "Vary": "Accept-Encoding,Origin,Accept-Language",
+      "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400"
+    }
+  },
+  "analysis": {
+    "size_bytes": 624135,
+    "size_kb": 609.51,
+    "max_nesting_depth": 0,
+    "frameworks_detected": [],
+    "js_indicators": [],
+    "script_count": 0,
+    "inline_script_chars": 0,
+    "has_json_ld": false,
+    "tag_counts": {
+      "div": 0,
+      "span": 0,
+      "a": 0,
+      "img": 0,
+      "table": 0,
+      "form": 0
+    }
+  }
+}

@@ -1173,3 +1173,188 @@ result = price.get_text(strip=True)  # "$134.97MSRP:$145(7%OFF)"
 2. **JSON-LD as price source**: Newegg has price only in structured data
 3. **Pure SPA detection**: Wayfair returns depth=0, no h1
 4. **Microdata variance**: Zappos (33 attrs) vs Target (0 attrs)
+
+---
+
+# Day 3: News/Media
+
+## Sites: CNN, BBC, NPR, The Guardian, Reuters
+
+---
+
+## CNN
+
+### Site Overview
+- **URL**: https://www.cnn.com
+- **Tech Stack**: Pure SPA (React?)
+- **Anti-bot**: Low (accepts requests)
+- **Overall Difficulty**: 5/5
+
+### Key Discovery: Pure JavaScript SPA
+
+CNN articles are **completely JS-rendered**:
+- No `<h1>` in static HTML
+- No `<article>` element
+- No author, date, or body content
+- No JSON-LD structured data
+- 609KB of essentially empty shell
+
+### Task 1: Extract Article Title ❌ (JS-REQUIRED)
+
+**Solution**:
+```python
+# BS4 CANNOT extract ANYTHING from CNN articles
+# Entire page content is JavaScript-rendered
+```
+
+**Current Archetype Coverage**: mvp.limit_js_required ✅
+
+---
+
+## BBC News
+
+### Site Overview
+- **URL**: https://www.bbc.com/news
+- **Tech Stack**: Custom framework, rich semantic HTML
+- **Anti-bot**: Low (accepts requests)
+- **Overall Difficulty**: 2/5
+
+### Key Discovery: Testing ID Paradise
+
+BBC is **extremely BS4-friendly**:
+- **818 data-testid attributes!** (most we've seen)
+- 52 h2 headlines in static HTML
+- 76 news article links
+- Well-structured semantic HTML
+
+### Task 1: Extract Headlines ✅
+
+**Solution**:
+```python
+headlines = soup.find_all("h2")
+# Returns 52 headline elements!
+```
+
+### Task 2: Extract Article Links ✅
+
+**Solution**:
+```python
+links = [a for a in soup.find_all("a", href=True)
+         if "/news/" in a.get("href", "")]
+# Returns 76 article links
+```
+
+**Difficulty**: 1/5
+
+**Key Insight**: BBC's 818 data-testid attributes make it perfect for stable selectors!
+
+---
+
+## NPR
+
+### Site Overview
+- **URL**: https://www.npr.org
+- **Tech Stack**: Bootstrap, semantic HTML
+- **Anti-bot**: Low (accepts requests)
+- **Overall Difficulty**: 2/5
+
+### Key Discovery: Clean Semantic HTML
+
+NPR has **textbook-perfect HTML structure**:
+- 40 `<article>` elements with proper structure
+- 40 `<time>` elements with `datetime` attributes
+- 24 h2 headlines
+- Clean separation of concerns
+
+### Task 1: Extract Article Cards ✅
+
+**HTML Pattern**:
+```html
+<article>
+  <h2>Headline</h2>
+  <time datetime="2025-12-17">...</time>
+  <p>Teaser text...</p>
+</article>
+```
+
+**Solution**:
+```python
+articles = soup.find_all("article")
+for article in articles:
+    headline = article.find("h2").get_text(strip=True)
+    date = article.find("time").get("datetime")
+```
+
+**Difficulty**: 1/5
+
+**Key Insight**: NPR is the most semantically correct news site we've tested!
+
+---
+
+## The Guardian
+
+### Site Overview
+- **URL**: https://www.theguardian.com
+- **Tech Stack**: Custom, data-link-name heavy
+- **Anti-bot**: Low (accepts requests)
+- **Overall Difficulty**: 2/5
+
+### Key Discovery: data-link-name for Analytics
+
+Guardian uses custom data attributes for analytics:
+- 476 `data-link-name` attributes
+- 44 `data-component` attributes
+- 150 h3 headline elements
+- Large page (1.2MB) but well-structured
+
+### Task 1: Extract Headlines ✅
+
+**Solution**:
+```python
+headlines = soup.find_all("h3")
+# Returns 150 headlines
+```
+
+**Difficulty**: 2/5
+
+---
+
+## Reuters
+
+### Site Overview
+- **URL**: https://www.reuters.com
+- **Anti-bot**: **MEDIUM** - Returns 401 Forbidden
+- **Overall Difficulty**: N/A (blocked)
+
+### Key Discovery: API Authentication Required
+
+Reuters returns **401 HTTP Forbidden**:
+- Not a standard 403 bot block
+- Likely requires API authentication
+- Different from Akamai/DataDome patterns
+
+---
+
+# Day 3 Summary
+
+| Site | Anti-bot | Content Static? | Best Feature | Key Finding |
+|------|----------|----------------|--------------|-------------|
+| CNN | Low | ❌ Pure SPA | None | Completely JS-rendered |
+| BBC | Low | ✅ | 818 data-testid | Best test selectors |
+| NPR | Low | ✅ | Semantic HTML | Perfect article/time structure |
+| Guardian | Low | ✅ | 476 data-link-name | Analytics attrs useful |
+| Reuters | Medium | N/A | BLOCKED | 401 auth required |
+
+## News Site Patterns
+
+1. **CNN = Wayfair of news**: Pure SPA, zero static content
+2. **BBC = Testing heaven**: 818 data-testid for stable selectors
+3. **NPR = Semantic perfection**: article/time/h2 structure
+4. **Reuters blocks differently**: 401 vs 403 vs timeout
+
+## Running Totals
+
+- **Sites analyzed**: 13
+- **Extractable**: 8 (Amazon, eBay, Walmart, Newegg, Zappos, BBC, NPR, Guardian)
+- **Blocked**: 3 (Etsy, Best Buy, Reuters)
+- **Pure JS SPA**: 3 (Wayfair, Target-price, CNN)
