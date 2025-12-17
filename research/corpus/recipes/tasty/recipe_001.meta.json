@@ -1,0 +1,54 @@
+{
+  "fetch": {
+    "url": "https://tasty.co/recipe/the-best-chewy-chocolate-chip-cookies",
+    "status_code": 200,
+    "content_length": 80809,
+    "encoding": "utf-8",
+    "fetched_at": "2025-12-17T00:06:47.377560",
+    "headers": {
+      "Connection": "keep-alive",
+      "Content-Length": "85295",
+      "content-security-policy": "upgrade-insecure-requests",
+      "strict-transport-security": "max-age=31536000",
+      "x-xss-protection": "1; mode=block",
+      "server": "nginx",
+      "x-request-id": "42a4ae989b2c798d25418bfd7f0d49d4",
+      "etag": "\"64b4e-kuRGCSX1AWp27B8OfCIuHpJTDRY\"",
+      "cache-control": "no-cache, no-store, must-revalidate",
+      "x-content-type-options": "nosniff",
+      "pragma": "no-cache",
+      "document-policy": "js-profiling",
+      "expires": "0",
+      "content-type": "text/html; charset=utf-8",
+      "Content-Encoding": "br",
+      "Via": "1.1 varnish, 1.1 varnish",
+      "Accept-Ranges": "bytes",
+      "Age": "3545",
+      "Date": "Wed, 17 Dec 2025 08:06:47 GMT",
+      "Set-Cookie": "bf-geo-country=US; expires=Thu, 18 Dec 2025 08:06:47 GMT; path=/; domain=tasty.co;, ccpa=true; expires=Wed, 31 Dec 2025 08:06:47 GMT; path=/; domain=tasty.co;",
+      "Timing-Allow-Origin": "*",
+      "X-Served-By": "cache-iad-kiad7000082-IAD, cache-iad-kiad7000076-IAD, cache-pdx12321-PDX",
+      "X-Cache": "MISS, HIT, HIT",
+      "X-Cache-Hits": "0, 57, 0",
+      "Vary": "Accept-Encoding, X-BF-Canary, X-BF-Canary-Site-Router, X-BF-Canary-Perimeter, X-BF-Canary-Feed-UI, X-BF-Canary, X-BF-Canary-Site-Router, X-BF-Canary-Perimeter, X-BF-Canary-Feed-UI"
+    }
+  },
+  "analysis": {
+    "size_bytes": 80809,
+    "size_kb": 78.92,
+    "max_nesting_depth": 0,
+    "frameworks_detected": [],
+    "js_indicators": [],
+    "script_count": 0,
+    "inline_script_chars": 0,
+    "has_json_ld": false,
+    "tag_counts": {
+      "div": 0,
+      "span": 0,
+      "a": 0,
+      "img": 0,
+      "table": 0,
+      "form": 0
+    }
+  }
+}
