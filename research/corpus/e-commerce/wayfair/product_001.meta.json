@@ -1,0 +1,59 @@
+{
+  "fetch": {
+    "url": "https://www.wayfair.com/furniture/pdp/andover-mills-cyril-task-chair-w003187370.html",
+    "status_code": 200,
+    "content_length": 347768,
+    "encoding": "utf-8",
+    "fetched_at": "2025-12-16T23:46:30.956161",
+    "headers": {
+      "Date": "Wed, 17 Dec 2025 07:46:29 GMT",
+      "Content-Type": "text/html; charset=utf-8",
+      "Transfer-Encoding": "chunked",
+      "Connection": "keep-alive",
+      "Content-Encoding": "br",
+      "CF-Ray": "9af4ce918badc4ac-PDX",
+      "CF-Cache-Status": "DYNAMIC",
+      "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "Link": "<https://assets.wfcdn.com/>; rel=preconnect; crossorigin,<https://www.google-analytics.com/>; rel=preconnect; crossorigin,<https://client.perimeterx.net/>; rel=preconnect; crossorigin,<https://collector-PX3Vk96I6iperimeterx.net/>; rel=\"preconnect; crossorigin,",
+      "Set-Cookie": "CSNUtId=2a7c5ca3-9cfb-4796-9bca-b97bbf10f536; Max-Age=1765957588; Domain=.wayfair.com; Path=/; Expires=Tue, 02 Dec 2081 15:32:57 GMT; Secure; SameSite=None",
+      "Strict-Transport-Security": "max-age=15552000; includeSubDomains; preload",
+      "Vary": "accept-encoding",
+      "Lb_Id": "pdx1.130.153",
+      "NEL": "{\"report_to\":\"network-errors\",\"max_age\":7776000,\"include_subdomains\":true,\"success_fraction\":0,\"failure_fraction\":0.05,\"response_headers\":[\"TXID\"]}",
+      "Report-To": "{\"group\":\"network-errors\",\"max_age\":7776000,\"endpoints\":[{\"url\":\"https://nel.wayfair.io/nel/cloudflare\"}]}",
+      "X-Request-ID": "d6a7188a98091501ebe84bf929a4ae40",
+      "X-Request-Time": "0.321",
+      "X-Upstream-Connect-Time": "0.008",
+      "X-Upstream-Header-Time": "0.320",
+      "X-Upstream-Status": "200",
+      "content-security-policy": "frame-ancestors self https://*.wayfair.com https://*.wayfair.ca https://*.wayfair.co.uk https://*.wayfair.de https://*.wayfair.ie https://*.jossandmain.com https://*.allmodern.com https://*.birchlane.com https://*.perigold.com",
+      "feature-policy": "sync-xhr 'none'",
+      "txid": "hm5jgctURfWz+V7lsiYV0w==",
+      "wf_id": "wf_tx",
+      "wfr-cdn-valid": "YesCdn",
+      "x-envoy-upstream-service-time": "240",
+      "x-frame-options": "SAMEORIGIN",
+      "x-sf-public-gateway": "sf-public-gateway",
+      "Server": "cloudflare",
+      "alt-svc": "h3=\":443\"; ma=86400"
+    }
+  },
+  "analysis": {
+    "size_bytes": 347768,
+    "size_kb": 339.62,
+    "max_nesting_depth": 0,
+    "frameworks_detected": [],
+    "js_indicators": [],
+    "script_count": 0,
+    "inline_script_chars": 0,
+    "has_json_ld": false,
+    "tag_counts": {
+      "div": 0,
+      "span": 0,
+      "a": 0,
+      "img": 0,
+      "table": 0,
+      "form": 0
+    }
+  }
+}

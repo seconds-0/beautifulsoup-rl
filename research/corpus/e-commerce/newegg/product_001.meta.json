@@ -1,0 +1,53 @@
+{
+  "fetch": {
+    "url": "https://www.newegg.com/p/N82E16811139251",
+    "status_code": 200,
+    "content_length": 313485,
+    "encoding": "UTF-8",
+    "fetched_at": "2025-12-16T23:47:10.892499",
+    "headers": {
+      "Content-Type": "text/html; charset=UTF-8",
+      "ntCoent-Length": "308812",
+      "NEL": "{\"report_to\": \"default\", \"max_age\": 2592000}`);",
+      "Report-To": "{\"group\":\"default\",\"max-age\":10886400,\"include_subdomains\":\"true\",\"endpoints\":[{\"url\":\"https://pf.newegg.com/csp\"}]};",
+      "x-frame-options": "SAMEORIGIN",
+      "x-page-alias": "ProductWithoutKeyword",
+      "Link": "<https://assets.adobedtm.com>;rel=preconnect,<https://c1.neweggimages.com>;rel=preconnect,<https://promotions.newegg.com>;rel=preconnect,<https://www2.newegg.com>;rel=preconnect,<https://promotions.newegg.com>;rel=preconnect,<https://pf.newegg.com>;rel=preconnect,<https://ec-apis.newegg.com>;rel=preconnect,<https://sealserver.trustwave.com>;rel=preconnect,<https://help.newegg.com>;rel=preconnect,<https://states.newegg.com>;rel=preconnect,<https://fonts.gstatic.com>;rel=preconnect,<https://secure.newegg.com>;rel=preconnect,<https://tags.tiqcdn.com>;rel=preconnect,<https://images10.newegg.com>;rel=preconnect, <https://c1.neweggimages.com>;rel=\"preconnect\",<https://imk.neweggimages.com>;rel=\"preconnect\"",
+      "x-ingress-nginx": "website-product",
+      "X-Ver": "04142020",
+      "X-XSS-Protection": "1; mode=block",
+      "Accept-Ranges": "bytes",
+      "Content-Security-Policy": "upgrade-insecure-requests",
+      "Cache-Control": "private",
+      "X-Akamai-Transformed": "9 - 0 pmb=mRUM,2",
+      "Content-Encoding": "gzip",
+      "Date": "Wed, 17 Dec 2025 07:47:10 GMT",
+      "Transfer-Encoding": "chunked",
+      "Connection": "keep-alive, Transfer-Encoding",
+      "Vary": "Accept-Encoding",
+      "Set-Cookie": "NVTC=248326808.0001.370e9bed6.1765957630.1765957630.1765957630.1; Expires=Sat, 16-Dec-28 07:47:10 GMT; Domain=newegg.com; Path=/; Secure; SameSite=None, NID=8O8O9D2Q1j6I4M345z; Expires=Sat, 16-Dec-28 07:47:10 GMT; Domain=newegg.com; Path=/; Secure; SameSite=None, NV_NVTCTIMESTAMP=1765957631; Expires=Sat, 16-Dec-28 07:47:10 GMT; Domain=newegg.com; Path=/; Secure; HttpOnly; SameSite=None, NE_STC_V1=5081a3dcddf73b01b498a860fed2b03a3e9b1a0bc40c73b086db10c12866ccb017bf0abe;expires=Wed, 17-Dec-2025 09:00:16 GMT;path=/;secure;httponly, AKA_A2=A; expires=Wed, 17-Dec-2025 08:47:10 GMT; path=/; domain=newegg.com; secure; HttpOnly",
+      "Server-Timing": "cdn-cache; desc=MISS, edge; dur=127, origin; dur=473, ak_p; desc=\"1765957630251_389380358_193124250_59896_6849_20_39_-\";dur=1",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains"
+    }
+  },
+  "analysis": {
+    "size_bytes": 313485,
+    "size_kb": 306.14,
+    "max_nesting_depth": 22,
+    "frameworks_detected": [
+      "Bootstrap"
+    ],
+    "js_indicators": [],
+    "script_count": 71,
+    "inline_script_chars": 201606,
+    "has_json_ld": true,
+    "tag_counts": {
+      "div": 560,
+      "span": 84,
+      "a": 106,
+      "img": 51,
+      "table": 7,
+      "form": 1
+    }
+  }
+}
