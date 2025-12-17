@@ -1358,3 +1358,137 @@ Reuters returns **401 HTTP Forbidden**:
 - **Extractable**: 8 (Amazon, eBay, Walmart, Newegg, Zappos, BBC, NPR, Guardian)
 - **Blocked**: 3 (Etsy, Best Buy, Reuters)
 - **Pure JS SPA**: 3 (Wayfair, Target-price, CNN)
+
+---
+
+# Day 4: Jobs
+
+## Sites: Indeed, Monster, LinkedIn, Glassdoor, ZipRecruiter
+
+---
+
+## Indeed
+
+### Site Overview
+- **URL**: https://www.indeed.com
+- **Tech Stack**: Unknown - returns compressed/binary content
+- **Anti-bot**: Medium (accepts but returns garbage)
+- **Overall Difficulty**: 5/5
+
+### Key Discovery: Binary/Compressed Response
+
+Indeed returns **unreadable binary data**:
+- 150KB response but text is garbled
+- Looks like undecompressed gzip or Brotli encoding issue
+- No HTML structure visible
+- May require specific Accept-Encoding headers
+
+**Current Archetype Coverage**: NEEDS NEW - encoding_issues
+
+---
+
+## Monster
+
+### Site Overview
+- **URL**: https://www.monster.com
+- **Tech Stack**: Custom framework
+- **Anti-bot**: Low (accepts requests)
+- **Overall Difficulty**: 4/5
+
+### Key Discovery: Shell Only - No Job Data
+
+Monster returns **navigation shell without job content**:
+- 6 h2 elements (but just navigation headers)
+- 43 data-testid attributes
+- 0 article elements
+- Job listings are JS-rendered
+
+**Current Archetype Coverage**: mvp.limit_js_required ✅
+
+---
+
+## LinkedIn Jobs
+
+### Site Overview
+- **URL**: https://www.linkedin.com/jobs
+- **Tech Stack**: Bootstrap + custom
+- **Anti-bot**: Low (public job search accessible!)
+- **Overall Difficulty**: 2/5
+
+### Key Discovery: Public Jobs Are Scrapeable!
+
+LinkedIn's **public job search** (no login required) has:
+- 7 job cards in static HTML
+- Job titles in h3 elements
+- Company names visible
+- `data-tracking-id` for analytics
+
+### Task 1: Extract Job Titles ✅
+
+**HTML Pattern**:
+```html
+<div class="base-card job-search-card">
+  <h3 class="base-search-card__title">Software Engineer, Fullstack</h3>
+</div>
+```
+
+**Solution**:
+```python
+titles = soup.find_all("h3", class_=lambda c: c and "title" in str(c))
+# Returns 9 job titles
+```
+
+**Difficulty**: 2/5
+
+**Key Insight**: LinkedIn's PUBLIC job search is BS4-friendly (unlike logged-in feed)!
+
+---
+
+## Glassdoor
+
+### Site Overview
+- **URL**: https://www.glassdoor.com
+- **Anti-bot**: **HIGH** - Returns 403 Forbidden
+- **Overall Difficulty**: N/A (blocked)
+
+### Key Discovery: Cloudflare Protection
+
+Glassdoor blocks with 403:
+- Different from Indeed's encoding issue
+- Clean block, no timeout
+
+---
+
+## ZipRecruiter
+
+### Site Overview
+- **URL**: https://www.ziprecruiter.com
+- **Anti-bot**: **HIGH** - Returns 403 Forbidden
+- **Overall Difficulty**: N/A (blocked)
+
+---
+
+# Day 4 Summary
+
+| Site | Anti-bot | Content Static? | Method | Key Finding |
+|------|----------|----------------|--------|-------------|
+| Indeed | Medium | ❌ Encoding | - | Returns binary garbage |
+| Monster | Low | ❌ JS Shell | - | Nav only, jobs JS-rendered |
+| LinkedIn | Low | ✅ Public jobs | Class selectors | 7 jobs in static HTML! |
+| Glassdoor | HIGH | N/A | BLOCKED | 403 Forbidden |
+| ZipRecruiter | HIGH | N/A | BLOCKED | 403 Forbidden |
+
+## Jobs Site Patterns
+
+1. **Most job sites heavily protected**: 2/5 blocked outright
+2. **LinkedIn public search works!**: Best surprise finding
+3. **Indeed encoding weirdness**: May need special handling
+4. **Monster = shell only**: Like CNN, all content is JS
+
+## Running Totals
+
+- **Sites analyzed**: 18
+- **Extractable**: 9 (+ LinkedIn)
+- **Blocked**: 5 (+ Glassdoor, ZipRecruiter)
+- **Pure JS SPA**: 4 (+ Monster)
+- **Encoding issues**: 1 (Indeed)
