@@ -1,0 +1,58 @@
+{
+  "fetch": {
+    "url": "https://www.allrecipes.com/recipe/10813/best-chocolate-chip-cookies/",
+    "status_code": 200,
+    "content_length": 661572,
+    "encoding": "utf-8",
+    "fetched_at": "2025-12-17T00:05:24.930976",
+    "headers": {
+      "Date": "Wed, 17 Dec 2025 08:05:24 GMT",
+      "Content-Type": "text/html;charset=utf-8",
+      "Transfer-Encoding": "chunked",
+      "Connection": "keep-alive",
+      "Content-Encoding": "gzip",
+      "CF-Ray": "9af4ea4daf97d82e-PDX",
+      "CF-Cache-Status": "DYNAMIC",
+      "Cache-Control": "max-age=1800, private",
+      "Expires": "Thu, 01 Jan 1970 00:00:00 GMT",
+      "Link": "<//www.allrecipes.com/static/4.131.0/cache/eNqtWG2aoyAMvtDyeIj9u5dAjMqUDxfQTvf0G9BWUWSwMz9aSEheSAgkWFlHHWeVpMoJqJi1lefAr-o4wCXtgAyCMui1aMCkhCQY3nCqKq4a-HxJhCHK1UFFy0ErUM5WtaGqQamH8T_yBFo1dDMKsFsVQ7kgE29AhwlCLydfU7vYyAht7Lq6VQTZ1cnQBKrRphpG24vH0mTsufOmA2x74F3vfvdUdfCHWwcKTJKZweqErqlALdoEZbr1fqncEVbRiXc4plU1Oi64exBkbftfT7IRJgQ37lvTBQTSat1kYFptJG4hUMN64oltP6MnwVofwTVVfgtismzZs81h1Wu3TLUdhbDMAKigHpM_AHHB-VYzTkXACIfhRaZ2O62X0EmdT2B8ALLd7CMreQoNMnD9S0uYVnhE3KJ9ETexMCm9t4KKJS2dtOEO0twfgiGECoOqZ3eOCOFUa2qa3IwbsbB3SbWz6wPPlcPAn5vMyU7L5UMzyM5h-epeUhVc3WxElKk32jXU9mRUfAJjl_hMcjOAmGmE7pameMs5RqWxjjtUOx8he9SjOXC3Apy3fFnIgZPZrivax7mfR81H09LPnkghnjbupRPeChmZfNyxaHhgRD07V478nN5noFkb8cpCozZ4OpgZZW23fYKXphYiwfoWbIGPn7YtqTMmS5ySV7w8sQRHIyJXnj3wUPrdta9-bsVP8QuidHS9NsRpLRwfclY5Z3g9-s2ICIL3rCyoyJYZqoKZoiXNZ-RklWfZD2NrzpW2pwaSzPczYAI6jXzujAgilOkoeQJybqOBicMdaymTYKXsi-1IyJ6XEyhgiEEh1SVYGZPDAybY2PG2xKrY6S_6_f2Kud_Ha_DMcmF3ZIlpsaa9ovoxygHjn0RL2bOz9bsQ-k5czy3KDyhz4JQsA1Os0T7rRozMvNaZkbnRQPPyZu-kCH_X1OZACv9X9m5pSS00u9n1TZ3CkICZe5mo5R1OTxgd_C2X843CgWkO8blb4khhvO86NJDn-EVX3eqrFGJ6uAh4fufc6Q1SvCIIMBPOSiz_B_j6_xitL3Kzo9eiogU6M3z1Wq2VZ8T_Zrw8sSKonNF0An8xAhkM39xkO_77N9ABO4WaWaDEggTz9p4uUVUjZv6Q91vKzvnEjlJS8_hJSEFrEG84bY-fx00t1H82Iv67VwiHlcwp2b_jM7njk4TdHmTmlOrEwgXWCm4dHs_5hTr3U-pDrzFfLG-WLXGhot1PmZlu7Jj_LcXGplv0ybAV8Mlr4S-H3LUALLwR_H4bRtJkRp_hQ554G9beF9Lhr6BqCnih4N8z_gMSfn57.min.css>; rel=preload; as=style; nopush, <//www.allrecipes.com/static/fonts/copperpot.woff2>; rel=preload; as=font; type=\"font/woff2\"; crossorigin; nopush, <//www.allrecipes.com/static/fonts/copperpot-700.woff2>; rel=preload; as=font; type=\"font/woff2\"; crossorigin; nopush, <//www.googletagmanager.com/gtm.js?id=GTM-P3X3VT7>; rel=preload; as=script; nopush, <//www.allrecipes.com/static/fonts/sourcesanspro.woff2>; rel=preload; as=font; type=\"font/woff2\"; crossorigin; nopush, <//www.allrecipes.com/static/fonts/sourcesanspro-700.woff2>; rel=preload; as=font; type=\"font/woff2\"; crossorigin; nopush, <//www.googletagmanager.com/gtag/js?id=G-9D9M6LNQMD&l=dataLayer&cx=c>; rel=preload; as=script; nopush, <//securepubads.g.doubleclick.net/tag/js/gpt.js>; rel=preload; as=script; nopush, <//www.allrecipes.com/static/4.131.0/cache/eNqNVFFOwzAMvRChZxgI8YU0wS7gpm7rNU0qxynaTk9SAeuGO_GRKvF7dtxnO1UUELLVCF4cVsdYCYPFh-rabsM4BY9eYuXgFJIU5jEa26MdbsnHQjqfIp0xM4JvqbulOKrjNY-8IEe0QsFrAQM02CiADWEgjAqShByJjrXe3IObMN7Fi0YD-e4uaUbfBK6k5yDZtBEGDTRxE7Ofs4KNeWNqRhimkHW7uGcMnGO0NGVJN5NbVdNGbpePdg2cai3tCTo0M-HnnbidjEt1HNnB_MilxUp1TLUCPL_tL9bQJIdLw7wfnsragpab8uZlxrUuK9ZuhHPw1T7VjmKPvEsNobcZ_GvS_KH5bmkDE12fNLpSg3WsNxQmGw8lbWSVk5aRMK0LgW-PmsOHC_qfv-4PZWmQAHcopaEjtJhVEI0V7XWvXhDGrHfCw22dVw2RPQuzm0QP0DLGHmqHu7_j8PtaxMfkZyTX56HfSKS0vtlWfZURU9eLYSC3eP6e_u9DufKeBM3FbHLKeTz4C-_eAzQ.min.js>; rel=preload; as=script; nopush; group=top, <//www.allrecipes.com/static/4.131.0/cache/eNqNVluWmzAM3VBVzqxhfrsJ2Qgw8YP6QcKsvjKQTEgY1x8cS9eWrLdpQsSoZGPQRk3NGBrDBMxoldYIQXqn9a_meEo6MzlLNoZG2Ujeom5a6shn-ZXw1H4LuTZpCs9S0d8Au05phZEgYt-Tf0W1shfwdPUqbopZ3pCXVDpXsJRum6Xqa5MJWecb-GY1H9L4tQC2Bd3ScRhuMaGGCRezYuMpXFByVW1PvA6k-iF-Dmh7-qNCJMv-n4EFXb12gpMyELarcF4ex2vP7Wq1Eqs3-PGxQKtQu75WFYBZSmZanFXPe842KXI-4wIMPdMF4c55E5pA6OUAmXmmC3KGQsCeQKDNkT2yBbnN9X1Zq6XOsz0U2bFvsk60S1pzCxLZVfzIlhrMmBx5kmqiAB3OLnfHOXpW8fc9yJko1azwaFu-bvH5Ay54Pnoo83fb7gb43L0ixciOnmC1mShFkq5BU-QW3-v2HSkZOquWHIzXSeOSR9BO_NQfOvwWfaBYl1rhuRakT0aEZ3qfuCdQxeSIzumopvtakMAUB-fhLjC-IjX5C05yCCEM6OkULNXNmuLweG8mzw_J_xN_d_Rw9Xjkq0qPZkVXbnl_Ap0NN_QMsC37Cutkt3GX3heYBhcdeCXEo6QPWOkdNTyDsiu96mo8aCkit-YrXyM6JjNBtunZ9le4YGqIPsmY-Il_hGGznicTt--f_FAJd_tE71IgXTLJ8sa8ur1RNeZrH0DZnq9XJbyqgrdZesULnWFVKsjPfCuE_AeB7ZhC_lsp7taoNfxOgIqvfI2oTZFHN48YnvDyZxw0CtI_zbLA2GURqhzH8DfdG1CCdvICG3LWQVsf7GP4mSldIDCs6jtNNyU0lf_CAsl1tGaPvYRz9h-chTeR.min.js>; rel=preload; as=script; nopush; group=bottom",
+      "Set-Cookie": "TMog=naec64874dc584f0885964e9b8ca4440d08; Path=/; Domain=.allrecipes.com; Expires=Mon, 4 Jan 2094 11:19:31 GMT; Max-Age=2147483647; Secure, globalTI_SID=5b38c90e-769c-4277-83b1-1b732f71857c; Path=/; Domain=.allrecipes.com; Expires=Fri, 17 Dec 2027 08:05:24 GMT; Max-Age=63072000; Secure, Mint=naec64874dc584f0885964e9b8ca4440d08; Path=/; Domain=.allrecipes.com; Secure, CSRFToken=baad0c564de46e4666dc5ac873911199; Path=/; Domain=.allrecipes.com; Secure, pc=1; Path=/; Domain=.allrecipes.com; Secure, __cf_bm=tbj35qnfrqbFGKLDFXUYPlLLyu6241Wl4LM19x4ozrU-1765958724-1.0.1.1-5pI0R3ur_hBX3IHbF5aBOqHBpP4zxcPSbKYLuFlbpQ_JoewfFv7v3vDKYYuVr77zOvGx3GV86lN2bJZA2ZscxFoJwKjj9yAYC6Szmg0QFMHEhkY2V6GEqD2Pc2cIQ0zq; path=/; expires=Wed, 17-Dec-25 08:35:24 GMT; domain=.allrecipes.com; HttpOnly; Secure; SameSite=None, _cfuvid=RrIpvJ8rMzeR3YpCN_9a.CweDqnEeS8Q0fFIizTuPKQ-1765958724878-0.0.1.1-604800000; path=/; domain=.allrecipes.com; HttpOnly; Secure; SameSite=None",
+      "Strict-Transport-Security": "max-age=15552000",
+      "Via": "1.1 google",
+      "alt-svc": "h3=\":443\"; ma=86400",
+      "content-security-policy": "frame-ancestors 'self' https://*.seo.aws.about.com https://*.dotdash.com *.allrecipes.com; upgrade-insecure-requests;",
+      "referrer-policy": "no-referrer-when-downgrade",
+      "x-abt-application-version": "4.131.0",
+      "x-content-security-policy": "frame-ancestors 'self' https://*.seo.aws.about.com https://*.dotdash.com *.allrecipes.com; upgrade-insecure-requests;",
+      "x-content-type-options": "nosniff",
+      "Server-Timing": "cfCacheStatus;desc=\"DYNAMIC\", cfOrigin;dur=0,cfEdge;dur=132",
+      "x-connection-protocol": "HTTP/1.1",
+      "nel": "{\"report_to\":\"network-errors\",\"max_age\":2592000,\"success_fraction\":0,\"failure_fraction\":1.0,\"include_subdomains\":true}",
+      "report-to": "{\"group\":\"network-errors\",\"max_age\":2592000,\"endpoints\":[{\"url\":\"https://rjs.3gl.net/hawklogserver/7823/re.p\"}]}",
+      "Server": "cloudflare"
+    }
+  },
+  "analysis": {
+    "size_bytes": 661572,
+    "size_kb": 646.07,
+    "max_nesting_depth": 18,
+    "frameworks_detected": [
+      "Bootstrap"
+    ],
+    "js_indicators": [
+      "loading_placeholder",
+      "noscript_fallback"
+    ],
+    "script_count": 7,
+    "inline_script_chars": 107062,
+    "has_json_ld": true,
+    "tag_counts": {
+      "div": 564,
+      "span": 261,
+      "a": 236,
+      "img": 66,
+      "table": 2,
+      "form": 5
+    }
+  }
+}

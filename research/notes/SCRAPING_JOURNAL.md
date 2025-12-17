@@ -1618,3 +1618,114 @@ scripts = soup.find_all("script", type="application/ld+json")
 - **Blocked**: 8 (+ Zillow, Trulia, Apartments.com)
 - **Rate limited**: 1 (Realtor.com)
 - **Pure JS SPA**: 4
+
+---
+
+# Day 6: Food/Recipes
+
+## Sites: AllRecipes, Food Network, Tasty
+
+---
+
+## AllRecipes
+
+### Site Overview
+- **URL**: https://www.allrecipes.com
+- **Tech Stack**: Bootstrap, rich structured data
+- **Anti-bot**: **LOW** (accepts requests!)
+- **Overall Difficulty**: 1/5
+
+### Key Discovery: Recipe Schema Paradise!
+
+AllRecipes has **perfect JSON-LD Recipe schema**:
+- Full Recipe schema with all fields
+- Ingredients list (11 items)
+- Instructions (9 steps)
+- Prep time, cook time, servings
+- Nutrition data
+
+### Task 1: Extract Recipe Title ✅
+
+**Solution**:
+```python
+title = soup.find("h1")
+# Returns "Best Chocolate Chip Cookies"
+```
+
+### Task 2: Extract Ingredients from HTML ✅
+
+**Solution**:
+```python
+ingredients = soup.find_all("li", class_=lambda c: c and "ingredient" in str(c).lower())
+# Returns 11 ingredient items
+```
+
+### Task 3: Extract from JSON-LD Recipe Schema ✅
+
+**Solution**:
+```python
+import json
+script = soup.find("script", type="application/ld+json")
+data = json.loads(script.string)
+# Returns full recipe data:
+# - name: "Best Chocolate Chip Cookies"
+# - recipeIngredient: 11 items
+# - recipeInstructions: 9 steps
+# - prepTime: "PT20M" (20 minutes)
+# - cookTime: "PT10M" (10 minutes)
+```
+
+**Difficulty**: 1/5
+
+**Key Insight**: Recipe sites often have the BEST structured data (for Google recipe cards)!
+
+---
+
+## Food Network
+
+### Site Overview
+- **URL**: https://www.foodnetwork.com
+- **Anti-bot**: **HIGH** - Returns 403 Forbidden
+- **Overall Difficulty**: N/A (blocked)
+
+---
+
+## Tasty (BuzzFeed)
+
+### Site Overview
+- **URL**: https://tasty.co
+- **Anti-bot**: Medium (accepts but returns binary)
+- **Overall Difficulty**: 5/5
+
+### Key Discovery: Encoding Issues
+
+Like Indeed, Tasty returns **binary/compressed data**:
+- 78KB response, depth 0
+- Text is garbled (likely Brotli encoding)
+- No HTML structure visible
+
+**Current Archetype Coverage**: NEEDS - encoding_detection
+
+---
+
+# Day 6 Summary
+
+| Site | Anti-bot | Content Static? | Method | Key Finding |
+|------|----------|----------------|--------|-------------|
+| AllRecipes | LOW | ✅ | JSON-LD Recipe | Perfect structured data! |
+| Food Network | HIGH | N/A | BLOCKED | 403 Forbidden |
+| Tasty | Medium | ❌ Encoding | - | Binary response like Indeed |
+
+## Recipe Site Patterns
+
+1. **JSON-LD Recipe schema is common**: For Google recipe cards
+2. **Food Network protected**: Owned by Discovery, heavy protection
+3. **Encoding issues persist**: Tasty and Indeed both return binary
+
+## Running Totals
+
+- **Sites analyzed**: 26
+- **Extractable**: 11 (+ AllRecipes)
+- **Blocked**: 9 (+ Food Network)
+- **Encoding issues**: 2 (Indeed, Tasty)
+- **Pure JS SPA**: 4
