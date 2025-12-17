@@ -1,0 +1,69 @@
+{
+  "fetch": {
+    "url": "https://www.bbc.com/news",
+    "status_code": 200,
+    "content_length": 326482,
+    "encoding": "utf-8",
+    "fetched_at": "2025-12-16T23:52:57.449132",
+    "headers": {
+      "Connection": "keep-alive",
+      "Content-Length": "62125",
+      "Content-Type": "text/html; charset=utf-8",
+      "belfrage-cache-status": "HIT",
+      "bid": "joan",
+      "brequestid": "7950f3223eac4d849020778e7e61ead2",
+      "bsig": "dbbc8ba7bc41ff9f463c38fdd7539655",
+      "cache-control": "public, stale-if-error=90, stale-while-revalidate=30, max-age=30",
+      "content-encoding": "gzip",
+      "etag": "\"dpn28xn89n6zwy\"",
+      "referrer-policy": "no-referrer-when-downgrade",
+      "req-svc-chain": "FASTLY,GTM,BELFRAGE,BBCX",
+      "via": "1.1 BBC-GTM, 1.1 Belfrage, 1.1 varnish",
+      "x-content-type-options": "nosniff",
+      "x-correlation-id": "94f91344-dcd2-4fe2-a1da-aec9e5183284",
+      "x-envoy-upstream-service-time": "1",
+      "x-frame-options": "SAMEORIGIN",
+      "Origin-Agent-Cluster": "?0",
+      "nel": "{\"report_to\":\"default\",\"max_age\":2592000,\"include_subdomains\":true,\"failure_fraction\":0.25}",
+      "X-BBC-Edge-Cache-Status": "HIT",
+      "report-to": "{\"group\":\"default\",\"max_age\":2592000,\"endpoints\":[{\"url\":\"https://default.bbc-reporting-api.app/report-endpoint\",\"priority\":1}],\"include_subdomains\":true}",
+      "Server": "BBC-GTM",
+      "Strict-Transport-Security": "max-age=31536000; preload",
+      "X-Robots-Tag": "bingbot: noarchive",
+      "Fastly-Restarts": "1",
+      "Accept-Ranges": "bytes",
+      "Date": "Wed, 17 Dec 2025 07:52:57 GMT",
+      "X-Fastly-Cache-Status": "HIT-STALE-CLUSTER",
+      "X-Served-By": "cache-pdx12323-PDX",
+      "X-Cache": "HIT",
+      "X-Cache-Hits": "1",
+      "X-Timer": "S1765957977.448115,VS0,VE3",
+      "X-Fastly-Pre-Flight-Cache": "MISS, HIT",
+      "X-Fastly-Pre-Flight-Cache-Status": "HIT-CLUSTER",
+      "X-cache-age": "55",
+      "X-LB-NoCache": "true",
+      "Vary": "X-BBC-Edge-Scheme,Accept-Encoding",
+      "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400"
+    }
+  },
+  "analysis": {
+    "size_bytes": 326482,
+    "size_kb": 318.83,
+    "max_nesting_depth": 21,
+    "frameworks_detected": [],
+    "js_indicators": [
+      "noscript_fallback"
+    ],
+    "script_count": 24,
+    "inline_script_chars": 97563,
+    "has_json_ld": true,
+    "tag_counts": {
+      "div": 672,
+      "span": 89,
+      "a": 241,
+      "img": 48,
+      "table": 0,
+      "form": 0
+    }
+  }
+}

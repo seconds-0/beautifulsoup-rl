@@ -1,0 +1,56 @@
+{
+  "fetch": {
+    "url": "https://www.npr.org/sections/news/",
+    "status_code": 200,
+    "content_length": 288481,
+    "encoding": "UTF-8",
+    "fetched_at": "2025-12-16T23:52:59.548114",
+    "headers": {
+      "Content-Type": "text/html; charset=UTF-8",
+      "X-Cache-NPR": "HIT",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Credentials": "true",
+      "X-NPR-Trace-ID": "renPOdmOblq",
+      "X-Content-Type-Options": "nosniff",
+      "X-XSS-Protection": "1; mode=block",
+      "X-Served-By": "pod-www-render-nginx-bd4d58697-nsdn6",
+      "Referrer-Policy": "no-referrer-when-downgrade",
+      "Strict-Transport-Security": "max-age=15724800; includeSubDomains",
+      "Access-Control-Allow-Methods": "GET, PUT, POST, DELETE, PATCH, OPTIONS",
+      "Access-Control-Allow-Headers": "DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization",
+      "Access-Control-Max-Age": "1728000",
+      "X-Akamai-Transformed": "9 - 0 pmb=mRUM,1",
+      "Vary": "Accept-Encoding",
+      "Content-Encoding": "gzip",
+      "Cache-Control": "no-cache",
+      "Expires": "Wed, 17 Dec 2025 07:52:59 GMT",
+      "Date": "Wed, 17 Dec 2025 07:52:59 GMT",
+      "Content-Length": "33932",
+      "Connection": "keep-alive",
+      "Server-Timing": "cdn-cache; desc=HIT, edge; dur=1, ak_p; desc=\"1765957979316_388944007_462872717_41_10390_17_50_-\";dur=1"
+    }
+  },
+  "analysis": {
+    "size_bytes": 288481,
+    "size_kb": 281.72,
+    "max_nesting_depth": 16,
+    "frameworks_detected": [
+      "Bootstrap"
+    ],
+    "js_indicators": [
+      "loading_placeholder",
+      "noscript_fallback"
+    ],
+    "script_count": 20,
+    "inline_script_chars": 13812,
+    "has_json_ld": false,
+    "tag_counts": {
+      "div": 347,
+      "span": 106,
+      "a": 256,
+      "img": 37,
+      "table": 0,
+      "form": 0
+    }
+  }
+}
