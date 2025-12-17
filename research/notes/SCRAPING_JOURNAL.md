@@ -1729,3 +1729,283 @@ Like Indeed, Tasty returns **binary/compressed data**:
 - **Blocked**: 9 (+ Food Network)
 - **Encoding issues**: 2 (Indeed, Tasty)
 - **Pure JS SPA**: 4
+
+---
+
+# Day 7: Travel + Final Summary
+
+## Sites: Booking.com, TripAdvisor, Kayak, Expedia
+
+---
+
+## Booking.com
+
+### Site Overview
+- **URL**: https://www.booking.com
+- **Tech Stack**: CloudFront CDN, nginx, AWS WAF
+- **Anti-bot**: **EXTREME** - Returns CAPTCHA challenge page
+- **Overall Difficulty**: N/A (CAPTCHA)
+
+### Key Discovery: AWS WAF CAPTCHA Challenge
+
+Booking.com returns a **202 Accepted** status with a 4KB shell containing:
+- Only 1 div, 5 scripts
+- 2944 chars of inline JS
+- Max depth of 2 (shell page)
+- `noscript_fallback` with "JavaScript is disabled" message
+
+**The HTML shows**:
+```html
+<div id="challenge-container"></div>
+<noscript>
+    <h1>JavaScript is disabled</h1>
+    In order to continue, we need to verify that you're not a robot.
+    This requires JavaScript. Enable JavaScript and then reload the page.
+</noscript>
+```
+
+**AWS WAF Integration**:
+- `AwsWafIntegration.getToken()` and `AwsWafIntegration.forceRefreshToken()`
+- Sets `window.awsWafCookieDomainList = ['booking.com']`
+- Loads challenge.js from booking.com
+
+**Difficulty**: N/A (not scrapable with BS4)
+
+**New Archetype Idea**: CAPTCHA shell detection - pages that respond 200/202 but contain challenge pages
+
+---
+
+## TripAdvisor
+
+### Site Overview
+- **URL**: https://www.tripadvisor.com
+- **Anti-bot**: **HIGH** - Returns 403 Forbidden
+- **Overall Difficulty**: N/A (blocked)
+
+---
+
+## Kayak
+
+### Site Overview
+- **URL**: https://www.kayak.com
+- **Tech Stack**: Varnish CDN, custom server
+- **Anti-bot**: **MEDIUM** (accepts but returns binary)
+- **Overall Difficulty**: 5/5
+
+### Key Discovery: Same Encoding Pattern as Indeed/Tasty
+
+Kayak returns **200 OK** with 198KB but:
+- Max depth 0
+- 0 divs, 0 spans, 0 everything
+- `content-encoding: br` (Brotli)
+- Text is binary/compressed garbage
+
+**Shared pattern with**: Indeed, Tasty - all return 200 but unparseable content
+
+**Current Archetype Coverage**: NEEDS - encoding_detection
+
+---
+
+## Expedia
+
+### Site Overview
+- **URL**: https://www.expedia.com
+- **Anti-bot**: **MEDIUM** - Returns 429 Too Many Requests
+- **Overall Difficulty**: N/A (rate limited)
+
+**Similar to**: Realtor.com - rate limited rather than blocked
+
+---
+
+# Day 7 Summary
+
+| Site | Anti-bot | Content Static? | Method | Key Finding |
+|------|----------|----------------|--------|-------------|
+| Booking.com | EXTREME | ❌ CAPTCHA | - | AWS WAF challenge shell |
+| TripAdvisor | HIGH | N/A | BLOCKED | 403 Forbidden |
+| Kayak | MEDIUM | ❌ Encoding | - | Binary (like Indeed/Tasty) |
+| Expedia | MEDIUM | N/A | RATE LIMITED | 429 Too Many Requests |
+
+## Travel Site Patterns
+
+1. **Travel is the most protected category**: 0/4 sites scrapable
+2. **AWS WAF is new**: Booking.com uses AWS WAF CAPTCHA (not seen elsewhere)
+3. **Encoding issues continue**: Kayak joins Indeed/Tasty with binary responses
+4. **Rate limiting vs blocking**: Expedia uses 429 (like Realtor.com)
+
+---
+
+# Final Research Summary
+
+## Overall Statistics
+
+| Metric | Count |
+|--------|-------|
+| **Sites analyzed** | 30 |
+| **Extractable with BS4** | 11 (37%) |
+| **Blocked (403/401/timeout)** | 12 (40%) |
+| **Encoding issues** | 3 (10%) |
+| **Rate limited (429)** | 2 (7%) |
+| **Pure JS SPA** | 4 (13%) |
+| **CAPTCHA challenge** | 1 (3%) |
+
+## Extractable Sites (The Winners)
+
+| Site | Domain | Key Pattern |
+|------|--------|-------------|
+| eBay | E-commerce | data-testid, static prices |
+| Walmart | E-commerce | __NEXT_DATA__, microdata, JSON-LD |
+| Newegg | E-commerce | JSON-LD, Bootstrap |
+| Zappos | E-commerce | 33 microdata attributes |
+| BBC | News | 818 data-testid attributes |
+| NPR | News | Perfect semantic HTML |
+| The Guardian | News | 476 data-link-name attributes |
+| LinkedIn | Jobs | Job cards in static HTML |
+| Redfin | Real Estate | 87 cards, 60 JSON-LD scripts |
+| AllRecipes | Recipes | Perfect JSON-LD Recipe schema |
+| Amazon | E-commerce | Title static (price JS) |
+
+## Blocked Sites (The Walls)
+
+| Site | Domain | Block Type |
+|------|--------|------------|
+| Best Buy | E-commerce | Akamai timeout |
+| Etsy | E-commerce | DataDome 403 |
+| Reuters | News | 401 Unauthorized |
+| Glassdoor | Jobs | 403 Forbidden |
+| ZipRecruiter | Jobs | 403 Forbidden |
+| Zillow | Real Estate | 403 Forbidden |
+| Trulia | Real Estate | 403 Forbidden |
+| Apartments.com | Real Estate | Akamai timeout |
+| Food Network | Recipes | 403 Forbidden |
+| TripAdvisor | Travel | 403 Forbidden |
+| Booking.com | Travel | AWS WAF CAPTCHA |
+
+## Key Patterns Discovered
+
+### 1. JSON-LD is GOLD
+**Sites**: Walmart, Newegg, Redfin (60!), AllRecipes
+```python
+scripts = soup.find_all("script", type="application/ld+json")
+data = json.loads(scripts[0].string)
+```
+**New archetype priority**: HIGH
+
+### 2. Microdata (itemprop) is Reliable
+**Sites**: Zappos (33 attrs), Walmart
+```python
+soup.find_all(attrs={"itemprop": True})
+```
+**Current coverage**: Partial
+
+### 3. Framework Data (__NEXT_DATA__) is Common
+**Sites**: Walmart, Target (partial)
+```python
+next_data = soup.find("script", id="__NEXT_DATA__")
+data = json.loads(next_data.string)
+```
+**New archetype priority**: MEDIUM
+
+### 4. Testing IDs are EVERYWHERE
+**Sites**: eBay (304), BBC (818), Redfin (685), Guardian (476)
+```python
+soup.find_all(attrs={"data-testid": True})
+```
+**Current coverage**: mvp_test_ids
+
+### 5. Pure SPA Detection Pattern
+**Sites**: Wayfair, CNN, Monster, Booking.com (partial)
+- `max_nesting_depth = 0`
+- Empty tag counts (0 divs, 0 spans)
+- Only shell HTML present
+**Current coverage**: NEEDS archetype
+
+### 6. Encoding Issues Pattern
+**Sites**: Indeed, Tasty, Kayak
+- Status 200 but binary content
+- `max_nesting_depth = 0` (like SPA)
+- Non-UTF8 appearing text
+**New archetype priority**: HIGH
+
+### 7. Anti-Bot Hierarchy
+From least to most aggressive:
+1. **Rate limiting (429)**: Realtor.com, Expedia
+2. **403 Forbidden**: Etsy, Glassdoor, Zillow, TripAdvisor, etc.
+3. **401 Unauthorized**: Reuters
+4. **Silent timeout**: Best Buy, Apartments.com (Akamai)
+5. **CAPTCHA challenge**: Booking.com (AWS WAF)
+
+## Archetype Gaps Identified
+
+| Gap | Priority | Example Sites |
+|-----|----------|---------------|
+| JSON-LD extraction | HIGH | Walmart, Newegg, Redfin, AllRecipes |
+| Encoding detection | HIGH | Indeed, Tasty, Kayak |
+| SPA shell detection | HIGH | Wayfair, CNN, Monster |
+| __NEXT_DATA__ extraction | MEDIUM | Walmart, Target |
+| CAPTCHA detection | MEDIUM | Booking.com |
+| Rate limit detection | LOW | Realtor.com, Expedia |
+
+## Domain Difficulty Rankings
+
+| Domain | Scrapable | Blocked | Difficulty |
+|--------|-----------|---------|------------|
+| News | 3/4 | 1/4 | ⭐ Easiest |
+| Recipes | 1/3 | 2/3 | ⭐⭐ |
+| E-commerce | 5/10 | 3/10 | ⭐⭐⭐ |
+| Jobs | 1/5 | 3/5 | ⭐⭐⭐⭐ |
+| Real Estate | 1/5 | 4/5 | ⭐⭐⭐⭐ |
+| Travel | 0/4 | 4/4 | ⭐⭐⭐⭐⭐ Hardest |
+
+## Recommendations for RL Environment
+
+### Immediate Additions
+1. **JSON-LD archetype**: Most underutilized extraction method
+2. **Encoding detection tasks**: 10% of sites show this pattern
+3. **SPA detection tasks**: Teach model to recognize empty shells
+
+### Training Data Insights
+1. **Test IDs are realistic**: Real sites have 300-800 test IDs
+2. **Deep nesting is common**: 20-27 levels typical for e-commerce
+3. **Multiple extraction paths exist**: Same data often in JSON-LD AND HTML
+
+### Limitation Task Improvements
+1. Add CAPTCHA challenge pages (Booking.com pattern)
+2. Add encoding detection failures (Indeed/Tasty/Kayak pattern)
+3. Add pure SPA recognition (Wayfair/CNN pattern)
+
+---
+
+## HTML Corpus Statistics
+
+```
+research/corpus/
+├── e-commerce/     (8 sites: amazon, ebay, walmart, target, newegg, wayfair, zappos, asos)
+├── news/           (4 sites: cnn, bbc, npr, guardian)
+├── jobs/           (3 sites: indeed, linkedin, monster)
+├── realestate/     (1 site: redfin)
+├── recipes/        (2 sites: allrecipes, tasty)
+└── travel/         (2 sites: booking, kayak)
+```
+
+**Total HTML files**: 20 sites × 1-2 files = ~25 HTML files
+**Total size**: ~15MB of real-world HTML
+
+---
+
+## Conclusion
+
+This week of research revealed that **real web scraping is harder than synthetic examples suggest**:
+
+1. **Only 37% of major sites are BS4-accessible** - the rest are blocked or JS-dependent
+2. **JSON-LD is the secret weapon** - underused in training, overused in practice
+3. **Anti-bot protection is domain-specific** - travel is nearly impossible, news is easy
+4. **New failure modes exist** - encoding issues and CAPTCHA challenges need coverage
+
+The current archetypes need expansion to cover:
+- JSON-LD structured data extraction
+- SPA shell detection (depth=0, empty body)
+- Encoding failure detection
+- Framework-specific patterns (__NEXT_DATA__)
+
+This research provides empirical grounding for making the RL environment genuinely difficult and realistic.

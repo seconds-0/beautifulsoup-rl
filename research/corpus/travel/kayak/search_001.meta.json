@@ -1,0 +1,56 @@
+{
+  "fetch": {
+    "url": "https://www.kayak.com/hotels/San-Francisco,California,United-States/2025-01-15/2025-01-16",
+    "status_code": 200,
+    "content_length": 202546,
+    "encoding": "UTF-8",
+    "fetched_at": "2025-12-17T00:08:20.222384",
+    "headers": {
+      "Connection": "keep-alive",
+      "x-r9-mst-req": "016000020584891",
+      "content-language": "en-US",
+      "content-type": "text/html;charset=UTF-8",
+      "x-xss-protection": "1; mode=block",
+      "content-security-policy-report-only": "default-src https: blob:; connect-src https:; font-src https: data:; frame-src https:; img-src https: data: blob:; media-src https:; object-src https: data: blob:; script-src 'unsafe-inline' 'unsafe-eval' https:; style-src 'unsafe-inline' https: data:; worker-src blob:; report-uri /s/run/cspreport/reportHttp; report-to csp-log",
+      "x-r9-mst-target": "sparkle",
+      "x-content-type-options": "nosniff",
+      "x-render-time": "0.189",
+      "server": "KAYAK/1.0",
+      "content-security-policy": "upgrade-insecure-requests; frame-ancestors 'self'",
+      "x-sn-waf-code": "",
+      "report-to": "{ \"group\": \"csp-log\", \"max_age\": 43200, \"endpoints\": [ { \"url\": \"https://www.kayak.com/s/run/cspreport/reportHttp\" } ] }",
+      "permissions-policy": "camera=(), microphone=(), midi=(), geolocation=(self), usb=()",
+      "content-encoding": "br",
+      "referrer-policy": "origin-when-cross-origin",
+      "Accept-Ranges": "bytes",
+      "Via": "1.1 varnish, 1.1 varnish",
+      "Set-Cookie": "Apache=RziLyw-AAABmytaWHU-4e-Lx07bA; Max-Age=86400000; Expires=Tue, 12 Sep 2028 08:08:19 GMT; Path=/; Secure; HTTPOnly; SameSite=None, cluster=4; Max-Age=2700; Expires=Wed, 17 Dec 2025 08:53:19 GMT; Path=/; Secure; HTTPOnly; SameSite=None, mst_iBfK2g=hA_XSldVLzjX0pEBjgAx1mYEuoJAKvJLrEIYA60AzUaITfnb12QPcmTu6pQiM2CrNGI3x8UZU9tQxRnONmkNyA; Max-Age=900; Expires=Wed, 17 Dec 2025 08:23:20 GMT; Path=/; HttpOnly, mst_ADIrkw=5OM0XvBKxne1hhH862bO1AW-pM54HCWYe3HudkNey-6WpuTCeiwPrZgEV0bCHbRJWPETJHsAH66KSuFfqvcunQ; Max-Age=900; Expires=Wed, 17 Dec 2025 08:23:20 GMT; Path=/; HttpOnly, csid=f612649e-91d4-449e-9911-a49667eec025; path=/; Secure; SameSite=Strict;",
+      "Date": "Wed, 17 Dec 2025 08:08:20 GMT",
+      "X-Served-By": "cache-bos4677-BOS, cache-bos4677-BOS, cache-pdx12326-PDX",
+      "X-Cache": "MISS, MISS, MISS",
+      "X-Cache-Hits": "0, 0, 0",
+      "X-Timer": "S1765958900.930383,VS0,VE279",
+      "Vary": "Accept-Encoding",
+      "Cache-Control": "private, no-store",
+      "transfer-encoding": "chunked"
+    }
+  },
+  "analysis": {
+    "size_bytes": 202546,
+    "size_kb": 197.8,
+    "max_nesting_depth": 0,
+    "frameworks_detected": [],
+    "js_indicators": [],
+    "script_count": 0,
+    "inline_script_chars": 0,
+    "has_json_ld": false,
+    "tag_counts": {
+      "div": 0,
+      "span": 0,
+      "a": 0,
+      "img": 0,
+      "table": 0,
+      "form": 0
+    }
+  }
+}
