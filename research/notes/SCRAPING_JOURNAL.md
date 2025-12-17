@@ -1492,3 +1492,129 @@ Glassdoor blocks with 403:
 - **Blocked**: 5 (+ Glassdoor, ZipRecruiter)
 - **Pure JS SPA**: 4 (+ Monster)
 - **Encoding issues**: 1 (Indeed)
+
+---
+
+# Day 5: Real Estate
+
+## Sites: Zillow, Redfin, Realtor.com, Trulia, Apartments.com
+
+---
+
+## Zillow
+
+### Site Overview
+- **URL**: https://www.zillow.com
+- **Anti-bot**: **HIGH** - Returns 403 Forbidden
+- **Overall Difficulty**: N/A (blocked)
+
+---
+
+## Trulia
+
+### Site Overview
+- **URL**: https://www.trulia.com
+- **Anti-bot**: **HIGH** - Returns 403 Forbidden
+- **Overall Difficulty**: N/A (blocked)
+
+Note: Trulia is owned by Zillow - same protection.
+
+---
+
+## Realtor.com
+
+### Site Overview
+- **URL**: https://www.realtor.com
+- **Anti-bot**: **MEDIUM** - Returns 429 Too Many Requests
+- **Overall Difficulty**: N/A (rate limited)
+
+### Key Discovery: Rate Limiting Instead of Block
+
+Different from 403 - site is accessible but rate-limited.
+
+---
+
+## Apartments.com
+
+### Site Overview
+- **URL**: https://www.apartments.com
+- **Anti-bot**: **EXTREME** - Connection timeout (like Best Buy)
+- **Overall Difficulty**: N/A (blocked)
+
+### Key Discovery: Akamai-Style Silent Block
+
+Same pattern as Best Buy - connection hangs indefinitely.
+
+---
+
+## Redfin
+
+### Site Overview
+- **URL**: https://www.redfin.com
+- **Tech Stack**: React SSR, Bootstrap
+- **Anti-bot**: **LOW** (accepts requests!)
+- **Overall Difficulty**: 2/5
+
+### Key Discovery: Real Estate Goldmine!
+
+Redfin is **incredibly BS4-friendly**:
+- **87 HomeCard divs** with property listings
+- **41 prices in static HTML** ($1,350,000, etc.)
+- **60 JSON-LD scripts** (massive structured data!)
+- **685 data-rf-test-id attributes**
+- 1.7MB page, 23 levels deep
+
+### Task 1: Extract Property Prices ✅
+
+**Solution**:
+```python
+prices = soup.find_all("span", class_=lambda c: c and "price" in str(c).lower())
+# Returns 41 prices like "$1,350,000"
+```
+
+### Task 2: Extract Property Cards ✅
+
+**Solution**:
+```python
+cards = soup.find_all("div", class_=lambda c: c and "HomeCard" in str(c))
+# Returns 87 property cards
+```
+
+### Task 3: Extract from JSON-LD ✅
+
+**Solution**:
+```python
+scripts = soup.find_all("script", type="application/ld+json")
+# Returns 60 JSON-LD scripts with property data!
+```
+
+**Difficulty**: 2/5
+
+**Key Insight**: Redfin is the ONLY major real estate site that's BS4-friendly!
+
+---
+
+# Day 5 Summary
+
+| Site | Anti-bot | Content Static? | Method | Key Finding |
+|------|----------|----------------|--------|-------------|
+| Zillow | HIGH | N/A | BLOCKED | 403 Forbidden |
+| Trulia | HIGH | N/A | BLOCKED | 403 (Zillow-owned) |
+| Realtor.com | MEDIUM | N/A | RATE LIMITED | 429 Too Many Requests |
+| Apartments.com | EXTREME | N/A | TIMEOUT | Akamai silent block |
+| Redfin | LOW | ✅ | Class + JSON-LD | 87 cards, 60 JSON-LD! |
+
+## Real Estate Patterns
+
+1. **Most real estate heavily protected**: 4/5 blocked or limited
+2. **Redfin is the exception**: Most BS4-friendly in the category
+3. **Zillow/Trulia share protection**: Same owner, same blocks
+4. **Different block styles**: 403 vs 429 vs timeout
+
+## Running Totals
+
+- **Sites analyzed**: 23
+- **Extractable**: 10 (+ Redfin)
+- **Blocked**: 8 (+ Zillow, Trulia, Apartments.com)
+- **Rate limited**: 1 (Realtor.com)
+- **Pure JS SPA**: 4

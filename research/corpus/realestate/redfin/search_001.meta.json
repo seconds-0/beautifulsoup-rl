@@ -1,0 +1,52 @@
+{
+  "fetch": {
+    "url": "https://www.redfin.com/city/17151/CA/San-Francisco",
+    "status_code": 200,
+    "content_length": 1773524,
+    "encoding": "utf-8",
+    "fetched_at": "2025-12-17T00:03:09.107804",
+    "headers": {
+      "Content-Type": "text/html; charset=utf-8",
+      "Transfer-Encoding": "chunked",
+      "Connection": "keep-alive",
+      "Date": "Wed, 17 Dec 2025 08:03:08 GMT",
+      "Server": "istio-envoy",
+      "x-rf-service": "customer-pages-map-dp",
+      "Set-Cookie": "RF_CORVAIR_LAST_VERSION=vLATEST; Max-Age=31536000; Path=/; Expires=Thu, 17 Dec 2026 08:03:08 GMT, RF_BROWSER_ID=n58zPvFhSkubJb_RiHWgaw; Max-Age=63072000; Domain=.redfin.com; Path=/; Expires=Fri, 17 Dec 2027 08:03:08 GMT; Secure; SameSite=None, RF_BROWSER_ID=n58zPvFhSkubJb_RiHWgaw; Domain=.redfin.com; Expires=Fri, 17-Dec-2027 08:03:08 GMT; Path=/; SameSite=None; Secure, RF_BROWSER_ID_GREAT_FIRST_VISIT_TIMESTAMP=2025-12-17T00%3A03%3A08.806759; Domain=.redfin.com; Expires=Thu, 17-Dec-2026 08:03:08 GMT; Path=/; SameSite=None; Secure, RF_BID_UPDATED=1; Domain=.redfin.com; Expires=Wed, 31-Dec-2025 08:03:08 GMT; Path=/; SameSite=None; Secure, RF_TRAFFIC_SEGMENT=non-organic; Path=/; Expires=Wed, 17 Dec 2025 08:08:08 GMT, RF_VISITED=false; Path=/, RF_BROWSER_ID=n58zPvFhSkubJb_RiHWgaw; Domain=.redfin.com; Expires=Fri, 17-Dec-2027 08:03:08 GMT; Path=/; SameSite=None; Secure, RF_BROWSER_ID_GREAT_FIRST_VISIT_TIMESTAMP=2025-12-17T00%3A03%3A08.806759; Domain=.redfin.com; Expires=Thu, 17-Dec-2026 08:03:08 GMT; Path=/; SameSite=None; Secure, RF_BID_UPDATED=1; Domain=.redfin.com; Expires=Wed, 31-Dec-2025 08:03:08 GMT; Path=/; SameSite=None; Secure, searchMode=1; Path=/; Expires=Thu, 17 Dec 2026 08:03:08 GMT, searchMode=1; Path=/; Expires=Thu, 17 Dec 2026 08:03:08 GMT, userPreferences=parcels%3Dtrue%26schools%3Dfalse%26mapStyle%3Ds%26statistics%3Dtrue%26agcTooltip%3Dfalse%26agentReset%3Dfalse%26ldpRegister%3Dfalse%26afCard%3D2%26schoolType%3D0%26viewedSwipeableHomeCardsDate%3D1765958588840; Path=/; Expires=Fri, 26 Oct 2035 08:03:08 GMT",
+      "Cache-Control": "max-age=0, no-cache, no-store, private",
+      "x-frame-options": "sameorigin",
+      "x-content-type-options": "nosniff",
+      "Link": "<https://ssl.cdn-redfin.com/bundles/customer-pages-map-dp/7920de80bad50c3c90e3.css>; rel=preload; as=style, <https://ssl.cdn-redfin.com/bundles/customer-pages-map-dp/8aa6e3fb8b1de6b56350.css>; rel=preload; as=style, <https://ssl.cdn-redfin.com/bundles/customer-pages-map-dp/868593ea2cc83e3dbb32.css>; rel=preload; as=style, <https://ssl.cdn-redfin.com/bundles/customer-pages-map-dp/f1a7d63961618790a831.css>; rel=preload; as=style, <https://ssl.cdn-redfin.com/bundles/customer-pages-map-dp/72e7497e94cae689f0eb.css>; rel=preload; as=style, <https://ssl.cdn-redfin.com/bundles/customer-pages-map-dp/d71af8c0aa651391889d.css>; rel=preload; as=style, <https://ssl.cdn-redfin.com/bundles/customer-pages-map-dp/fc9d1e01877b4ffa3c76.css>; rel=preload; as=style, <https://ssl.cdn-redfin.com/bundles/customer-pages-map-dp/7d9693acb01fd607ea70.css>; rel=preload; as=style, <https://ssl.cdn-redfin.com/bundles/customer-pages-map-dp/ed1d3f1f6d8e41be5516.css>; rel=preload; as=style, <https://ssl.cdn-redfin.com/bundles/customer-pages-map-dp/35f8b3c76d4fa08fd779.css>; rel=preload; as=style",
+      "Content-Encoding": "gzip",
+      "x-envoy-upstream-service-time": "58",
+      "Vary": "Accept-Encoding",
+      "X-Cache": "Miss from cloudfront",
+      "Via": "1.1 807ba99de77a37a6a53c93279fb231fe.cloudfront.net (CloudFront)",
+      "X-Amz-Cf-Pop": "HIO52-P3",
+      "X-Amz-Cf-Id": "Srmxoo29ekPjqY4QcaCuAGHloCy98J4id-TfLVhESyKs3gOY4NKBDw=="
+    }
+  },
+  "analysis": {
+    "size_bytes": 1773524,
+    "size_kb": 1731.96,
+    "max_nesting_depth": 23,
+    "frameworks_detected": [
+      "Bootstrap"
+    ],
+    "js_indicators": [
+      "loading_placeholder",
+      "noscript_fallback"
+    ],
+    "script_count": 75,
+    "inline_script_chars": 1296704,
+    "has_json_ld": true,
+    "tag_counts": {
+      "div": 2068,
+      "span": 490,
+      "a": 242,
+      "img": 59,
+      "table": 0,
+      "form": 2
+    }
+  }
+}
