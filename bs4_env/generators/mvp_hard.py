@@ -220,12 +220,18 @@ class MultiHopFilterGenerator(Generator):
 
         extract_field, extract_desc = rng.choice(extract_fields)
 
-        # If multiple matches, take the first
-        target_product = matching[0]
-        ground_truth = str(target_product[extract_field])
-
-        # Shuffle products
+        # Shuffle products BEFORE selecting target
+        # This ensures "first listed" in HTML matches ground truth
         rng.shuffle(products)
+
+        # Find first matching product in shuffled (display) order
+        target_product = None
+        for p in products:
+            if filter_fn(p):
+                target_product = p
+                break
+
+        ground_truth = str(target_product[extract_field])
 
         # Build HTML
         body_content = '<div class="product-grid">\n'
@@ -254,7 +260,7 @@ class MultiHopFilterGenerator(Generator):
         if rng.random() < 0.3:
             html = introduce_malformation(html, rng)
 
-        query = f'Find the product where {filter_field} {filter_desc}. Extract its {extract_desc}.'
+        query = f'Find the product where {filter_field} {filter_desc}. If multiple products match, use the first one listed. Extract its {extract_desc}.'
 
         return TaskInstance(
             html=html,
@@ -439,33 +445,7 @@ class StructuredOutputGenerator(Generator):
                 "url": f"/products/{rng.randint(1000, 9999)}",
             })
 
-        # Select target by position hint
-        position_hints = [
-            ("first", 0),
-            ("second", 1),
-            ("last", -1),
-        ]
-
-        if num_products >= 3:
-            position_hints.append(("third", 2))
-
-        hint_text, target_idx = rng.choice(position_hints)
-
-        # Handle negative index
-        if target_idx < 0:
-            target_idx = len(products) + target_idx
-
-        target = products[target_idx]
-        ground_truth = {
-            "name": target["name"],
-            "price": target["price"],
-            "sku": target["sku"],
-            "url": target["url"],
-        }
-
-        # Shuffle products after selecting target (but remember order for hint)
-        # Actually, for position hints, we can't shuffle
-        # Instead, use a identifying hint
+        # Select target using identifying hints (class-based, allows shuffling)
         identifying_hints = [
             ("featured", 0),  # Featured product (first with special class)
             ("recommended", rng.randint(0, num_products - 1)),  # Random recommended
