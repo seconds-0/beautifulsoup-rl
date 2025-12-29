@@ -48,8 +48,22 @@ LANGUAGES: dict[str, dict[str, Any]] = {
             "帮助中心",  # Help center
         ],
         "words": [
-            "商品", "价格", "数量", "总计", "订单", "客户", "服务", "质量",
-            "尺寸", "颜色", "品牌", "库存", "折扣", "优惠", "运费", "地址",
+            "商品",
+            "价格",
+            "数量",
+            "总计",
+            "订单",
+            "客户",
+            "服务",
+            "质量",
+            "尺寸",
+            "颜色",
+            "品牌",
+            "库存",
+            "折扣",
+            "优惠",
+            "运费",
+            "地址",
         ],
         "numbers": ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"],
     },
@@ -70,8 +84,21 @@ LANGUAGES: dict[str, dict[str, Any]] = {
             "عروض خاصة",  # Special offers
         ],
         "words": [
-            "منتج", "سعر", "كمية", "إجمالي", "طلب", "عميل", "خدمة", "جودة",
-            "حجم", "لون", "علامة", "مخزون", "خصم", "شحن", "عنوان",
+            "منتج",
+            "سعر",
+            "كمية",
+            "إجمالي",
+            "طلب",
+            "عميل",
+            "خدمة",
+            "جودة",
+            "حجم",
+            "لون",
+            "علامة",
+            "مخزون",
+            "خصم",
+            "شحن",
+            "عنوان",
         ],
         "numbers": ["١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩", "١٠"],
     },
@@ -94,8 +121,21 @@ LANGUAGES: dict[str, dict[str, Any]] = {
             "ヘルプ",  # Help
         ],
         "words": [
-            "商品", "価格", "数量", "合計", "注文", "お客様", "サービス", "品質",
-            "サイズ", "カラー", "ブランド", "在庫", "割引", "配送", "住所",
+            "商品",
+            "価格",
+            "数量",
+            "合計",
+            "注文",
+            "お客様",
+            "サービス",
+            "品質",
+            "サイズ",
+            "カラー",
+            "ブランド",
+            "在庫",
+            "割引",
+            "配送",
+            "住所",
         ],
         "numbers": ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"],
     },
@@ -117,8 +157,21 @@ LANGUAGES: dict[str, dict[str, Any]] = {
             "무료 배송",  # Free shipping
         ],
         "words": [
-            "상품", "가격", "수량", "합계", "주문", "고객", "서비스", "품질",
-            "사이즈", "색상", "브랜드", "재고", "할인", "배송", "주소",
+            "상품",
+            "가격",
+            "수량",
+            "합계",
+            "주문",
+            "고객",
+            "서비스",
+            "품질",
+            "사이즈",
+            "색상",
+            "브랜드",
+            "재고",
+            "할인",
+            "배송",
+            "주소",
         ],
         "numbers": ["일", "이", "삼", "사", "오", "육", "칠", "팔", "구", "십"],
     },
@@ -141,8 +194,20 @@ LANGUAGES: dict[str, dict[str, Any]] = {
             "Отзывы покупателей",  # Customer reviews
         ],
         "words": [
-            "товар", "цена", "количество", "итого", "заказ", "клиент", "услуга",
-            "качество", "размер", "цвет", "бренд", "наличие", "скидка", "доставка",
+            "товар",
+            "цена",
+            "количество",
+            "итого",
+            "заказ",
+            "клиент",
+            "услуга",
+            "качество",
+            "размер",
+            "цвет",
+            "бренд",
+            "наличие",
+            "скидка",
+            "доставка",
         ],
         "numbers": ["один", "два", "три", "четыре", "пять", "шесть", "семь", "восемь"],
     },
@@ -166,8 +231,20 @@ LANGUAGES: dict[str, dict[str, Any]] = {
             "Über uns",  # About us
         ],
         "words": [
-            "Produkt", "Preis", "Menge", "Gesamt", "Bestellung", "Kunde", "Service",
-            "Qualität", "Größe", "Farbe", "Marke", "Verfügbarkeit", "Rabatt", "Versand",
+            "Produkt",
+            "Preis",
+            "Menge",
+            "Gesamt",
+            "Bestellung",
+            "Kunde",
+            "Service",
+            "Qualität",
+            "Größe",
+            "Farbe",
+            "Marke",
+            "Verfügbarkeit",
+            "Rabatt",
+            "Versand",
         ],
         "numbers": ["eins", "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht"],
     },
@@ -190,8 +267,20 @@ LANGUAGES: dict[str, dict[str, Any]] = {
             "Opiniones de clientes",  # Customer reviews
         ],
         "words": [
-            "producto", "precio", "cantidad", "total", "pedido", "cliente", "servicio",
-            "calidad", "tamaño", "color", "marca", "disponibilidad", "descuento", "envío",
+            "producto",
+            "precio",
+            "cantidad",
+            "total",
+            "pedido",
+            "cliente",
+            "servicio",
+            "calidad",
+            "tamaño",
+            "color",
+            "marca",
+            "disponibilidad",
+            "descuento",
+            "envío",
         ],
         "numbers": ["uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho"],
     },
@@ -214,8 +303,20 @@ LANGUAGES: dict[str, dict[str, Any]] = {
             "Avis clients",  # Customer reviews
         ],
         "words": [
-            "produit", "prix", "quantité", "total", "commande", "client", "service",
-            "qualité", "taille", "couleur", "marque", "disponibilité", "remise", "livraison",
+            "produit",
+            "prix",
+            "quantité",
+            "total",
+            "commande",
+            "client",
+            "service",
+            "qualité",
+            "taille",
+            "couleur",
+            "marque",
+            "disponibilité",
+            "remise",
+            "livraison",
         ],
         "numbers": ["un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit"],
     },
@@ -236,8 +337,20 @@ LANGUAGES: dict[str, dict[str, Any]] = {
             "मुफ्त शिपिंग",  # Free shipping
         ],
         "words": [
-            "उत्पाद", "कीमत", "मात्रा", "कुल", "आदेश", "ग्राहक", "सेवा", "गुणवत्ता",
-            "आकार", "रंग", "ब्रांड", "उपलब्धता", "छूट", "शिपिंग",
+            "उत्पाद",
+            "कीमत",
+            "मात्रा",
+            "कुल",
+            "आदेश",
+            "ग्राहक",
+            "सेवा",
+            "गुणवत्ता",
+            "आकार",
+            "रंग",
+            "ब्रांड",
+            "उपलब्धता",
+            "छूट",
+            "शिपिंग",
         ],
         "numbers": ["एक", "दो", "तीन", "चार", "पांच", "छह", "सात", "आठ", "नौ", "दस"],
     },
@@ -258,8 +371,20 @@ LANGUAGES: dict[str, dict[str, Any]] = {
             "משלוח חינם",  # Free shipping
         ],
         "words": [
-            "מוצר", "מחיר", "כמות", "סכום", "הזמנה", "לקוח", "שירות", "איכות",
-            "גודל", "צבע", "מותג", "זמינות", "הנחה", "משלוח",
+            "מוצר",
+            "מחיר",
+            "כמות",
+            "סכום",
+            "הזמנה",
+            "לקוח",
+            "שירות",
+            "איכות",
+            "גודל",
+            "צבע",
+            "מותג",
+            "זמינות",
+            "הנחה",
+            "משלוח",
         ],
         "numbers": ["אחד", "שניים", "שלוש", "ארבע", "חמש", "שש", "שבע", "שמונה"],
     },
@@ -294,13 +419,33 @@ SPECIAL_UNICODE = {
     ],
     # Common diacritics in European languages
     "diacritics": [
-        "é", "è", "ê", "ë",  # French/Portuguese
-        "ñ", "á", "í", "ó", "ú",  # Spanish
-        "ü", "ö", "ä", "ß",  # German
-        "ø", "å", "æ",  # Nordic
-        "ç", "ã", "õ",  # Portuguese
-        "ž", "č", "š", "đ",  # Slavic
-        "ł", "ń", "ź", "ż",  # Polish
+        "é",
+        "è",
+        "ê",
+        "ë",  # French/Portuguese
+        "ñ",
+        "á",
+        "í",
+        "ó",
+        "ú",  # Spanish
+        "ü",
+        "ö",
+        "ä",
+        "ß",  # German
+        "ø",
+        "å",
+        "æ",  # Nordic
+        "ç",
+        "ã",
+        "õ",  # Portuguese
+        "ž",
+        "č",
+        "š",
+        "đ",  # Slavic
+        "ł",
+        "ń",
+        "ź",
+        "ż",  # Polish
     ],
     # Currency symbols
     "currency": [
@@ -342,6 +487,7 @@ SPECIAL_UNICODE = {
 # =============================================================================
 # Helper Functions
 # =============================================================================
+
 
 def get_random_language(rng: random.Random, exclude_rtl: bool = False) -> str:
     """Get a random language code.

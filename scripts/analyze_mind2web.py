@@ -6,7 +6,6 @@ the HTML to understand real-world patterns for our generators.
 """
 
 import json
-import re
 import statistics
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -19,58 +18,67 @@ def detect_framework(html: str, soup: BeautifulSoup) -> str:
     """Detect the likely frontend framework from HTML patterns."""
     # React patterns
     react_patterns = [
-        'data-reactroot',
-        'data-reactid',
-        '__NEXT_DATA__',
-        'react-root',
-        '_next/static',
+        "data-reactroot",
+        "data-reactid",
+        "__NEXT_DATA__",
+        "react-root",
+        "_next/static",
     ]
     for pattern in react_patterns:
         if pattern in html:
-            return 'react'
+            return "react"
 
     # Angular patterns
     angular_patterns = [
-        '_ngcontent-',
-        'ng-version',
-        'ng-reflect-',
-        'ng-star-inserted',
+        "_ngcontent-",
+        "ng-version",
+        "ng-reflect-",
+        "ng-star-inserted",
     ]
     for pattern in angular_patterns:
         if pattern in html:
-            return 'angular'
+            return "angular"
 
     # Vue patterns
     vue_patterns = [
-        'data-v-',
-        '__vue__',
-        'v-cloak',
+        "data-v-",
+        "__vue__",
+        "v-cloak",
     ]
     for pattern in vue_patterns:
         if pattern in html:
-            return 'vue'
+            return "vue"
 
     # Bootstrap patterns (check class names)
-    bootstrap_classes = ['container', 'row', 'col-', 'btn-', 'navbar', 'card-']
-    all_classes = ' '.join([' '.join(tag.get('class', [])) for tag in soup.find_all(class_=True)])
+    bootstrap_classes = ["container", "row", "col-", "btn-", "navbar", "card-"]
+    all_classes = " ".join([" ".join(tag.get("class", [])) for tag in soup.find_all(class_=True)])
     bootstrap_matches = sum(1 for c in bootstrap_classes if c in all_classes)
     if bootstrap_matches >= 3:
-        return 'bootstrap'
+        return "bootstrap"
 
     # Tailwind patterns (utility class explosion)
-    tailwind_indicators = ['flex', 'items-center', 'justify-', 'bg-', 'text-', 'px-', 'py-', 'rounded']
+    tailwind_indicators = [
+        "flex",
+        "items-center",
+        "justify-",
+        "bg-",
+        "text-",
+        "px-",
+        "py-",
+        "rounded",
+    ]
     tailwind_matches = sum(1 for c in tailwind_indicators if c in all_classes)
     if tailwind_matches >= 4:
-        return 'tailwind'
+        return "tailwind"
 
-    return 'traditional'
+    return "traditional"
 
 
 def extract_class_patterns(soup: BeautifulSoup, framework: str) -> list[str]:
     """Extract interesting class name patterns from the HTML."""
     classes = []
     for tag in soup.find_all(class_=True):
-        tag_classes = tag.get('class', [])
+        tag_classes = tag.get("class", [])
         if isinstance(tag_classes, list):
             classes.extend(tag_classes)
     return classes
@@ -85,7 +93,7 @@ def analyze_structure(soup: BeautifulSoup) -> dict:
     def get_depth(element, current_depth=0):
         max_depth = current_depth
         for child in element.children:
-            if hasattr(child, 'children'):
+            if hasattr(child, "children"):
                 child_depth = get_depth(child, current_depth + 1)
                 max_depth = max(max_depth, child_depth)
         return max_depth
@@ -99,11 +107,11 @@ def analyze_structure(soup: BeautifulSoup) -> dict:
     elements_with_class = len(soup.find_all(class_=True))
 
     return {
-        'tag_counts': dict(tag_counts.most_common(20)),
-        'max_depth': max_depth,
-        'elements_with_id': elements_with_id,
-        'elements_with_class': elements_with_class,
-        'total_elements': len(list(soup.find_all())),
+        "tag_counts": dict(tag_counts.most_common(20)),
+        "max_depth": max_depth,
+        "elements_with_id": elements_with_id,
+        "elements_with_class": elements_with_class,
+        "total_elements": len(list(soup.find_all())),
     }
 
 
@@ -114,24 +122,24 @@ def analyze_head(soup: BeautifulSoup) -> dict:
         return {}
 
     # Count meta tags
-    meta_tags = head.find_all('meta')
-    meta_names = [m.get('name') or m.get('property') or 'unknown' for m in meta_tags]
+    meta_tags = head.find_all("meta")
+    meta_names = [m.get("name") or m.get("property") or "unknown" for m in meta_tags]
 
     # Count scripts
-    scripts = head.find_all('script')
-    script_srcs = [s.get('src', 'inline') for s in scripts]
+    scripts = head.find_all("script")
+    script_srcs = [s.get("src", "inline") for s in scripts]
 
     # Count stylesheets
-    stylesheets = head.find_all('link', rel='stylesheet')
-    stylesheet_hrefs = [s.get('href', 'unknown') for s in stylesheets]
+    stylesheets = head.find_all("link", rel="stylesheet")
+    stylesheet_hrefs = [s.get("href", "unknown") for s in stylesheets]
 
     return {
-        'meta_count': len(meta_tags),
-        'meta_names': meta_names[:10],  # Top 10
-        'script_count': len(scripts),
-        'script_srcs': script_srcs[:5],
-        'stylesheet_count': len(stylesheets),
-        'stylesheet_hrefs': stylesheet_hrefs[:5],
+        "meta_count": len(meta_tags),
+        "meta_names": meta_names[:10],  # Top 10
+        "script_count": len(scripts),
+        "script_srcs": script_srcs[:5],
+        "stylesheet_count": len(stylesheets),
+        "stylesheet_hrefs": stylesheet_hrefs[:5],
     }
 
 
@@ -148,7 +156,7 @@ def main():
         # Try loading just metadata first
         dataset = load_dataset("osunlp/Mind2Web", trust_remote_code=True)
         print(f"Available splits: {dataset.keys()}")
-        dataset = dataset['train']
+        dataset = dataset["train"]
 
     print(f"Loaded {len(dataset)} examples")
 
@@ -173,12 +181,12 @@ def main():
         # Mind2Web has HTML nested in actions list
         # Each action has 'raw_html' and 'cleaned_html' fields
         html = None
-        actions = example.get('actions', [])
+        actions = example.get("actions", [])
         if actions and len(actions) > 0:
             # Get HTML from first action (full page state)
             first_action = actions[0]
             if isinstance(first_action, dict):
-                html = first_action.get('raw_html') or first_action.get('cleaned_html')
+                html = first_action.get("raw_html") or first_action.get("cleaned_html")
 
         if not html:
             print(f"  Warning: No HTML found in example {i}")
@@ -188,7 +196,7 @@ def main():
 
         # Parse with BeautifulSoup
         try:
-            soup = BeautifulSoup(html, 'lxml')
+            soup = BeautifulSoup(html, "lxml")
         except Exception as e:
             print(f"  Error parsing HTML {i}: {e}")
             continue
@@ -237,10 +245,10 @@ def main():
 
     print("\n### Structure Statistics ###")
     if structure_stats:
-        avg_depth = statistics.mean(s['max_depth'] for s in structure_stats)
-        avg_elements = statistics.mean(s['total_elements'] for s in structure_stats)
-        avg_with_class = statistics.mean(s['elements_with_class'] for s in structure_stats)
-        avg_with_id = statistics.mean(s['elements_with_id'] for s in structure_stats)
+        avg_depth = statistics.mean(s["max_depth"] for s in structure_stats)
+        avg_elements = statistics.mean(s["total_elements"] for s in structure_stats)
+        avg_with_class = statistics.mean(s["elements_with_class"] for s in structure_stats)
+        avg_with_id = statistics.mean(s["elements_with_id"] for s in structure_stats)
 
         print(f"  Avg max nesting depth: {avg_depth:.1f}")
         print(f"  Avg total elements:    {avg_elements:.0f}")
@@ -250,16 +258,16 @@ def main():
         # Aggregate tag counts
         all_tags = Counter()
         for s in structure_stats:
-            all_tags.update(s['tag_counts'])
+            all_tags.update(s["tag_counts"])
         print("\n  Most common tags:")
         for tag, count in all_tags.most_common(15):
             print(f"    <{tag}>: {count}")
 
     print("\n### Head Section Statistics ###")
     if head_stats:
-        meta_counts = [h.get('meta_count', 0) for h in head_stats]
-        script_counts = [h.get('script_count', 0) for h in head_stats]
-        stylesheet_counts = [h.get('stylesheet_count', 0) for h in head_stats]
+        meta_counts = [h.get("meta_count", 0) for h in head_stats]
+        script_counts = [h.get("script_count", 0) for h in head_stats]
+        stylesheet_counts = [h.get("stylesheet_count", 0) for h in head_stats]
 
         print(f"  Avg meta tags:    {statistics.mean(meta_counts):.1f}")
         print(f"  Avg scripts:      {statistics.mean(script_counts):.1f}")
@@ -268,7 +276,7 @@ def main():
         # Common meta names
         all_meta = Counter()
         for h in head_stats:
-            all_meta.update(h.get('meta_names', []))
+            all_meta.update(h.get("meta_names", []))
         print("\n  Common meta tags:")
         for name, count in all_meta.most_common(10):
             print(f"    {name}: {count}")
@@ -278,18 +286,20 @@ def main():
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     results = {
-        'sample_size': sample_size,
-        'html_sizes': {
-            'min': min(html_sizes) if html_sizes else 0,
-            'max': max(html_sizes) if html_sizes else 0,
-            'mean': statistics.mean(html_sizes) if html_sizes else 0,
-            'median': statistics.median(html_sizes) if html_sizes else 0,
+        "sample_size": sample_size,
+        "html_sizes": {
+            "min": min(html_sizes) if html_sizes else 0,
+            "max": max(html_sizes) if html_sizes else 0,
+            "mean": statistics.mean(html_sizes) if html_sizes else 0,
+            "median": statistics.median(html_sizes) if html_sizes else 0,
         },
-        'frameworks': dict(frameworks),
-        'class_samples': {k: list(Counter(v).most_common(30)) for k, v in all_class_patterns.items()},
+        "frameworks": dict(frameworks),
+        "class_samples": {
+            k: list(Counter(v).most_common(30)) for k, v in all_class_patterns.items()
+        },
     }
 
-    with open(output_path, 'w') as f:
+    with open(output_path, "w") as f:
         json.dump(results, f, indent=2)
 
     print(f"\nDetailed results saved to: {output_path}")

@@ -20,12 +20,12 @@ from bs4_env.generators.base import (
     Generator,
     HtmlStyle,
     TaskInstance,
-    make_rng,
-    generate_variable_content,
-    random_id,
-    random_class_name,
-    wrap_with_realistic_chrome,
     add_noise_comments,
+    generate_variable_content,
+    make_rng,
+    random_class_name,
+    random_id,
+    wrap_with_realistic_chrome,
 )
 from bs4_env.registry import register
 
@@ -74,10 +74,10 @@ class WhitespaceSiblingGenerator(Generator):
         # The key is having FORMATTED HTML with newlines/spaces between tags
         num_items = rng.randint(4, 6)
         items = []
-        for i in range(num_items):
+        for _ in range(num_items):
             text = generate_variable_content(rng, min_sentences=1, max_sentences=1)
             # Keep text short for list items
-            text = text.split('.')[0] + '.'
+            text = text.split(".")[0] + "."
             items.append(text)
 
         # Pick the "start" element and "target" (next sibling)
@@ -100,7 +100,9 @@ class WhitespaceSiblingGenerator(Generator):
         list_items = []
         for i, text in enumerate(items):
             if i == start_idx:
-                list_items.append(f'    <{item_tag} id="{start_id}" class="{start_class}">{text}</{item_tag}>')
+                list_items.append(
+                    f'    <{item_tag} id="{start_id}" class="{start_class}">{text}</{item_tag}>'
+                )
             else:
                 item_class = random_class_name(rng)
                 list_items.append(f'    <{item_tag} class="{item_class}">{text}</{item_tag}>')

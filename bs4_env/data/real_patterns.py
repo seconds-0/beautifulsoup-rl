@@ -12,12 +12,12 @@ Date: December 2025
 # =============================================================================
 
 HTML_SIZE_STATS = {
-    "min": 51_438,      # ~50KB
-    "max": 2_665_947,   # ~2.6MB
-    "mean": 387_428,    # ~387KB
+    "min": 51_438,  # ~50KB
+    "max": 2_665_947,  # ~2.6MB
+    "mean": 387_428,  # ~387KB
     "median": 266_423,  # ~266KB
-    "p25": 100_000,     # Estimated 25th percentile
-    "p75": 500_000,     # Estimated 75th percentile
+    "p25": 100_000,  # Estimated 25th percentile
+    "p75": 500_000,  # Estimated 75th percentile
 }
 
 # Our target: Generate HTML in the 50K-500K range for realism
@@ -29,12 +29,12 @@ TARGET_HTML_SIZE_MAX = 500_000
 # =============================================================================
 
 FRAMEWORK_DISTRIBUTION = {
-    "bootstrap": 0.57,   # 57% of real sites
-    "traditional": 0.31, # 31%
-    "angular": 0.08,     # 8%
-    "react": 0.04,       # 4%
-    "tailwind": 0.00,    # Not detected in sample (but common in newer sites)
-    "vue": 0.00,         # Not detected in sample
+    "bootstrap": 0.57,  # 57% of real sites
+    "traditional": 0.31,  # 31%
+    "angular": 0.08,  # 8%
+    "react": 0.04,  # 4%
+    "tailwind": 0.00,  # Not detected in sample (but common in newer sites)
+    "vue": 0.00,  # Not detected in sample
 }
 
 # =============================================================================
@@ -42,10 +42,10 @@ FRAMEWORK_DISTRIBUTION = {
 # =============================================================================
 
 STRUCTURE_STATS = {
-    "avg_depth": 25,            # Average nesting depth (!)
-    "avg_elements": 2197,       # Average total elements
-    "avg_with_class": 1271,     # Average elements with class attribute
-    "avg_with_id": 79,          # Average elements with id attribute
+    "avg_depth": 25,  # Average nesting depth (!)
+    "avg_elements": 2197,  # Average total elements
+    "avg_with_class": 1271,  # Average elements with class attribute
+    "avg_with_id": 79,  # Average elements with id attribute
 }
 
 # Most common HTML tags (from Mind2Web analysis)
@@ -72,40 +72,102 @@ COMMON_TAGS = [
 # Bootstrap patterns (most common framework at 57%)
 BOOTSTRAP_CLASSES = [
     # Navigation
-    "nav-item", "nav-link", "navbar", "navbar-nav", "navbar-brand",
-    "navbar-toggler", "navbar-collapse", "navbar-expand-lg",
+    "nav-item",
+    "nav-link",
+    "navbar",
+    "navbar-nav",
+    "navbar-brand",
+    "navbar-toggler",
+    "navbar-collapse",
+    "navbar-expand-lg",
     # Grid
-    "container", "container-fluid", "row",
-    "col-xs-4", "col-sm-6", "col-md-4", "col-lg-3", "col-xl-2",
+    "container",
+    "container-fluid",
+    "row",
+    "col-xs-4",
+    "col-sm-6",
+    "col-md-4",
+    "col-lg-3",
+    "col-xl-2",
     # Dropdowns
-    "dropdown", "dropdown-toggle", "dropdown-menu", "dropdown-item", "dropdown-link",
+    "dropdown",
+    "dropdown-toggle",
+    "dropdown-menu",
+    "dropdown-item",
+    "dropdown-link",
     # Utilities
-    "d-none", "d-block", "d-flex", "d-inline",
-    "text-center", "text-left", "text-right",
-    "hide", "show", "visually-hidden", "sr-only",
-    "clearfix", "float-left", "float-right",
+    "d-none",
+    "d-block",
+    "d-flex",
+    "d-inline",
+    "text-center",
+    "text-left",
+    "text-right",
+    "hide",
+    "show",
+    "visually-hidden",
+    "sr-only",
+    "clearfix",
+    "float-left",
+    "float-right",
     # Components
-    "btn", "btn-primary", "btn-secondary", "btn-link",
-    "card", "card-body", "card-header", "card-footer",
-    "list-group", "list-group-item",
-    "badge", "alert", "modal", "form-control",
+    "btn",
+    "btn-primary",
+    "btn-secondary",
+    "btn-link",
+    "card",
+    "card-body",
+    "card-header",
+    "card-footer",
+    "list-group",
+    "list-group-item",
+    "badge",
+    "alert",
+    "modal",
+    "form-control",
 ]
 
 # Traditional/semantic patterns
 TRADITIONAL_CLASSES = [
     # Layout
-    "container", "wrapper", "content", "main-content",
-    "header", "footer", "sidebar", "nav", "navigation",
+    "container",
+    "wrapper",
+    "content",
+    "main-content",
+    "header",
+    "footer",
+    "sidebar",
+    "nav",
+    "navigation",
     # Custom design systems (like Tesla's tds-*)
-    "product-name", "product-card", "product-image",
-    "site-nav", "site-nav-item", "site-header",
-    "banner", "hero", "section",
+    "product-name",
+    "product-card",
+    "product-image",
+    "site-nav",
+    "site-nav-item",
+    "site-header",
+    "banner",
+    "hero",
+    "section",
     # State
-    "active", "selected", "disabled", "hidden", "visible",
+    "active",
+    "selected",
+    "disabled",
+    "hidden",
+    "visible",
     # Typography
-    "title", "subtitle", "heading", "text", "link",
+    "title",
+    "subtitle",
+    "heading",
+    "text",
+    "link",
     # Components
-    "button", "input", "form", "menu", "list", "item",
+    "button",
+    "input",
+    "form",
+    "menu",
+    "list",
+    "item",
 ]
 
 # React patterns (styled-components, CSS modules)
@@ -119,45 +181,91 @@ REACT_CLASSES = [
     "Header_wrapper__xyz89",
     "Button_primary__def45",
     # Common React patterns
-    "theme-light", "theme-dark",
-    "animation", "transition",
-    "withFooter", "withHeader",
-    "skipLink", "sr-only",
+    "theme-light",
+    "theme-dark",
+    "animation",
+    "transition",
+    "withFooter",
+    "withHeader",
+    "skipLink",
+    "sr-only",
 ]
 
 # Angular patterns
 ANGULAR_CLASSES = [
     # Core Angular classes
     "ng-star-inserted",
-    "ng-tns-c0-0", "ng-tns-c0-1", "ng-tns-c0-2",
-    "ng-pristine", "ng-valid", "ng-invalid", "ng-touched",
+    "ng-tns-c0-0",
+    "ng-tns-c0-1",
+    "ng-tns-c0-2",
+    "ng-pristine",
+    "ng-valid",
+    "ng-invalid",
+    "ng-touched",
     # Material Angular
-    "mat-button", "mat-icon", "mat-card", "mat-list",
-    "mat-form-field", "mat-input", "mat-select",
+    "mat-button",
+    "mat-icon",
+    "mat-card",
+    "mat-list",
+    "mat-form-field",
+    "mat-input",
+    "mat-select",
     # Bootstrap-like patterns in Angular
-    "dropdown", "dropdown-toggle", "dropdown-menu",
-    "navbar", "collapse", "w-100",
-    "relative", "authenticated",
+    "dropdown",
+    "dropdown-toggle",
+    "dropdown-menu",
+    "navbar",
+    "collapse",
+    "w-100",
+    "relative",
+    "authenticated",
 ]
 
 # Tailwind utility classes (for future use)
 TAILWIND_CLASSES = [
     # Layout
-    "flex", "block", "inline", "hidden", "grid",
-    "items-center", "justify-center", "justify-between",
+    "flex",
+    "block",
+    "inline",
+    "hidden",
+    "grid",
+    "items-center",
+    "justify-center",
+    "justify-between",
     # Spacing
-    "p-4", "px-4", "py-2", "m-2", "mx-auto", "mt-4", "mb-2",
+    "p-4",
+    "px-4",
+    "py-2",
+    "m-2",
+    "mx-auto",
+    "mt-4",
+    "mb-2",
     # Sizing
-    "w-full", "w-1/2", "h-auto", "max-w-lg",
+    "w-full",
+    "w-1/2",
+    "h-auto",
+    "max-w-lg",
     # Colors
-    "bg-white", "bg-gray-100", "bg-blue-500",
-    "text-white", "text-gray-800", "text-blue-600",
+    "bg-white",
+    "bg-gray-100",
+    "bg-blue-500",
+    "text-white",
+    "text-gray-800",
+    "text-blue-600",
     # Borders
-    "border", "border-gray-300", "rounded", "rounded-lg",
+    "border",
+    "border-gray-300",
+    "rounded",
+    "rounded-lg",
     # Effects
-    "shadow", "shadow-md", "hover:bg-gray-200",
+    "shadow",
+    "shadow-md",
+    "hover:bg-gray-200",
     # Typography
-    "font-bold", "text-sm", "text-lg", "tracking-tight",
+    "font-bold",
+    "text-sm",
+    "text-lg",
+    "tracking-tight",
 ]
 
 # =============================================================================
@@ -276,6 +384,7 @@ SOCIAL_LINKS = [
 # =============================================================================
 # Helper Functions
 # =============================================================================
+
 
 def get_random_classes(rng, framework: str, count: int = 5) -> list[str]:
     """Get random realistic class names for a framework."""

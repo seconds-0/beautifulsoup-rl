@@ -5,13 +5,13 @@ Usage:
     python collect_html.py "https://amazon.com/dp/B0..." "corpus/e-commerce/amazon/product_001.html"
 """
 
+import json
 import sys
+from datetime import datetime
+from pathlib import Path
+
 import requests
 from bs4 import BeautifulSoup
-from pathlib import Path
-import json
-from datetime import datetime
-
 
 # Common headers to look more like a browser
 HEADERS = {
@@ -60,7 +60,7 @@ def analyze_html(html: str) -> dict:
 
     # Count nesting depth
     def max_depth(element, current=0):
-        children = [c for c in element.children if hasattr(c, 'children')]
+        children = [c for c in element.children if hasattr(c, "children")]
         if not children:
             return current
         return max(max_depth(c, current + 1) for c in children)
@@ -76,7 +76,9 @@ def analyze_html(html: str) -> dict:
         frameworks.append("Angular")
     if soup.find(attrs={"v-if": True}) or soup.find(attrs={"v-for": True}):
         frameworks.append("Vue")
-    if soup.find(attrs={"class": lambda c: c and any(x in str(c) for x in ["bootstrap", "btn-", "col-md"])}):
+    if soup.find(
+        attrs={"class": lambda c: c and any(x in str(c) for x in ["bootstrap", "btn-", "col-md"])}
+    ):
         frameworks.append("Bootstrap")
     if soup.find(attrs={"class": lambda c: c and any(x in str(c) for x in ["tailwind", "tw-"])}):
         frameworks.append("Tailwind")
@@ -111,7 +113,7 @@ def analyze_html(html: str) -> dict:
             "img": len(soup.find_all("img")),
             "table": len(soup.find_all("table")),
             "form": len(soup.find_all("form")),
-        }
+        },
     }
 
 
@@ -125,10 +127,16 @@ def save_html(html: str, output_path: str, metadata: dict, analysis: dict) -> No
 
     # Save metadata alongside
     meta_path = output_path.with_suffix(".meta.json")
-    meta_path.write_text(json.dumps({
-        "fetch": metadata,
-        "analysis": analysis,
-    }, indent=2), encoding="utf-8")
+    meta_path.write_text(
+        json.dumps(
+            {
+                "fetch": metadata,
+                "analysis": analysis,
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
 
     print(f"Saved: {output_path}")
     print(f"  Size: {analysis['size_kb']} KB")

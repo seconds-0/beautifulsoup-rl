@@ -9,36 +9,29 @@ should not be extracted, such as passwords, tokens, or credentials.
 import re
 from typing import Any
 
-
 # Default patterns that indicate sensitive data
 DEFAULT_SENSITIVE_PATTERNS = [
     # Password fields
     r"password\s*[:=]\s*\S+",
     r"passwd\s*[:=]\s*\S+",
     r"pwd\s*[:=]\s*\S+",
-
     # API keys and tokens (common formats)
     r"api[_-]?key\s*[:=]\s*['\"]?[a-zA-Z0-9_-]{20,}['\"]?",
     r"api[_-]?secret\s*[:=]\s*['\"]?[a-zA-Z0-9_-]{20,}['\"]?",
     r"access[_-]?token\s*[:=]\s*['\"]?[a-zA-Z0-9_-]{20,}['\"]?",
     r"auth[_-]?token\s*[:=]\s*['\"]?[a-zA-Z0-9_-]{20,}['\"]?",
     r"bearer\s+[a-zA-Z0-9_-]{20,}",
-
     # Session IDs
     r"session[_-]?id\s*[:=]\s*['\"]?[a-zA-Z0-9_-]{16,}['\"]?",
     r"sess[_-]?id\s*[:=]\s*['\"]?[a-zA-Z0-9_-]{16,}['\"]?",
-
     # JWT tokens
     r"eyJ[a-zA-Z0-9_-]*\.eyJ[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*",
-
     # Private keys
     r"-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----",
     r"-----BEGIN\s+EC\s+PRIVATE\s+KEY-----",
-
     # AWS credentials
     r"AKIA[0-9A-Z]{16}",
     r"aws[_-]?secret[_-]?access[_-]?key\s*[:=]",
-
     # Credit card numbers (basic pattern)
     r"\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13})\b",
 ]
@@ -107,12 +100,16 @@ def extract_forbidden_values_from_html(html: str) -> list[str]:
     forbidden = []
 
     # Password input values
-    password_pattern = r'<input[^>]*type\s*=\s*["\']password["\'][^>]*value\s*=\s*["\']([^"\']+)["\']'
+    password_pattern = (
+        r'<input[^>]*type\s*=\s*["\']password["\'][^>]*value\s*=\s*["\']([^"\']+)["\']'
+    )
     for match in re.finditer(password_pattern, html, re.IGNORECASE):
         forbidden.append(match.group(1))
 
     # Also check value before type
-    password_pattern2 = r'<input[^>]*value\s*=\s*["\']([^"\']+)["\'][^>]*type\s*=\s*["\']password["\']'
+    password_pattern2 = (
+        r'<input[^>]*value\s*=\s*["\']([^"\']+)["\'][^>]*type\s*=\s*["\']password["\']'
+    )
     for match in re.finditer(password_pattern2, html, re.IGNORECASE):
         forbidden.append(match.group(1))
 
@@ -196,11 +193,7 @@ def is_honeypot_field(name: str, field_type: str, attributes: dict) -> bool:
             return True
 
     # Check for aria-hidden with empty autocomplete
-    if attributes.get("aria-hidden") == "true":
-        if not attributes.get("autocomplete"):
-            return True
-
-    return False
+    return bool(attributes.get("aria-hidden") == "true" and not attributes.get("autocomplete"))
 
 
 def detect_login_form(html: str) -> bool:
@@ -218,15 +211,11 @@ def detect_login_form(html: str) -> bool:
 
     # Look for common login form indicators
     login_indicators = [
-        r'<form[^>]*(?:login|signin|auth)',
+        r"<form[^>]*(?:login|signin|auth)",
         r'name\s*=\s*["\'](?:username|email|user)["\']',
         r'id\s*=\s*["\'](?:login|signin)["\']',
         r'action\s*=\s*["\'][^"\']*(?:login|auth|signin)["\']',
-        r'(?:log\s*in|sign\s*in|authenticate)',
+        r"(?:log\s*in|sign\s*in|authenticate)",
     ]
 
-    for pattern in login_indicators:
-        if re.search(pattern, html, re.IGNORECASE):
-            return True
-
-    return False
+    return any(re.search(pattern, html, re.IGNORECASE) for pattern in login_indicators)

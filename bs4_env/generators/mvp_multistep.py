@@ -11,24 +11,17 @@ They use the navigate tool to switch between pre-generated HTML pages.
 
 from bs4_env.config import (
     STRING_SCHEMA,
-    LIST_SCHEMA,
-    FLOAT_SCHEMA,
-    INT_SCHEMA,
 )
 from bs4_env.generators.base import (
     Generator,
     HtmlStyle,
     TaskInstance,
     make_rng,
-    random_id,
-    random_class_name,
     random_price,
     random_product_name,
-    random_person_name,
     wrap_with_realistic_chrome,
 )
 from bs4_env.registry import register
-
 
 # =============================================================================
 # Search Then Detail Archetype
@@ -67,7 +60,7 @@ class SearchThenDetailGenerator(Generator):
         used_names = set()
         used_ids = set()
 
-        for i in range(num_products):
+        for _i in range(num_products):
             # Ensure unique product ID to avoid href collisions
             product_id = rng.randint(1000, 9999)
             while product_id in used_ids:
@@ -80,19 +73,28 @@ class SearchThenDetailGenerator(Generator):
                 name = random_product_name(rng)
             used_names.add(name)
 
-            products.append({
-                "id": product_id,
-                "name": name,
-                "price": random_price(rng, min_val=20, max_val=200),
-                "sku": f"SKU-{rng.randint(10000, 99999)}",
-                "description": f"High-quality {random_product_name(rng).lower()} with premium features.",
-                "manufacturer": rng.choice([
-                    "TechCorp", "GlobalGoods", "PremiumBrands", "QualityFirst",
-                    "InnovateCo", "ModernMakers", "EliteProducts"
-                ]),
-                "warranty": f"{rng.randint(1, 5)} years",
-                "href": f"/products/{product_id}",
-            })
+            products.append(
+                {
+                    "id": product_id,
+                    "name": name,
+                    "price": random_price(rng, min_val=20, max_val=200),
+                    "sku": f"SKU-{rng.randint(10000, 99999)}",
+                    "description": f"High-quality {random_product_name(rng).lower()} with premium features.",
+                    "manufacturer": rng.choice(
+                        [
+                            "TechCorp",
+                            "GlobalGoods",
+                            "PremiumBrands",
+                            "QualityFirst",
+                            "InnovateCo",
+                            "ModernMakers",
+                            "EliteProducts",
+                        ]
+                    ),
+                    "warranty": f"{rng.randint(1, 5)} years",
+                    "href": f"/products/{product_id}",
+                }
+            )
 
         # Select target product
         target = rng.choice(products)
@@ -157,22 +159,22 @@ class SearchThenDetailGenerator(Generator):
     def _build_search_page(self, products: list, style: HtmlStyle, rng) -> str:
         """Build the search results listing page."""
         content = '<div class="search-results">\n'
-        content += f'  <h1>Search Results ({len(products)} items)</h1>\n'
+        content += f"  <h1>Search Results ({len(products)} items)</h1>\n"
 
         for p in products:
-            content += f'''  <div class="product-result" data-id="{p["id"]}">
+            content += f"""  <div class="product-result" data-id="{p["id"]}">
     <h3 class="product-title"><a href="{p["href"]}">{p["name"]}</a></h3>
     <span class="price">{p["price"]}</span>
     <p class="snippet">{p["description"][:50]}...</p>
     <a href="{p["href"]}" class="view-details">View Details</a>
-  </div>\n'''
+  </div>\n"""
 
-        content += '</div>'
+        content += "</div>"
         return content
 
     def _build_detail_page(self, product: dict, style: HtmlStyle, rng) -> str:
         """Build a product detail page."""
-        content = f'''<div class="product-detail">
+        content = f"""<div class="product-detail">
   <h1 class="product-name">{product["name"]}</h1>
   <div class="product-info">
     <span class="price">{product["price"]}</span>
@@ -192,7 +194,7 @@ class SearchThenDetailGenerator(Generator):
   <div class="actions">
     <button class="add-to-cart">Add to Cart</button>
   </div>
-</div>'''
+</div>"""
 
         return wrap_with_realistic_chrome(
             content,
@@ -242,14 +244,16 @@ class PaginationAggregateGenerator(Generator):
         total_items = num_pages * items_per_page
 
         all_products = []
-        for i in range(total_items):
+        for _i in range(total_items):
             price_val = round(rng.uniform(10, 200), 2)
-            all_products.append({
-                "name": random_product_name(rng),
-                "price_val": price_val,
-                "price": f"${price_val:.2f}",
-                "in_stock": rng.random() > 0.3,
-            })
+            all_products.append(
+                {
+                    "name": random_product_name(rng),
+                    "price_val": price_val,
+                    "price": f"${price_val:.2f}",
+                    "in_stock": rng.random() > 0.3,
+                }
+            )
 
         # Choose aggregation task
         agg_types = [
@@ -293,7 +297,7 @@ class PaginationAggregateGenerator(Generator):
         query = (
             f"Find the {agg_name} priced product across ALL pages of results. "
             f"There are {num_pages} pages total. Navigate through each page, "
-            f"collect all prices, and return the {agg_name} price (e.g., \"$XX.XX\")."
+            f'collect all prices, and return the {agg_name} price (e.g., "$XX.XX").'
         )
 
         return TaskInstance(
@@ -318,22 +322,27 @@ class PaginationAggregateGenerator(Generator):
         )
 
     def _build_results_page(
-        self, products: list, page_num: int, total_pages: int,
-        items_per_page: int, style: HtmlStyle, rng
+        self,
+        products: list,
+        page_num: int,
+        total_pages: int,
+        items_per_page: int,
+        style: HtmlStyle,
+        rng,
     ) -> str:
         """Build a single page of results."""
         content = f'<div class="results-page" data-page="{page_num}">\n'
-        content += f'  <h1>Products (Page {page_num} of {total_pages})</h1>\n'
+        content += f"  <h1>Products (Page {page_num} of {total_pages})</h1>\n"
         content += '  <div class="product-list">\n'
 
         for p in products:
             stock_class = "in-stock" if p["in_stock"] else "out-of-stock"
-            content += f'''    <div class="product {stock_class}">
+            content += f"""    <div class="product {stock_class}">
       <span class="name">{p["name"]}</span>
       <span class="price">{p["price"]}</span>
-    </div>\n'''
+    </div>\n"""
 
-        content += '  </div>\n'
+        content += "  </div>\n"
 
         # Add pagination links
         content += '  <div class="pagination">\n'
@@ -342,8 +351,8 @@ class PaginationAggregateGenerator(Generator):
                 content += f'    <span class="current-page">{i}</span>\n'
             else:
                 content += f'    <a href="/results?page={i}" class="page-link">{i}</a>\n'
-        content += '  </div>\n'
-        content += '</div>'
+        content += "  </div>\n"
+        content += "</div>"
 
         return content
 
@@ -425,9 +434,7 @@ class LinkChainGenerator(Generator):
         pages[product_href] = self._build_product_page(final_product, style, rng)
 
         # Build initial page (category listing)
-        initial_html = self._build_category_page(
-            top_cat, subcats, subcat, subcat_href, style, rng
-        )
+        initial_html = self._build_category_page(top_cat, subcats, subcat, subcat_href, style, rng)
 
         html = wrap_with_realistic_chrome(
             initial_html,
@@ -467,15 +474,20 @@ class LinkChainGenerator(Generator):
         )
 
     def _build_category_page(
-        self, top_cat: str, subcats: list, target_subcat: str,
-        target_href: str, style: HtmlStyle, rng
+        self,
+        top_cat: str,
+        subcats: list,
+        target_subcat: str,
+        target_href: str,
+        style: HtmlStyle,
+        rng,
     ) -> str:
         """Build the top-level category page."""
-        content = f'<div class="category-page">\n'
-        content += f'  <h1>{top_cat}</h1>\n'
+        content = '<div class="category-page">\n'
+        content += f"  <h1>{top_cat}</h1>\n"
         content += '  <nav class="subcategories">\n'
-        content += '    <h2>Browse Categories</h2>\n'
-        content += '    <ul>\n'
+        content += "    <h2>Browse Categories</h2>\n"
+        content += "    <ul>\n"
 
         for subcat in subcats:
             if subcat == target_subcat:
@@ -485,51 +497,54 @@ class LinkChainGenerator(Generator):
 
             content += f'      <li><a href="{href}">{subcat}</a></li>\n'
 
-        content += '    </ul>\n'
-        content += '  </nav>\n'
-        content += '</div>'
+        content += "    </ul>\n"
+        content += "  </nav>\n"
+        content += "</div>"
 
         return content
 
     def _build_subcategory_page(
-        self, subcat: str, products: list, product_href: str,
-        style: HtmlStyle, rng
+        self, subcat: str, products: list, product_href: str, style: HtmlStyle, rng
     ) -> str:
         """Build a subcategory page with product listings."""
-        content = f'<div class="subcategory-page">\n'
-        content += f'  <h1>{subcat}</h1>\n'
+        content = '<div class="subcategory-page">\n'
+        content += f"  <h1>{subcat}</h1>\n"
         content += '  <div class="product-listings">\n'
 
         # Add some decoy products
         decoy_count = rng.randint(2, 4)
         all_products = []
         for _ in range(decoy_count):
-            all_products.append({
-                "name": random_product_name(rng),
-                "price": random_price(rng),
-                "href": f"/products/{rng.randint(1000, 9999)}",
-                "is_target": False,
-            })
+            all_products.append(
+                {
+                    "name": random_product_name(rng),
+                    "price": random_price(rng),
+                    "href": f"/products/{rng.randint(1000, 9999)}",
+                    "is_target": False,
+                }
+            )
 
         # Add target product
         target = products[0]
-        all_products.append({
-            "name": target["name"],
-            "price": target["price"],
-            "href": product_href,
-            "is_target": True,
-        })
+        all_products.append(
+            {
+                "name": target["name"],
+                "price": target["price"],
+                "href": product_href,
+                "is_target": True,
+            }
+        )
 
         rng.shuffle(all_products)
 
         for p in all_products:
-            content += f'''    <div class="product-card">
+            content += f"""    <div class="product-card">
       <h3><a href="{p["href"]}">{p["name"]}</a></h3>
       <span class="price">{p["price"]}</span>
-    </div>\n'''
+    </div>\n"""
 
-        content += '  </div>\n'
-        content += '</div>'
+        content += "  </div>\n"
+        content += "</div>"
 
         return wrap_with_realistic_chrome(
             content,
@@ -543,7 +558,7 @@ class LinkChainGenerator(Generator):
 
     def _build_product_page(self, product: dict, style: HtmlStyle, rng) -> str:
         """Build the final product page."""
-        content = f'''<div class="product-detail">
+        content = f"""<div class="product-detail">
   <h1 class="product-name">{product["name"]}</h1>
   <div class="product-info">
     <span class="price">{product["price"]}</span>
@@ -554,7 +569,7 @@ class LinkChainGenerator(Generator):
     <button class="add-to-cart">Add to Cart</button>
     <button class="wishlist">Add to Wishlist</button>
   </div>
-</div>'''
+</div>"""
 
         return wrap_with_realistic_chrome(
             content,
@@ -613,7 +628,7 @@ class CompareProductsGenerator(Generator):
         used_prices = set()
         used_ids = set()
 
-        for i in range(2):
+        for _i in range(2):
             # Ensure unique price to avoid ambiguity in "cheaper" comparison
             price_val = round(rng.uniform(50, 300), 2)
             while price_val in used_prices:
@@ -632,20 +647,22 @@ class CompareProductsGenerator(Generator):
                 product_id = rng.randint(1000, 9999)
             used_ids.add(product_id)
 
-            products.append({
-                "name": name,
-                "price_val": price_val,
-                "price": f"${price_val:.2f}",
-                "href": f"/products/{product_id}",
-            })
+            products.append(
+                {
+                    "name": name,
+                    "price_val": price_val,
+                    "price": f"${price_val:.2f}",
+                    "href": f"/products/{product_id}",
+                }
+            )
 
         # Determine which is cheaper (prices are guaranteed unique)
         if products[0]["price_val"] < products[1]["price_val"]:
             cheaper = products[0]
-            more_expensive = products[1]
+            products[1]
         else:
             cheaper = products[1]
-            more_expensive = products[0]
+            products[0]
 
         diff = abs(products[0]["price_val"] - products[1]["price_val"])
         ground_truth = {
@@ -655,15 +672,15 @@ class CompareProductsGenerator(Generator):
 
         # Build comparison page listing both products
         comparison_html = '<div class="comparison">\n'
-        comparison_html += '  <h1>Compare Products</h1>\n'
+        comparison_html += "  <h1>Compare Products</h1>\n"
         comparison_html += '  <div class="products-to-compare">\n'
         for p in products:
-            comparison_html += f'''    <div class="compare-item">
+            comparison_html += f"""    <div class="compare-item">
       <h3><a href="{p["href"]}">{p["name"]}</a></h3>
       <p class="hint">Click to see full details and price</p>
-    </div>\n'''
-        comparison_html += '  </div>\n'
-        comparison_html += '</div>'
+    </div>\n"""
+        comparison_html += "  </div>\n"
+        comparison_html += "</div>"
 
         # Build detail pages
         pages = {}
@@ -710,7 +727,7 @@ class CompareProductsGenerator(Generator):
 
     def _build_detail_page(self, product: dict, style: HtmlStyle, rng) -> str:
         """Build a product detail page."""
-        content = f'''<div class="product-detail">
+        content = f"""<div class="product-detail">
   <h1 class="product-name">{product["name"]}</h1>
   <div class="product-info">
     <span class="price">{product["price"]}</span>
@@ -718,7 +735,7 @@ class CompareProductsGenerator(Generator):
   <div class="actions">
     <button class="add-to-cart">Add to Cart</button>
   </div>
-</div>'''
+</div>"""
 
         return wrap_with_realistic_chrome(
             content,

@@ -3,14 +3,11 @@
 Tests the hard_only and tiered sampling modes for evaluation.
 """
 
-import pytest
-
-from bs4_env.config import EnvConfig
-from bs4_env.dataset import build_dataset, _get_archetype_ids_for_config, get_dataset_stats
-from bs4_env.registry import get_archetype, list_archetypes
-
 # Import auto_import to ensure all generators are registered
 from bs4_env import auto_import  # noqa: F401
+from bs4_env.config import EnvConfig
+from bs4_env.dataset import _get_archetype_ids_for_config, build_dataset
+from bs4_env.registry import get_archetype
 
 
 class TestHardOnlyMode:
@@ -76,10 +73,10 @@ class TestTieredMode:
             split="bench",
             num_examples=100,
             difficulty_weights={
-                "easy": 0.1,   # 10% easy
-                "medium": 0.3, # 30% medium
-                "hard": 0.6,   # 60% hard
-            }
+                "easy": 0.1,  # 10% easy
+                "medium": 0.3,  # 30% medium
+                "hard": 0.6,  # 60% hard
+            },
         )
         dataset = build_dataset(config)
 
@@ -142,6 +139,7 @@ class TestDifficultyFilter:
         # All tasks should be easy (if any easy archetypes exist)
         if len(dataset) > 0:
             import json
+
             for row in dataset:
                 info = json.loads(row["info"])
                 spec = get_archetype(info["archetype_id"])
@@ -155,6 +153,7 @@ class TestDifficultyFilter:
         # All tasks should be hard (if any hard archetypes exist)
         if len(dataset) > 0:
             import json
+
             for row in dataset:
                 info = json.loads(row["info"])
                 spec = get_archetype(info["archetype_id"])

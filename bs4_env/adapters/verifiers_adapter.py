@@ -10,6 +10,7 @@ Two modes:
 2. If verifiers is not installed: Return MinimalEnv for local testing
 """
 
+import contextlib
 import json
 from typing import Any, Callable
 
@@ -51,9 +52,8 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
     """
     from bs4_env.tools.executor import get_executor
     from bs4_env.tools.harness import (
-        build_runner_script,
-        build_tool_response,
         NAVIGATE_SUCCESS_MARKER,
+        build_tool_response,
     )
 
     # Build the HuggingFace dataset
@@ -202,7 +202,9 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
                                 if func.get("name") == "run_python":
                                     args = func.get("arguments", "{}")
                                     try:
-                                        args_dict = json.loads(args) if isinstance(args, str) else args
+                                        args_dict = (
+                                            json.loads(args) if isinstance(args, str) else args
+                                        )
                                         code = args_dict.get("code", "")
                                         if code:
                                             code_samples.append(code)
@@ -317,7 +319,7 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
                         # Use structured marker for robust detection
                         if isinstance(content, str) and content.startswith(NAVIGATE_SUCCESS_MARKER):
                             # Extract href from marker: "NAVIGATE_OK:href\n..."
-                            marker_content = content[len(NAVIGATE_SUCCESS_MARKER):]
+                            marker_content = content[len(NAVIGATE_SUCCESS_MARKER) :]
                             normalized_href = marker_content.split("\n")[0].strip()
                             if normalized_href in pages:
                                 state["html"] = pages[normalized_href]
@@ -438,13 +440,10 @@ class MinimalEnv:
             ToolRegistry with run_python and optional tools configured.
             For multi-step tasks, includes navigate tool.
         """
-        from bs4_env.tools.tool_defs import create_tool_registry
 
         constraints = TaskConstraints(
             output_schema=example["info"].get("answer_schema", {}),
-            allowed_limit_reasons=example["info"].get("limit_info", {}).get(
-                "allowed_reasons", []
-            ),
+            allowed_limit_reasons=example["info"].get("limit_info", {}).get("allowed_reasons", []),
         )
 
         # Get pages for multi-step tasks
@@ -518,10 +517,8 @@ class MinimalEnv:
                 elif "arguments" in call:
                     args = call.get("arguments", {})
                     if isinstance(args, str):
-                        try:
+                        with contextlib.suppress(json.JSONDecodeError, TypeError):
                             args = json.loads(args)
-                        except (json.JSONDecodeError, TypeError):
-                            pass
                     if isinstance(args, dict) and "code" in args:
                         code_samples.append(args["code"])
 

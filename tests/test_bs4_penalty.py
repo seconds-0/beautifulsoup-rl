@@ -8,11 +8,11 @@ This tests the gradient toward BeautifulSoup usage:
 import pytest
 
 from bs4_env.grading.rubric import (
+    BS4_USAGE_PENALTY,
+    REWARD_CORRECT,
     check_bs4_usage,
     compute_bs4_penalty,
     compute_reward,
-    BS4_USAGE_PENALTY,
-    REWARD_CORRECT,
 )
 
 
@@ -53,7 +53,7 @@ class TestBS4UsageDetection:
 
     def test_detects_get_text_method(self):
         """element.get_text() method is detected."""
-        code = 'text = element.get_text(strip=True)'
+        code = "text = element.get_text(strip=True)"
         assert check_bs4_usage([code]) is True
 
     def test_detects_sibling_navigation(self):
@@ -63,22 +63,22 @@ class TestBS4UsageDetection:
 
     def test_pure_regex_not_detected(self):
         """Pure regex solution is not detected as BS4."""
-        code = '''
+        code = """
 import re
 match = re.search(r'<div class="target">(.*?)</div>', HTML)
 answer = match.group(1) if match else None
 print(json.dumps({"status": "ok", "answer": answer}))
-'''
+"""
         assert check_bs4_usage([code]) is False
 
     def test_pure_string_not_detected(self):
         """Pure string manipulation is not detected as BS4."""
-        code = '''
+        code = """
 start = HTML.find('<div class="target">')
 end = HTML.find('</div>', start)
 answer = HTML[start:end].split(">")[1]
 print(json.dumps({"status": "ok", "answer": answer}))
-'''
+"""
         assert check_bs4_usage([code]) is False
 
     def test_empty_code_list_returns_true(self):
@@ -88,7 +88,7 @@ print(json.dumps({"status": "ok", "answer": answer}))
     def test_multiple_code_samples_any_bs4(self):
         """If any code sample uses BS4, returns True."""
         code1 = 're.search(r"pattern", HTML)'  # No BS4
-        code2 = 'soup = make_soup()'  # Uses BS4
+        code2 = "soup = make_soup()"  # Uses BS4
         assert check_bs4_usage([code1, code2]) is True
 
     def test_multiple_code_samples_no_bs4(self):
@@ -103,7 +103,7 @@ class TestBS4Penalty:
 
     def test_bs4_used_no_penalty(self):
         """Using BS4 results in no penalty."""
-        code = 'soup = make_soup()'
+        code = "soup = make_soup()"
         penalty, used = compute_bs4_penalty([code])
         assert penalty == 0.0
         assert used is True

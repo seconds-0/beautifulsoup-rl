@@ -8,8 +8,7 @@ This module handles validation of model outputs against expected schemas.
 import json
 from typing import Any
 
-from jsonschema import Draft7Validator, ValidationError
-
+from jsonschema import Draft7Validator
 
 # The top-level output schema that all model responses must follow
 OUTPUT_SCHEMA = {

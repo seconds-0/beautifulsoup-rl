@@ -8,7 +8,7 @@ Two implementations are provided:
 - PrimeSandboxExecutor: For production use with Prime's sandbox infrastructure
 """
 
-import json
+import contextlib
 import subprocess
 import sys
 import tempfile
@@ -133,6 +133,7 @@ class LocalSubprocessExecutor(Executor):
             # Inherit current Python's environment for package access
             # Note: We DON'T change HOME as that breaks user site-packages lookup
             import os
+
             env = os.environ.copy()
 
             result = subprocess.run(
@@ -175,10 +176,8 @@ class LocalSubprocessExecutor(Executor):
 
         finally:
             # Clean up temp file
-            try:
+            with contextlib.suppress(Exception):
                 Path(script_path).unlink()
-            except Exception:
-                pass
 
 
 class PrimeSandboxExecutor(Executor):

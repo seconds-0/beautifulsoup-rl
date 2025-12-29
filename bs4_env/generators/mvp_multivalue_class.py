@@ -19,25 +19,43 @@ from bs4_env.generators.base import (
     Generator,
     HtmlStyle,
     TaskInstance,
-    make_rng,
+    add_noise_comments,
     generate_variable_content,
+    make_rng,
     random_id,
     wrap_with_realistic_chrome,
-    add_noise_comments,
 )
 from bs4_env.registry import register
 
-
 # Class name parts for realistic multi-class elements
 CLASS_PREFIXES = ["btn", "nav", "card", "list", "form", "input", "text", "grid", "flex", "col"]
-CLASS_MODIFIERS = ["primary", "secondary", "active", "disabled", "hidden", "large", "small", "dark", "light"]
+CLASS_MODIFIERS = [
+    "primary",
+    "secondary",
+    "active",
+    "disabled",
+    "hidden",
+    "large",
+    "small",
+    "dark",
+    "light",
+]
 CLASS_STATES = ["hover", "focus", "selected", "expanded", "collapsed", "open", "closed"]
 CLASS_SIZES = ["sm", "md", "lg", "xl", "xs", "xxl"]
 
 # Safe modifiers for query classes - these won't collide with chrome templates
 # Avoids: "hidden" (used in Tailwind nav), "active" (common in Bootstrap),
 # "disabled" (common in forms), "primary"/"secondary" (Bootstrap buttons)
-SAFE_QUERY_MODIFIERS = ["featured", "highlighted", "promoted", "pinned", "starred", "verified", "premium", "urgent"]
+SAFE_QUERY_MODIFIERS = [
+    "featured",
+    "highlighted",
+    "promoted",
+    "pinned",
+    "starred",
+    "verified",
+    "premium",
+    "urgent",
+]
 
 
 def generate_multiclass_name(rng, num_classes: int = 3) -> list[str]:
@@ -53,7 +71,9 @@ def generate_multiclass_name(rng, num_classes: int = 3) -> list[str]:
     classes = []
 
     # First class is usually a component type
-    classes.append(rng.choice(CLASS_PREFIXES) + "-" + rng.choice(["item", "container", "wrapper", "box"]))
+    classes.append(
+        rng.choice(CLASS_PREFIXES) + "-" + rng.choice(["item", "container", "wrapper", "box"])
+    )
 
     # Add modifiers/states
     if num_classes >= 2:
@@ -156,14 +176,14 @@ class MultivalueClassGenerator(Generator):
         elements = [
             ("div", target_class_str, target_text, target_id, True),
         ]
-        for i, (text, cls) in enumerate(distractors):
+        for _i, (text, cls) in enumerate(distractors):
             elements.append(("div", cls, text, random_id(rng), False))
 
         rng.shuffle(elements)
 
         # Build body content
         body_parts = []
-        for tag, cls, text, elem_id, is_target in elements:
+        for tag, cls, text, elem_id, _is_target in elements:
             body_parts.append(f'<{tag} id="{elem_id}" class="{cls}">{text}</{tag}>')
 
         body_content = "\n".join(body_parts)

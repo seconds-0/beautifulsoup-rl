@@ -16,24 +16,17 @@ from bs4_env.generators.base import (
     Generator,
     HtmlStyle,
     TaskInstance,
-    make_rng,
-    random_paragraph,
-    random_id,
-    random_class_name,
-    random_class_for_style,
-    add_noise_comments,
-    wrap_with_realistic_chrome,
-    # i18n functions
-    random_i18n_content,
-    random_mixed_language_content,
     add_emoji_noise,
+    add_noise_comments,
     add_special_unicode,
-    generate_i18n_paragraph,
-    get_rtl_wrapper,
     generate_variable_i18n_content,
+    make_rng,
+    random_class_for_style,
+    random_id,
+    random_paragraph,
+    wrap_with_realistic_chrome,
 )
 from bs4_env.registry import register
-
 
 # Tags that can be used for target elements
 TARGET_TAGS = ["article", "section", "div", "main", "aside", "p", "span"]
@@ -104,9 +97,7 @@ class MultilingualExtractionGenerator(Generator):
                 )
             else:
                 # 50% chance of different language
-                text, lang = generate_variable_i18n_content(
-                    rng, min_sentences=1, max_sentences=2
-                )
+                text, lang = generate_variable_i18n_content(rng, min_sentences=1, max_sentences=2)
             distractor_texts.append(text)
             distractor_langs.append(lang)
 
@@ -119,9 +110,30 @@ class MultilingualExtractionGenerator(Generator):
 
         elements = [
             (target_id, target_text, target_tag, content_class, target_lang, True),
-            (distractor_ids[0], distractor_texts[0], distractor_tags[0], "", distractor_langs[0], False),
-            (distractor_ids[1], distractor_texts[1], distractor_tags[1], "", distractor_langs[1], False),
-            (distractor_ids[2], distractor_texts[2], distractor_tags[2], "", distractor_langs[2], False),
+            (
+                distractor_ids[0],
+                distractor_texts[0],
+                distractor_tags[0],
+                "",
+                distractor_langs[0],
+                False,
+            ),
+            (
+                distractor_ids[1],
+                distractor_texts[1],
+                distractor_tags[1],
+                "",
+                distractor_langs[1],
+                False,
+            ),
+            (
+                distractor_ids[2],
+                distractor_texts[2],
+                distractor_tags[2],
+                "",
+                distractor_langs[2],
+                False,
+            ),
         ]
 
         # Shuffle to randomize target position
@@ -129,7 +141,7 @@ class MultilingualExtractionGenerator(Generator):
 
         # Build body content with lang attributes
         body_parts = []
-        for elem_id, text, tag, cls, lang, is_target in elements:
+        for elem_id, text, tag, cls, lang, _is_target in elements:
             class_attr = f' class="{cls}"' if cls else ""
             lang_attr = f' lang="{lang}"'
             body_parts.append(f'<{tag} id="{elem_id}"{class_attr}{lang_attr}>{text}</{tag}>')
@@ -149,16 +161,16 @@ class MultilingualExtractionGenerator(Generator):
             )
         else:
             html_parts = [
-                '<!DOCTYPE html>',
+                "<!DOCTYPE html>",
                 '<html lang="mul">',  # mul = multiple languages
-                '<head>',
+                "<head>",
                 '<meta charset="UTF-8">',
-                '<title>International Page</title>',
-                '</head>',
-                '<body>',
+                "<title>International Page</title>",
+                "</head>",
+                "<body>",
                 body_content,
-                '</body>',
-                '</html>',
+                "</body>",
+                "</html>",
             ]
             html = "\n".join(html_parts)
 
@@ -280,9 +292,33 @@ class RTLExtractionGenerator(Generator):
 
         elements = [
             (target_id, target_text, target_tag, content_class, target_lang, "rtl", True),
-            (distractor_ids[0], distractor_texts[0], distractor_tags[0], "", distractor_langs[0], distractor_dirs[0], False),
-            (distractor_ids[1], distractor_texts[1], distractor_tags[1], "", distractor_langs[1], distractor_dirs[1], False),
-            (distractor_ids[2], distractor_texts[2], distractor_tags[2], "", distractor_langs[2], distractor_dirs[2], False),
+            (
+                distractor_ids[0],
+                distractor_texts[0],
+                distractor_tags[0],
+                "",
+                distractor_langs[0],
+                distractor_dirs[0],
+                False,
+            ),
+            (
+                distractor_ids[1],
+                distractor_texts[1],
+                distractor_tags[1],
+                "",
+                distractor_langs[1],
+                distractor_dirs[1],
+                False,
+            ),
+            (
+                distractor_ids[2],
+                distractor_texts[2],
+                distractor_tags[2],
+                "",
+                distractor_langs[2],
+                distractor_dirs[2],
+                False,
+            ),
         ]
 
         # Shuffle to randomize target position
@@ -290,26 +326,28 @@ class RTLExtractionGenerator(Generator):
 
         # Build body content with dir and lang attributes
         body_parts = []
-        for elem_id, text, tag, cls, lang, direction, is_target in elements:
+        for elem_id, text, tag, cls, lang, direction, _is_target in elements:
             class_attr = f' class="{cls}"' if cls else ""
             lang_attr = f' lang="{lang}"'
             dir_attr = f' dir="{direction}"'
-            body_parts.append(f'<{tag} id="{elem_id}"{class_attr}{lang_attr}{dir_attr}>{text}</{tag}>')
+            body_parts.append(
+                f'<{tag} id="{elem_id}"{class_attr}{lang_attr}{dir_attr}>{text}</{tag}>'
+            )
 
         body_content = "\n".join(body_parts)
 
         # Build HTML
         html_parts = [
-            '<!DOCTYPE html>',
-            '<html>',
-            '<head>',
+            "<!DOCTYPE html>",
+            "<html>",
+            "<head>",
             '<meta charset="UTF-8">',
-            '<title>RTL Content Page</title>',
-            '</head>',
-            '<body>',
+            "<title>RTL Content Page</title>",
+            "</head>",
+            "<body>",
             body_content,
-            '</body>',
-            '</html>',
+            "</body>",
+            "</html>",
         ]
         html = "\n".join(html_parts)
 
@@ -390,9 +428,12 @@ class EmojiContentGenerator(Generator):
         base_text = random_paragraph(rng, sentences=rng.randint(2, 4))
 
         # Add emoji noise (higher density than usual for this task)
-        target_text = add_emoji_noise(base_text, rng, density=0.3, category=rng.choice([
-            "positive", "commerce", "navigation", "status", "social"
-        ]))
+        target_text = add_emoji_noise(
+            base_text,
+            rng,
+            density=0.3,
+            category=rng.choice(["positive", "commerce", "navigation", "status", "social"]),
+        )
 
         # Optionally add special Unicode characters
         if rng.random() < 0.3:
@@ -428,7 +469,7 @@ class EmojiContentGenerator(Generator):
 
         # Build body content
         body_parts = []
-        for elem_id, text, tag, cls, is_target in elements:
+        for elem_id, text, tag, cls, _is_target in elements:
             class_attr = f' class="{cls}"' if cls else ""
             body_parts.append(f'<{tag} id="{elem_id}"{class_attr}>{text}</{tag}>')
 
@@ -436,16 +477,16 @@ class EmojiContentGenerator(Generator):
 
         # Build HTML
         html_parts = [
-            '<!DOCTYPE html>',
-            '<html>',
-            '<head>',
+            "<!DOCTYPE html>",
+            "<html>",
+            "<head>",
             '<meta charset="UTF-8">',
-            '<title>Content Page</title>',
-            '</head>',
-            '<body>',
+            "<title>Content Page</title>",
+            "</head>",
+            "<body>",
             body_content,
-            '</body>',
-            '</html>',
+            "</body>",
+            "</html>",
         ]
         html = "\n".join(html_parts)
 

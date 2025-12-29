@@ -6,18 +6,18 @@ This module provides the tool interface that models interact with.
 """
 
 import json
-from typing import Any, Callable
+from typing import Callable
 
-from bs4_env.tools.executor import Executor, ExecResult
+from bs4_env.grading.schema import validate_output
+from bs4_env.tools.executor import Executor
 from bs4_env.tools.harness import (
-    RUN_PYTHON_TOOL_SCHEMA,
     GET_TASK_METADATA_TOOL_SCHEMA,
     LINT_JSON_TOOL_SCHEMA,
-    NAVIGATE_TOOL_SCHEMA,
     NAVIGATE_SUCCESS_MARKER,
+    NAVIGATE_TOOL_SCHEMA,
+    RUN_PYTHON_TOOL_SCHEMA,
     build_tool_response,
 )
-from bs4_env.grading.schema import validate_output
 
 
 def create_run_python_handler(
@@ -351,9 +351,7 @@ def create_tool_registry(
         registry.register(
             "run_python",
             RUN_PYTHON_TOOL_SCHEMA,
-            create_run_python_handler_with_nav(
-                executor, nav_state, query, constraints, timeout_s
-            ),
+            create_run_python_handler_with_nav(executor, nav_state, query, constraints, timeout_s),
         )
 
         # Add navigate tool with navigation state

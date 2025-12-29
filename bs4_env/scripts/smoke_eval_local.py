@@ -11,6 +11,7 @@ Usage:
     python -m bs4_env.scripts.smoke_eval_local
     python -m bs4_env.scripts.smoke_eval_local --num 5
 """
+
 from __future__ import annotations
 
 import argparse
@@ -34,10 +35,14 @@ def create_solution_code(info: dict) -> str:
         allowed_reasons = limit_info.get("allowed_reasons", ["unknown"])
 
         # Detect limitation type based on allowed reasons
-        is_image_task = any(r in allowed_reasons for r in ["image_text", "ocr_required", "text_in_image"])
-        is_js_task = any(r in allowed_reasons for r in ["js_required", "javascript_required", "dynamic_content"])
+        is_image_task = any(
+            r in allowed_reasons for r in ["image_text", "ocr_required", "text_in_image"]
+        )
+        is_js_task = any(
+            r in allowed_reasons for r in ["js_required", "javascript_required", "dynamic_content"]
+        )
 
-        return f'''
+        return f"""
 import json
 
 # This is a limitation task - detect and abstain
@@ -75,11 +80,11 @@ else:
     result = {{"status": "limit", "answer": None, "limit": {{"reason": fallback_reason, "evidence": "<"}}}}
 
 print(json.dumps(result))
-'''
+"""
 
     # For solvable tasks, generate extraction code based on archetype
     if "extract_text_by_id" in archetype:
-        return '''
+        return """
 import json
 import re
 soup = make_soup()
@@ -98,10 +103,10 @@ else:
     answer = None
 result = {"status": "ok", "answer": answer}
 print(json.dumps(result))
-'''
+"""
 
     if "extract_text_by_class" in archetype:
-        return '''
+        return """
 import json
 import re
 soup = make_soup()
@@ -120,10 +125,10 @@ else:
     answer = None
 result = {"status": "ok", "answer": answer}
 print(json.dumps(result))
-'''
+"""
 
     if "table_list_of_dicts" in archetype:
-        return '''
+        return """
 import json
 soup = make_soup()
 table = soup.find("table")
@@ -138,10 +143,10 @@ else:
             rows.append(dict(zip(headers, cells)))
     result = {"status": "ok", "answer": rows}
     print(json.dumps(result))
-'''
+"""
 
     if "table_list_of_lists" in archetype:
-        return '''
+        return """
 import json
 soup = make_soup()
 table = soup.find("table")
@@ -155,10 +160,10 @@ else:
             rows.append(cells)
     result = {"status": "ok", "answer": rows}
     print(json.dumps(result))
-'''
+"""
 
     if "string_returns_none" in archetype:
-        return '''
+        return """
 import json, re
 soup = make_soup()
 match = re.search(r'id="([^"]+)"', QUERY)
@@ -172,10 +177,10 @@ else:
     answer = None
 result = {"status": "ok", "answer": answer}
 print(json.dumps(result))
-'''
+"""
 
     if "none_attribute_error" in archetype or "class_reserved_word" in archetype:
-        return '''
+        return """
 import json, re
 soup = make_soup()
 match = re.search(r'class="([^"]+)"', QUERY)
@@ -188,10 +193,10 @@ else:
     answer = None
 result = {"status": "ok", "answer": answer}
 print(json.dumps(result))
-'''
+"""
 
     # Generic fallback
-    return '''
+    return """
 import json
 soup = make_soup()
 # Generic extraction attempt
@@ -199,7 +204,7 @@ body = soup.find("body") or soup
 answer = body.get_text(strip=True)[:200] if body else None
 result = {"status": "ok", "answer": answer}
 print(json.dumps(result))
-'''
+"""
 
 
 def run_smoke_test(env, idx: int) -> dict:
@@ -293,7 +298,7 @@ def main():
             archetype_rewards[arch] = []
         archetype_rewards[arch].append(r["reward"])
 
-    print(f"\nBy archetype:")
+    print("\nBy archetype:")
     for arch, rewards in sorted(archetype_rewards.items()):
         avg = sum(rewards) / len(rewards)
         print(f"  {arch}: {avg:.3f} ({len(rewards)} examples)")

@@ -85,7 +85,7 @@ def format_user_message(
         parts.append("### Limitation Handling")
         parts.append(
             "If this task cannot be solved with static HTML parsing, "
-            "respond with `status: \"limit\"` and provide:"
+            'respond with `status: "limit"` and provide:'
         )
         parts.append(f"- `reason`: One of {constraints.allowed_limit_reasons}")
         parts.append("- `evidence`: A literal substring from the HTML proving the limitation")
@@ -159,10 +159,7 @@ If extraction is impossible with static HTML parsing:
 - Different parsers produce different results for malformed HTML"""
 
 
-OUTPUT_FORMAT_EXAMPLE = {
-    "status": "ok",
-    "answer": "<your extracted data matching the schema>"
-}
+OUTPUT_FORMAT_EXAMPLE = {"status": "ok", "answer": "<your extracted data matching the schema>"}
 
 
 def explain_schema(schema: dict) -> str:
@@ -185,7 +182,7 @@ def explain_schema(schema: dict) -> str:
         elif items_type == "array":
             return 'The `answer` field must be an **array of arrays** (table rows). Example: `"answer": [["col1", "col2"], ["val1", "val2"]]`'
         else:
-            return f'The `answer` field must be an **array** of {items_type} values.'
+            return f"The `answer` field must be an **array** of {items_type} values."
 
     elif schema_type == "object":
         return 'The `answer` field must be an **object** (dictionary). Example: `"answer": {"key1": "value1", "key2": "value2"}`'

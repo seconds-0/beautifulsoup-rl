@@ -11,26 +11,25 @@ These tests verify that:
 import pytest
 from bs4 import BeautifulSoup
 
-from bs4_env.generators.mvp_i18n import (
-    MultilingualExtractionGenerator,
-    RTLExtractionGenerator,
-    EmojiContentGenerator,
+from bs4_env.data.i18n_content import (
+    EMOJI_CATEGORIES,
+    LANGUAGES,
+    RTL_LANGUAGES,
+    get_language_direction,
+    is_rtl_language,
 )
 from bs4_env.generators.base import (
-    random_i18n_content,
-    random_mixed_language_content,
     add_emoji_noise,
     generate_i18n_paragraph,
     get_rtl_wrapper,
+    random_i18n_content,
+    random_mixed_language_content,
 )
-from bs4_env.data.i18n_content import (
-    LANGUAGES,
-    RTL_LANGUAGES,
-    EMOJI_CATEGORIES,
-    is_rtl_language,
-    get_language_direction,
+from bs4_env.generators.mvp_i18n import (
+    EmojiContentGenerator,
+    MultilingualExtractionGenerator,
+    RTLExtractionGenerator,
 )
-
 
 # =============================================================================
 # Data Module Tests
@@ -124,7 +123,7 @@ def test_random_mixed_language_content():
 
     # Should have some ASCII (English) and some non-ASCII (foreign)
     has_ascii = any(ord(c) < 128 for c in content if c.isalpha())
-    has_non_ascii = any(ord(c) >= 128 for c in content)
+    any(ord(c) >= 128 for c in content)
 
     assert has_ascii, "Should contain English"
     # Note: foreign_ratio is probabilistic, so we just check structure
@@ -322,8 +321,9 @@ def test_unicode_nfc_normalization():
 
 def test_zero_width_characters_preserved():
     """Zero-width characters are preserved in extraction."""
-    from bs4_env.generators.base import add_special_unicode
     import random
+
+    from bs4_env.generators.base import add_special_unicode
 
     rng = random.Random(42)
     base = "test text"
@@ -340,10 +340,9 @@ def test_zero_width_characters_preserved():
 
 def test_i18n_generators_registered():
     """i18n generators are properly registered."""
-    from bs4_env.registry import get_all_archetype_ids
-
     # Import the module to trigger registration
     import bs4_env.generators.mvp_i18n  # noqa: F401
+    from bs4_env.registry import get_all_archetype_ids
 
     archetype_ids = get_all_archetype_ids()
 

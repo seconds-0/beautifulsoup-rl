@@ -5,13 +5,14 @@ test the intended BS4 gotchas, and that correct solutions work.
 """
 
 import json
+
 import pytest
 from bs4 import BeautifulSoup
 
-from bs4_env.generators.mvp_multivalue_class import MultivalueClassGenerator
-from bs4_env.generators.mvp_whitespace_sibling import WhitespaceSiblingGenerator
 from bs4_env.generators.mvp_json_ld import JsonLdExtractionGenerator
+from bs4_env.generators.mvp_multivalue_class import MultivalueClassGenerator
 from bs4_env.generators.mvp_navigablestring import NavigableStringParentGenerator
+from bs4_env.generators.mvp_whitespace_sibling import WhitespaceSiblingGenerator
 
 
 class TestMultivalueClass:
@@ -82,6 +83,7 @@ class TestWhitespaceSibling:
             # If there's a sibling, it should be whitespace or the next tag
             # The gotcha is that it's often whitespace when developers expect a tag
             from bs4 import NavigableString
+
             if isinstance(next_sib, NavigableString) and not next_sib.name:
                 # It's a text node (whitespace)
                 assert next_sib.strip() == "" or next_sib.name is None
@@ -179,6 +181,7 @@ class TestNavigableStringParent:
 
         # THE GOTCHA: result is NavigableString, not Tag
         from bs4 import NavigableString
+
         assert isinstance(result, NavigableString)
 
         # This is the common bug - NavigableStrings don't support dict-style access
@@ -219,12 +222,15 @@ class TestNavigableStringParent:
 class TestGotchaArchetypeDeterminism:
     """Test that all gotcha archetypes are deterministic."""
 
-    @pytest.mark.parametrize("generator_class", [
-        MultivalueClassGenerator,
-        WhitespaceSiblingGenerator,
-        JsonLdExtractionGenerator,
-        NavigableStringParentGenerator,
-    ])
+    @pytest.mark.parametrize(
+        "generator_class",
+        [
+            MultivalueClassGenerator,
+            WhitespaceSiblingGenerator,
+            JsonLdExtractionGenerator,
+            NavigableStringParentGenerator,
+        ],
+    )
     def test_same_seed_same_output(self, generator_class):
         """Same seed produces identical output."""
         gen = generator_class()
@@ -236,12 +242,15 @@ class TestGotchaArchetypeDeterminism:
         assert task1.query == task2.query
         assert task1.ground_truth == task2.ground_truth
 
-    @pytest.mark.parametrize("generator_class", [
-        MultivalueClassGenerator,
-        WhitespaceSiblingGenerator,
-        JsonLdExtractionGenerator,
-        NavigableStringParentGenerator,
-    ])
+    @pytest.mark.parametrize(
+        "generator_class",
+        [
+            MultivalueClassGenerator,
+            WhitespaceSiblingGenerator,
+            JsonLdExtractionGenerator,
+            NavigableStringParentGenerator,
+        ],
+    )
     def test_different_seeds_different_output(self, generator_class):
         """Different seeds produce different output."""
         gen = generator_class()

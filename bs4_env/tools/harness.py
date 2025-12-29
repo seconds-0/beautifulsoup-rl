@@ -194,11 +194,7 @@ def check_bs4_usage(code: str) -> bool:
     ]
 
     code_lower = code.lower()
-    for indicator in bs4_indicators:
-        if indicator.lower() in code_lower:
-            return True
-
-    return False
+    return any(indicator.lower() in code_lower for indicator in bs4_indicators)
 
 
 # Tool definition for Verifiers integration

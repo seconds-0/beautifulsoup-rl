@@ -29,12 +29,12 @@ from bs4_env.generators.base import (
     Generator,
     HtmlStyle,
     TaskInstance,
-    make_rng,
-    generate_variable_content,
-    random_id,
-    random_class_name,
-    wrap_with_realistic_chrome,
     add_noise_comments,
+    generate_variable_content,
+    make_rng,
+    random_class_name,
+    random_id,
+    wrap_with_realistic_chrome,
 )
 from bs4_env.registry import register
 
@@ -113,11 +113,13 @@ class NavigableStringParentGenerator(Generator):
             query_suffix = "the id attribute of the element containing it"
 
         # Build the target element
-        target_element = f'<{parent_tag} id="{parent_id}" class="{parent_class}">{target_text}</{parent_tag}>'
+        target_element = (
+            f'<{parent_tag} id="{parent_id}" class="{parent_class}">{target_text}</{parent_tag}>'
+        )
 
         # Add distractors - similar text in different elements
         distractors = []
-        for i in range(3):
+        for _i in range(3):
             d_tag = rng.choice(parent_tags)
             d_id = random_id(rng)
             d_class = random_class_name(rng)

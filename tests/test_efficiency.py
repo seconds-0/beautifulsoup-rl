@@ -10,11 +10,11 @@ These tests verify that:
 import pytest
 
 from bs4_env.grading.rubric import (
-    compute_efficiency_multiplier,
-    compute_reward,
-    MAX_TOOL_CALLS,
     EFFICIENCY_FLOOR,
     EFFICIENCY_PENALTY_PER_CALL,
+    MAX_TOOL_CALLS,
+    compute_efficiency_multiplier,
+    compute_reward,
 )
 
 

@@ -7,15 +7,16 @@ managing train/eval/bench splits with disjoint seeds.
 """
 
 import json
-from typing import Any, Iterator
+import random
+from collections.abc import Iterator
+from typing import Any
 
 from datasets import Dataset
 
 from bs4_env.config import EnvConfig, TaskConstraints
 from bs4_env.generators.base import TaskInstance
 from bs4_env.prompt import format_prompt
-from bs4_env.registry import get_archetype, list_archetypes, get_all_archetype_ids
-
+from bs4_env.registry import get_all_archetype_ids, get_archetype, list_archetypes
 
 # Seed ranges for each split to ensure no overlap
 SEED_RANGES = {
@@ -45,15 +46,19 @@ def build_dataset(config: EnvConfig) -> Dataset:
 
     if not rows:
         # Return empty dataset with correct schema
-        return Dataset.from_dict({
-            "prompt": [],
-            "info": [],
-        })
+        return Dataset.from_dict(
+            {
+                "prompt": [],
+                "info": [],
+            }
+        )
 
-    return Dataset.from_dict({
-        "prompt": [row["prompt"] for row in rows],
-        "info": [json.dumps(row["info"]) for row in rows],
-    })
+    return Dataset.from_dict(
+        {
+            "prompt": [row["prompt"] for row in rows],
+            "info": [json.dumps(row["info"]) for row in rows],
+        }
+    )
 
 
 def generate_dataset_rows(config: EnvConfig) -> Iterator[dict[str, Any]]:
@@ -85,6 +90,7 @@ def generate_dataset_rows(config: EnvConfig) -> Iterator[dict[str, Any]]:
 
     # Use config seed to shuffle which seeds we use
     import random
+
     rng = random.Random(config.seed)
 
     # For tiered mode, compute weighted examples per archetype
@@ -110,8 +116,7 @@ def generate_dataset_rows(config: EnvConfig) -> Iterator[dict[str, Any]]:
 
             for archetype_id in difficulty_archetypes:
                 yield from _generate_for_archetype(
-                    archetype_id, seed_start, seed_end,
-                    examples_per_archetype_in_tier, rng, config
+                    archetype_id, seed_start, seed_end, examples_per_archetype_in_tier, rng, config
                 )
     else:
         # Standard mode: uniform sampling
@@ -123,8 +128,7 @@ def generate_dataset_rows(config: EnvConfig) -> Iterator[dict[str, Any]]:
                 continue
 
             yield from _generate_for_archetype(
-                archetype_id, seed_start, seed_end,
-                examples_per_archetype, rng, config
+                archetype_id, seed_start, seed_end, examples_per_archetype, rng, config
             )
 
 
@@ -133,7 +137,7 @@ def _generate_for_archetype(
     seed_start: int,
     seed_end: int,
     num_examples: int,
-    rng: "random.Random",
+    rng: random.Random,
     config: EnvConfig,
 ) -> Iterator[dict[str, Any]]:
     """Generate examples for a single archetype.
@@ -149,7 +153,6 @@ def _generate_for_archetype(
     Yields:
         Dictionary with 'prompt' and 'info' for each task instance.
     """
-    import random
 
     spec = get_archetype(archetype_id)
     generator = spec.generator_class()

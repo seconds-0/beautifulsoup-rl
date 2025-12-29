@@ -16,29 +16,26 @@ from bs4_env.generators.base import (
     Generator,
     HtmlStyle,
     TaskInstance,
-    make_rng,
-    random_paragraph,
-    generate_variable_content,
-    random_id,
-    random_class_name,
-    random_class_for_style,
-    add_noise_comments,
     add_decoy_elements,
-    wrap_with_realistic_chrome,
-    randomize_attribute_order,
-    # i18n functions
-    random_mixed_language_content,
     add_emoji_noise,
+    add_noise_comments,
+    generate_near_duplicate,
     # Semantic decoy functions
     generate_semantic_decoy,
-    generate_near_duplicate,
-    generate_similar_id,
     generate_similar_class,
+    generate_similar_id,
+    generate_variable_content,
     # Malformation function
     introduce_malformation,
+    make_rng,
+    random_class_for_style,
+    random_class_name,
+    random_id,
+    # i18n functions
+    random_mixed_language_content,
+    wrap_with_realistic_chrome,
 )
 from bs4_env.registry import register
-
 
 # Tags that can be used for target elements (prevents always using <article>)
 TARGET_TAGS = ["article", "section", "div", "main", "aside", "p", "span"]
@@ -128,7 +125,7 @@ class ExtractTextByIdGenerator(Generator):
         # Generate SEMANTIC DECOY content (harder than random text)
         distractor_texts = [
             generate_semantic_decoy(rng, target_text, "partial_overlap"),  # Shares content
-            generate_semantic_decoy(rng, target_text, "similar_topic"),    # Same length/tone
+            generate_semantic_decoy(rng, target_text, "similar_topic"),  # Same length/tone
             generate_variable_content(rng, min_sentences=1, max_sentences=3),  # Random for variety
         ]
 
@@ -161,7 +158,7 @@ class ExtractTextByIdGenerator(Generator):
 
         # Build body content
         body_parts = []
-        for elem_id, text, tag, cls, is_target in elements:
+        for elem_id, text, tag, cls, _is_target in elements:
             class_attr = f' class="{cls}"' if cls else ""
             body_parts.append(f'<{tag} id="{elem_id}"{class_attr}>{text}</{tag}>')
 
@@ -297,7 +294,7 @@ class ExtractTextByClassGenerator(Generator):
         # Generate SEMANTIC DECOY content (harder than random text)
         distractor_texts = [
             generate_semantic_decoy(rng, target_text, "partial_overlap"),  # Shares content
-            generate_semantic_decoy(rng, target_text, "similar_topic"),    # Same length/tone
+            generate_semantic_decoy(rng, target_text, "similar_topic"),  # Same length/tone
             generate_variable_content(rng, min_sentences=1, max_sentences=3),  # Random for variety
         ]
 
@@ -321,7 +318,7 @@ class ExtractTextByClassGenerator(Generator):
 
         # Build body content
         body_parts = []
-        for tag, cls, text, is_target in elements:
+        for tag, cls, text, _is_target in elements:
             body_parts.append(f'<{tag} class="{cls}">{text}</{tag}>')
 
         # Add near-duplicate decoy

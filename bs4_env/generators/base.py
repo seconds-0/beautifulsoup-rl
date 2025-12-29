@@ -15,10 +15,10 @@ import random
 import re
 import string
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Sequence
-
+from typing import Any
 
 # =============================================================================
 # HTML Style System - Framework-Specific Patterns
@@ -65,21 +65,27 @@ class TaskInstance:
     seed: int
     solvable: bool = True
     answer_schema: dict = field(default_factory=dict)
-    normalization: dict = field(default_factory=lambda: {
-        "strip_whitespace": True,
-        "collapse_whitespace": True,
-        "unicode_nfc": True,
-        "sort_lists": False,
-        "sort_dict_keys": True,
-    })
-    limit_info: dict = field(default_factory=lambda: {
-        "allowed_reasons": [],
-        "evidence_patterns": [],
-    })
-    safety_info: dict = field(default_factory=lambda: {
-        "forbidden_patterns": [],
-        "forbidden_fields": [],
-    })
+    normalization: dict = field(
+        default_factory=lambda: {
+            "strip_whitespace": True,
+            "collapse_whitespace": True,
+            "unicode_nfc": True,
+            "sort_lists": False,
+            "sort_dict_keys": True,
+        }
+    )
+    limit_info: dict = field(
+        default_factory=lambda: {
+            "allowed_reasons": [],
+            "evidence_patterns": [],
+        }
+    )
+    safety_info: dict = field(
+        default_factory=lambda: {
+            "forbidden_patterns": [],
+            "forbidden_fields": [],
+        }
+    )
     metadata: dict = field(default_factory=dict)
     # For multi-step tasks: maps href -> HTML content of linked pages
     pages: dict = field(default_factory=dict)
@@ -122,9 +128,7 @@ class Generator(ABC):
     def archetype_id(self) -> str:
         """Get the archetype ID from the registered spec."""
         if self._archetype_spec is None:
-            raise RuntimeError(
-                f"{self.__class__.__name__} was not registered with @register"
-            )
+            raise RuntimeError(f"{self.__class__.__name__} was not registered with @register")
         return self._archetype_spec.archetype_id
 
     @abstractmethod
@@ -157,7 +161,7 @@ def stable_int_seed(split: str, archetype_id: str, seed: int) -> int:
     Returns:
         A stable integer seed suitable for random.Random().
     """
-    data = f"{split}:{archetype_id}:{seed}".encode("utf-8")
+    data = f"{split}:{archetype_id}:{seed}".encode()
     hash_bytes = hashlib.sha256(data).digest()
     # Use first 8 bytes as a 64-bit integer
     return int.from_bytes(hash_bytes[:8], byteorder="big")
@@ -302,7 +306,7 @@ def add_decoy_elements(
         decoys = [
             '<div class="hidden" style="display:none">decoy content</div>',
             '<span class="sr-only">screen reader only</span>',
-            '<noscript>Enable JavaScript</noscript>',
+            "<noscript>Enable JavaScript</noscript>",
             '<template id="tmpl">template content</template>',
             '<!-- <div class="old">deprecated</div> -->',
         ]
@@ -357,8 +361,22 @@ def random_id(rng: random.Random, prefix: str | None = None) -> str:
     """
     # Use fully random bases by default to avoid semantic prefixes
     bases = [
-        "el", "node", "item", "block", "comp", "sect", "wrap", "unit",
-        "elem", "box", "part", "seg", "zone", "area", "cell", "slot",
+        "el",
+        "node",
+        "item",
+        "block",
+        "comp",
+        "sect",
+        "wrap",
+        "unit",
+        "elem",
+        "box",
+        "part",
+        "seg",
+        "zone",
+        "area",
+        "cell",
+        "slot",
     ]
     base = prefix if prefix is not None else rng.choice(bases)
     suffix = "".join(rng.choices(string.ascii_lowercase + string.digits, k=8))
@@ -424,12 +442,38 @@ def introduce_malformation(
 def random_person_name(rng: random.Random) -> str:
     """Generate a random person name."""
     first_names = [
-        "Alice", "Bob", "Carol", "David", "Emma", "Frank", "Grace", "Henry",
-        "Ivy", "Jack", "Karen", "Leo", "Maria", "Nathan", "Olivia", "Peter",
+        "Alice",
+        "Bob",
+        "Carol",
+        "David",
+        "Emma",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Karen",
+        "Leo",
+        "Maria",
+        "Nathan",
+        "Olivia",
+        "Peter",
     ]
     last_names = [
-        "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller",
-        "Davis", "Martinez", "Anderson", "Wilson", "Taylor", "Thomas", "Lee",
+        "Smith",
+        "Johnson",
+        "Williams",
+        "Brown",
+        "Jones",
+        "Garcia",
+        "Miller",
+        "Davis",
+        "Martinez",
+        "Anderson",
+        "Wilson",
+        "Taylor",
+        "Thomas",
+        "Lee",
     ]
     return f"{rng.choice(first_names)} {rng.choice(last_names)}"
 
@@ -620,7 +664,7 @@ def generate_near_duplicate(
             if len(words) > 5:
                 cut_point = rng.randint(len(words) // 2, len(words) - 2)
                 return " ".join(words[:cut_point]) + "..."
-        return target_text[:len(target_text) // 2] + "..."
+        return target_text[: len(target_text) // 2] + "..."
 
     elif mutation_type == "append":
         # Add extra content at the end
@@ -645,7 +689,16 @@ def generate_near_duplicate(
                 # Replace with a random word of similar length
                 original = words[idx]
                 if len(original) > 3:
-                    replacement = rng.choice(["similar", "related", "relevant", "comparable", "corresponding", "associated"])
+                    replacement = rng.choice(
+                        [
+                            "similar",
+                            "related",
+                            "relevant",
+                            "comparable",
+                            "corresponding",
+                            "associated",
+                        ]
+                    )
                     words[idx] = replacement
             return " ".join(words)
         return target_text
@@ -711,9 +764,23 @@ def generate_similar_id(
             char_list = list(target_id)
             # Replace with a similar-looking character
             similar = {
-                'a': 'e', 'e': 'a', 'i': 'l', 'l': 'i', 'o': '0', '0': 'o',
-                '1': 'l', 'm': 'n', 'n': 'm', 'p': 'q', 'q': 'p', 'u': 'v',
-                'v': 'u', 'b': 'd', 'd': 'b', 's': '5', '5': 's',
+                "a": "e",
+                "e": "a",
+                "i": "l",
+                "l": "i",
+                "o": "0",
+                "0": "o",
+                "1": "l",
+                "m": "n",
+                "n": "m",
+                "p": "q",
+                "q": "p",
+                "u": "v",
+                "v": "u",
+                "b": "d",
+                "d": "b",
+                "s": "5",
+                "5": "s",
             }
             old_char = char_list[idx]
             if old_char in similar:
@@ -785,57 +852,281 @@ def generate_similar_class(
 # 80+ adjectives organized by category
 ADJECTIVES = [
     # Physical properties
-    "quick", "slow", "lazy", "energetic", "bright", "dark", "dim", "radiant",
-    "small", "large", "tiny", "massive", "heavy", "light", "dense", "hollow",
-    "old", "new", "ancient", "modern", "vintage", "contemporary", "antique", "fresh",
-    "warm", "cold", "hot", "cool", "frozen", "tepid", "scorching", "chilly",
-    "soft", "hard", "firm", "flexible", "rigid", "elastic", "brittle", "supple",
+    "quick",
+    "slow",
+    "lazy",
+    "energetic",
+    "bright",
+    "dark",
+    "dim",
+    "radiant",
+    "small",
+    "large",
+    "tiny",
+    "massive",
+    "heavy",
+    "light",
+    "dense",
+    "hollow",
+    "old",
+    "new",
+    "ancient",
+    "modern",
+    "vintage",
+    "contemporary",
+    "antique",
+    "fresh",
+    "warm",
+    "cold",
+    "hot",
+    "cool",
+    "frozen",
+    "tepid",
+    "scorching",
+    "chilly",
+    "soft",
+    "hard",
+    "firm",
+    "flexible",
+    "rigid",
+    "elastic",
+    "brittle",
+    "supple",
     # Texture and appearance
-    "rough", "smooth", "bumpy", "sleek", "glossy", "matte", "shiny", "dull",
-    "clean", "dirty", "pristine", "grimy", "spotless", "dusty", "polished", "tarnished",
+    "rough",
+    "smooth",
+    "bumpy",
+    "sleek",
+    "glossy",
+    "matte",
+    "shiny",
+    "dull",
+    "clean",
+    "dirty",
+    "pristine",
+    "grimy",
+    "spotless",
+    "dusty",
+    "polished",
+    "tarnished",
     # Size and shape
-    "narrow", "wide", "thin", "thick", "tall", "short", "round", "square",
-    "deep", "shallow", "long", "brief", "curved", "straight", "angular", "circular",
+    "narrow",
+    "wide",
+    "thin",
+    "thick",
+    "tall",
+    "short",
+    "round",
+    "square",
+    "deep",
+    "shallow",
+    "long",
+    "brief",
+    "curved",
+    "straight",
+    "angular",
+    "circular",
     # Quality and state
-    "simple", "complex", "plain", "ornate", "basic", "elaborate", "minimal", "intricate",
-    "quiet", "loud", "silent", "noisy", "peaceful", "chaotic", "calm", "turbulent",
+    "simple",
+    "complex",
+    "plain",
+    "ornate",
+    "basic",
+    "elaborate",
+    "minimal",
+    "intricate",
+    "quiet",
+    "loud",
+    "silent",
+    "noisy",
+    "peaceful",
+    "chaotic",
+    "calm",
+    "turbulent",
 ]
 
 # 80+ nouns organized by category
 NOUNS = [
     # Animals
-    "fox", "dog", "cat", "bird", "wolf", "bear", "deer", "rabbit",
-    "eagle", "owl", "hawk", "sparrow", "dolphin", "whale", "shark", "octopus",
-    "lion", "tiger", "elephant", "giraffe", "zebra", "horse", "cow", "sheep",
+    "fox",
+    "dog",
+    "cat",
+    "bird",
+    "wolf",
+    "bear",
+    "deer",
+    "rabbit",
+    "eagle",
+    "owl",
+    "hawk",
+    "sparrow",
+    "dolphin",
+    "whale",
+    "shark",
+    "octopus",
+    "lion",
+    "tiger",
+    "elephant",
+    "giraffe",
+    "zebra",
+    "horse",
+    "cow",
+    "sheep",
     # Nature
-    "tree", "river", "mountain", "valley", "forest", "meadow", "ocean", "desert",
-    "garden", "flower", "leaf", "branch", "rock", "stone", "pebble", "boulder",
-    "cloud", "rain", "snow", "wind", "storm", "thunder", "lightning", "rainbow",
+    "tree",
+    "river",
+    "mountain",
+    "valley",
+    "forest",
+    "meadow",
+    "ocean",
+    "desert",
+    "garden",
+    "flower",
+    "leaf",
+    "branch",
+    "rock",
+    "stone",
+    "pebble",
+    "boulder",
+    "cloud",
+    "rain",
+    "snow",
+    "wind",
+    "storm",
+    "thunder",
+    "lightning",
+    "rainbow",
     # Buildings and structures
-    "house", "tower", "bridge", "castle", "cabin", "barn", "church", "temple",
-    "window", "door", "gate", "wall", "roof", "floor", "ceiling", "staircase",
+    "house",
+    "tower",
+    "bridge",
+    "castle",
+    "cabin",
+    "barn",
+    "church",
+    "temple",
+    "window",
+    "door",
+    "gate",
+    "wall",
+    "roof",
+    "floor",
+    "ceiling",
+    "staircase",
     # Objects
-    "car", "book", "table", "chair", "lamp", "clock", "mirror", "carpet",
-    "phone", "computer", "camera", "bicycle", "airplane", "ship", "train", "bus",
-    "cup", "plate", "bowl", "knife", "spoon", "fork", "bottle", "jar",
-    "pen", "paper", "envelope", "stamp", "key", "lock", "box", "bag",
+    "car",
+    "book",
+    "table",
+    "chair",
+    "lamp",
+    "clock",
+    "mirror",
+    "carpet",
+    "phone",
+    "computer",
+    "camera",
+    "bicycle",
+    "airplane",
+    "ship",
+    "train",
+    "bus",
+    "cup",
+    "plate",
+    "bowl",
+    "knife",
+    "spoon",
+    "fork",
+    "bottle",
+    "jar",
+    "pen",
+    "paper",
+    "envelope",
+    "stamp",
+    "key",
+    "lock",
+    "box",
+    "bag",
 ]
 
 # 64+ verbs organized by category
 VERBS = [
     # Movement
-    "jumped", "ran", "walked", "flew", "crawled", "climbed", "fell", "rolled",
-    "sprinted", "strolled", "marched", "dashed", "glided", "soared", "plunged", "leaped",
-    "spun", "twirled", "rotated", "swayed", "bounced", "slid", "tumbled", "wandered",
+    "jumped",
+    "ran",
+    "walked",
+    "flew",
+    "crawled",
+    "climbed",
+    "fell",
+    "rolled",
+    "sprinted",
+    "strolled",
+    "marched",
+    "dashed",
+    "glided",
+    "soared",
+    "plunged",
+    "leaped",
+    "spun",
+    "twirled",
+    "rotated",
+    "swayed",
+    "bounced",
+    "slid",
+    "tumbled",
+    "wandered",
     # Position changes
-    "sat", "stood", "lay", "knelt", "crouched", "leaned", "bent", "stretched",
-    "rose", "dropped", "lifted", "lowered", "raised", "sank", "floated", "hovered",
+    "sat",
+    "stood",
+    "lay",
+    "knelt",
+    "crouched",
+    "leaned",
+    "bent",
+    "stretched",
+    "rose",
+    "dropped",
+    "lifted",
+    "lowered",
+    "raised",
+    "sank",
+    "floated",
+    "hovered",
     # State changes
-    "appeared", "vanished", "emerged", "faded", "grew", "shrank", "expanded", "contracted",
-    "opened", "closed", "folded", "unfolded", "wrapped", "unwrapped", "locked", "unlocked",
+    "appeared",
+    "vanished",
+    "emerged",
+    "faded",
+    "grew",
+    "shrank",
+    "expanded",
+    "contracted",
+    "opened",
+    "closed",
+    "folded",
+    "unfolded",
+    "wrapped",
+    "unwrapped",
+    "locked",
+    "unlocked",
     # Actions
-    "moved", "rested", "waited", "watched", "listened", "spoke", "whispered", "shouted",
-    "searched", "found", "lost", "discovered", "created", "destroyed", "built", "demolished",
+    "moved",
+    "rested",
+    "waited",
+    "watched",
+    "listened",
+    "spoke",
+    "whispered",
+    "shouted",
+    "searched",
+    "found",
+    "lost",
+    "discovered",
+    "created",
+    "destroyed",
+    "built",
+    "demolished",
 ]
 
 # 30+ sentence templates with variable lengths (short/medium/long/complex)
@@ -847,7 +1138,6 @@ SENTENCE_TEMPLATES = [
     "The {noun} seemed {adj}.",
     "Something {adj} {verb} quietly.",
     "The {noun} was {adj}.",
-
     # Medium forms (8-12 words)
     "The {adj} {noun} {verb} the {noun2}.",
     "A {noun} was {verb} by the {adj} {noun2}.",
@@ -857,7 +1147,6 @@ SENTENCE_TEMPLATES = [
     "Despite being {adj}, the {noun} {verb} towards the {noun2}.",
     "The {adj} {noun} slowly {verb} across the room.",
     "Near the {noun}, a {adj} {noun2} {verb} softly.",
-
     # Long forms (12-20 words)
     "The {noun2} watched as the {adj} {noun} {verb} slowly across the floor.",
     "Neither the {noun} nor the {noun2} had {verb} before that moment.",
@@ -867,7 +1156,6 @@ SENTENCE_TEMPLATES = [
     "Between the {noun} and the {noun2}, something {adj} began to stir.",
     "The {adj} {noun} {verb} while the {noun2} continued to watch carefully.",
     "Without warning, the {noun} {verb} and startled the nearby {noun2}.",
-
     # Complex forms (20+ words)
     "In the {adj} corner of the room, a {noun} {verb} while the {noun2} watched with interest.",
     "The {noun} had never {verb} like this before, and the {adj} {noun2} took notice immediately.",
@@ -895,8 +1183,19 @@ def random_traditional_class(rng: random.Random) -> str:
     """Generate traditional semantic class names (Wikipedia, docs style)."""
     prefixes = ["", "mw-", "wiki-", "doc-", "content-", "page-"]
     words = [
-        "content", "wrapper", "container", "section", "article", "sidebar",
-        "navigation", "header", "footer", "main", "body", "text", "parser-output",
+        "content",
+        "wrapper",
+        "container",
+        "section",
+        "article",
+        "sidebar",
+        "navigation",
+        "header",
+        "footer",
+        "main",
+        "body",
+        "text",
+        "parser-output",
     ]
     modifiers = ["", "-inner", "-outer", "-left", "-right", "-primary", "-secondary"]
 
@@ -910,19 +1209,49 @@ def random_traditional_class(rng: random.Random) -> str:
 # State/visibility classes observed in real websites
 STATE_CLASSES = [
     # Visibility
-    "hide", "hidden", "show", "visible", "invisible",
-    "visually-hidden", "sr-only", "d-none", "d-block",
+    "hide",
+    "hidden",
+    "show",
+    "visible",
+    "invisible",
+    "visually-hidden",
+    "sr-only",
+    "d-none",
+    "d-block",
     # State
-    "active", "inactive", "disabled", "enabled",
-    "selected", "unselected", "checked", "unchecked",
-    "collapsed", "expanded", "open", "closed",
-    "authenticated", "unauthenticated", "logged-in", "logged-out",
+    "active",
+    "inactive",
+    "disabled",
+    "enabled",
+    "selected",
+    "unselected",
+    "checked",
+    "unchecked",
+    "collapsed",
+    "expanded",
+    "open",
+    "closed",
+    "authenticated",
+    "unauthenticated",
+    "logged-in",
+    "logged-out",
     # Loading
-    "loading", "loaded", "pending", "complete",
+    "loading",
+    "loaded",
+    "pending",
+    "complete",
     # Validation
-    "valid", "invalid", "error", "success", "warning",
+    "valid",
+    "invalid",
+    "error",
+    "success",
+    "warning",
     # Angular-specific state
-    "ng-pristine", "ng-valid", "ng-invalid", "ng-touched", "ng-dirty",
+    "ng-pristine",
+    "ng-valid",
+    "ng-invalid",
+    "ng-touched",
+    "ng-dirty",
 ]
 
 
@@ -942,8 +1271,22 @@ def random_branded_prefix(rng: random.Random) -> str:
     """
     # Company-like prefixes
     companies = [
-        "acme", "app", "site", "brand", "corp", "ui", "core", "base",
-        "web", "my", "pro", "ec", "shop", "biz", "tech", "data",
+        "acme",
+        "app",
+        "site",
+        "brand",
+        "corp",
+        "ui",
+        "core",
+        "base",
+        "web",
+        "my",
+        "pro",
+        "ec",
+        "shop",
+        "biz",
+        "tech",
+        "data",
     ]
     # Different separator styles
     separators = ["-", "--", "_", ""]
@@ -965,9 +1308,27 @@ def random_branded_class(rng: random.Random) -> str:
     """
     prefix = random_branded_prefix(rng)
     words = [
-        "container", "wrapper", "item", "link", "button", "nav", "header",
-        "footer", "content", "card", "list", "menu", "panel", "modal",
-        "form", "input", "label", "text", "icon", "image", "badge",
+        "container",
+        "wrapper",
+        "item",
+        "link",
+        "button",
+        "nav",
+        "header",
+        "footer",
+        "content",
+        "card",
+        "list",
+        "menu",
+        "panel",
+        "modal",
+        "form",
+        "input",
+        "label",
+        "text",
+        "icon",
+        "image",
+        "badge",
     ]
     modifiers = ["", "-primary", "-secondary", "-active", "-disabled", "-lg", "-sm"]
 
@@ -989,28 +1350,89 @@ def random_state_class(rng: random.Random) -> str:
 def random_bootstrap_classes(rng: random.Random, count: int = 3) -> str:
     """Generate Bootstrap-style utility and component classes."""
     grid_classes = [
-        "container", "container-fluid", "row", "col", "col-sm-6", "col-md-4",
-        "col-lg-3", "col-xl-2", "col-12", "col-auto", "g-3", "g-4", "gy-4", "gx-3",
+        "container",
+        "container-fluid",
+        "row",
+        "col",
+        "col-sm-6",
+        "col-md-4",
+        "col-lg-3",
+        "col-xl-2",
+        "col-12",
+        "col-auto",
+        "g-3",
+        "g-4",
+        "gy-4",
+        "gx-3",
     ]
     spacing = [
-        "p-0", "p-1", "p-2", "p-3", "p-4", "p-5", "m-0", "m-1", "m-2", "m-3",
-        "mt-3", "mb-4", "ms-2", "me-2", "mx-auto", "my-3", "px-4", "py-2",
+        "p-0",
+        "p-1",
+        "p-2",
+        "p-3",
+        "p-4",
+        "p-5",
+        "m-0",
+        "m-1",
+        "m-2",
+        "m-3",
+        "mt-3",
+        "mb-4",
+        "ms-2",
+        "me-2",
+        "mx-auto",
+        "my-3",
+        "px-4",
+        "py-2",
     ]
     display = [
-        "d-none", "d-block", "d-flex", "d-inline", "d-inline-block", "d-grid",
+        "d-none",
+        "d-block",
+        "d-flex",
+        "d-inline",
+        "d-inline-block",
+        "d-grid",
     ]
     flex = [
-        "flex-row", "flex-column", "justify-content-center", "justify-content-between",
-        "align-items-center", "align-items-start", "flex-wrap", "flex-nowrap",
+        "flex-row",
+        "flex-column",
+        "justify-content-center",
+        "justify-content-between",
+        "align-items-center",
+        "align-items-start",
+        "flex-wrap",
+        "flex-nowrap",
     ]
     components = [
-        "card", "card-body", "card-header", "card-footer", "btn", "btn-primary",
-        "btn-secondary", "btn-outline-primary", "navbar", "nav-item", "nav-link",
-        "list-group", "list-group-item", "badge", "alert", "alert-info",
+        "card",
+        "card-body",
+        "card-header",
+        "card-footer",
+        "btn",
+        "btn-primary",
+        "btn-secondary",
+        "btn-outline-primary",
+        "navbar",
+        "nav-item",
+        "nav-link",
+        "list-group",
+        "list-group-item",
+        "badge",
+        "alert",
+        "alert-info",
     ]
     text = [
-        "text-center", "text-start", "text-end", "text-muted", "text-primary",
-        "fw-bold", "fw-light", "fs-4", "fs-5", "lh-sm", "lh-lg",
+        "text-center",
+        "text-start",
+        "text-end",
+        "text-muted",
+        "text-primary",
+        "fw-bold",
+        "fw-light",
+        "fs-4",
+        "fs-5",
+        "lh-sm",
+        "lh-lg",
     ]
 
     all_classes = grid_classes + spacing + display + flex + components + text
@@ -1020,51 +1442,160 @@ def random_bootstrap_classes(rng: random.Random, count: int = 3) -> str:
 def random_tailwind_classes(rng: random.Random, count: int = 8) -> str:
     """Generate Tailwind CSS utility class explosion."""
     layout = [
-        "flex", "inline-flex", "grid", "block", "inline-block", "hidden",
-        "flex-col", "flex-row", "flex-wrap", "flex-nowrap",
+        "flex",
+        "inline-flex",
+        "grid",
+        "block",
+        "inline-block",
+        "hidden",
+        "flex-col",
+        "flex-row",
+        "flex-wrap",
+        "flex-nowrap",
     ]
     spacing = [
-        "p-0", "p-1", "p-2", "p-3", "p-4", "p-6", "p-8", "px-4", "py-2", "py-6",
-        "m-0", "m-1", "m-2", "m-4", "mx-auto", "my-4", "mt-2", "mb-4", "ml-2", "mr-2",
-        "space-x-2", "space-x-4", "space-y-2", "space-y-4", "gap-2", "gap-4",
+        "p-0",
+        "p-1",
+        "p-2",
+        "p-3",
+        "p-4",
+        "p-6",
+        "p-8",
+        "px-4",
+        "py-2",
+        "py-6",
+        "m-0",
+        "m-1",
+        "m-2",
+        "m-4",
+        "mx-auto",
+        "my-4",
+        "mt-2",
+        "mb-4",
+        "ml-2",
+        "mr-2",
+        "space-x-2",
+        "space-x-4",
+        "space-y-2",
+        "space-y-4",
+        "gap-2",
+        "gap-4",
     ]
     sizing = [
-        "w-full", "w-1/2", "w-1/3", "w-1/4", "w-auto", "w-screen", "w-64", "w-96",
-        "h-full", "h-auto", "h-screen", "h-12", "h-16", "h-24", "min-h-screen",
-        "max-w-md", "max-w-lg", "max-w-xl", "max-w-2xl", "max-w-7xl",
+        "w-full",
+        "w-1/2",
+        "w-1/3",
+        "w-1/4",
+        "w-auto",
+        "w-screen",
+        "w-64",
+        "w-96",
+        "h-full",
+        "h-auto",
+        "h-screen",
+        "h-12",
+        "h-16",
+        "h-24",
+        "min-h-screen",
+        "max-w-md",
+        "max-w-lg",
+        "max-w-xl",
+        "max-w-2xl",
+        "max-w-7xl",
     ]
     colors = [
-        "bg-white", "bg-gray-50", "bg-gray-100", "bg-gray-200", "bg-blue-500",
-        "bg-indigo-600", "bg-green-500", "bg-red-500", "bg-yellow-400",
-        "text-gray-500", "text-gray-700", "text-gray-900", "text-white",
-        "text-blue-600", "text-indigo-600", "border-gray-200", "border-gray-300",
+        "bg-white",
+        "bg-gray-50",
+        "bg-gray-100",
+        "bg-gray-200",
+        "bg-blue-500",
+        "bg-indigo-600",
+        "bg-green-500",
+        "bg-red-500",
+        "bg-yellow-400",
+        "text-gray-500",
+        "text-gray-700",
+        "text-gray-900",
+        "text-white",
+        "text-blue-600",
+        "text-indigo-600",
+        "border-gray-200",
+        "border-gray-300",
     ]
     typography = [
-        "text-xs", "text-sm", "text-base", "text-lg", "text-xl", "text-2xl",
-        "font-normal", "font-medium", "font-semibold", "font-bold",
-        "leading-tight", "leading-relaxed", "tracking-tight", "tracking-wide",
+        "text-xs",
+        "text-sm",
+        "text-base",
+        "text-lg",
+        "text-xl",
+        "text-2xl",
+        "font-normal",
+        "font-medium",
+        "font-semibold",
+        "font-bold",
+        "leading-tight",
+        "leading-relaxed",
+        "tracking-tight",
+        "tracking-wide",
     ]
     effects = [
-        "rounded", "rounded-md", "rounded-lg", "rounded-full", "rounded-none",
-        "shadow", "shadow-sm", "shadow-md", "shadow-lg", "shadow-xl",
-        "opacity-50", "opacity-75", "opacity-100",
+        "rounded",
+        "rounded-md",
+        "rounded-lg",
+        "rounded-full",
+        "rounded-none",
+        "shadow",
+        "shadow-sm",
+        "shadow-md",
+        "shadow-lg",
+        "shadow-xl",
+        "opacity-50",
+        "opacity-75",
+        "opacity-100",
     ]
     borders = [
-        "border", "border-0", "border-2", "border-t", "border-b", "border-l", "border-r",
+        "border",
+        "border-0",
+        "border-2",
+        "border-t",
+        "border-b",
+        "border-l",
+        "border-r",
     ]
     interactivity = [
-        "cursor-pointer", "cursor-default", "hover:bg-gray-100", "hover:text-blue-600",
-        "focus:outline-none", "focus:ring-2", "focus:ring-blue-500",
-        "transition", "transition-all", "duration-150", "duration-300",
+        "cursor-pointer",
+        "cursor-default",
+        "hover:bg-gray-100",
+        "hover:text-blue-600",
+        "focus:outline-none",
+        "focus:ring-2",
+        "focus:ring-blue-500",
+        "transition",
+        "transition-all",
+        "duration-150",
+        "duration-300",
     ]
     alignment = [
-        "items-center", "items-start", "items-end", "justify-center",
-        "justify-between", "justify-start", "justify-end", "self-center",
+        "items-center",
+        "items-start",
+        "items-end",
+        "justify-center",
+        "justify-between",
+        "justify-start",
+        "justify-end",
+        "self-center",
     ]
 
     all_classes = (
-        layout + spacing + sizing + colors + typography +
-        effects + borders + interactivity + alignment
+        layout
+        + spacing
+        + sizing
+        + colors
+        + typography
+        + effects
+        + borders
+        + interactivity
+        + alignment
     )
     return " ".join(rng.sample(all_classes, min(count, len(all_classes))))
 
@@ -1073,12 +1604,34 @@ def random_react_class(rng: random.Random) -> str:
     """Generate React/CSS Modules style hashed class names."""
     # CSS Modules pattern: ComponentName_className__hash
     components = [
-        "Button", "Card", "Header", "Footer", "Sidebar", "Modal", "Input",
-        "Form", "List", "Item", "Container", "Wrapper", "Content", "Title",
+        "Button",
+        "Card",
+        "Header",
+        "Footer",
+        "Sidebar",
+        "Modal",
+        "Input",
+        "Form",
+        "List",
+        "Item",
+        "Container",
+        "Wrapper",
+        "Content",
+        "Title",
     ]
     class_names = [
-        "root", "container", "wrapper", "inner", "content", "header",
-        "body", "footer", "item", "active", "disabled", "primary",
+        "root",
+        "container",
+        "wrapper",
+        "inner",
+        "content",
+        "header",
+        "body",
+        "footer",
+        "item",
+        "active",
+        "disabled",
+        "primary",
     ]
     # Generate hash-like suffix
     hash_chars = string.ascii_lowercase + string.digits
@@ -1098,14 +1651,33 @@ def random_react_class(rng: random.Random) -> str:
 def random_angular_class(rng: random.Random) -> str:
     """Generate Angular-style class names with scoped attributes."""
     material_classes = [
-        "mat-button", "mat-raised-button", "mat-card", "mat-card-content",
-        "mat-form-field", "mat-input", "mat-select", "mat-option",
-        "mat-list", "mat-list-item", "mat-toolbar", "mat-sidenav",
-        "mat-icon", "mat-checkbox", "mat-radio-button", "mat-slide-toggle",
+        "mat-button",
+        "mat-raised-button",
+        "mat-card",
+        "mat-card-content",
+        "mat-form-field",
+        "mat-input",
+        "mat-select",
+        "mat-option",
+        "mat-list",
+        "mat-list-item",
+        "mat-toolbar",
+        "mat-sidenav",
+        "mat-icon",
+        "mat-checkbox",
+        "mat-radio-button",
+        "mat-slide-toggle",
     ]
     ng_classes = [
-        "ng-star-inserted", "ng-trigger", "ng-animating", "ng-valid",
-        "ng-invalid", "ng-pristine", "ng-dirty", "ng-touched", "ng-untouched",
+        "ng-star-inserted",
+        "ng-trigger",
+        "ng-animating",
+        "ng-valid",
+        "ng-invalid",
+        "ng-pristine",
+        "ng-dirty",
+        "ng-touched",
+        "ng-untouched",
     ]
 
     if rng.random() < 0.6:
@@ -1117,12 +1689,26 @@ def random_angular_class(rng: random.Random) -> str:
 def random_vue_class(rng: random.Random) -> str:
     """Generate Vue-style class names."""
     vue_classes = [
-        "v-enter-active", "v-leave-active", "v-enter-from", "v-leave-to",
-        "v-move", "fade-enter-active", "fade-leave-active", "slide-fade-enter",
+        "v-enter-active",
+        "v-leave-active",
+        "v-enter-from",
+        "v-leave-to",
+        "v-move",
+        "fade-enter-active",
+        "fade-leave-active",
+        "slide-fade-enter",
     ]
     component_classes = [
-        "vue-component", "v-btn", "v-card", "v-list", "v-list-item",
-        "v-container", "v-row", "v-col", "v-app-bar", "v-navigation-drawer",
+        "vue-component",
+        "v-btn",
+        "v-card",
+        "v-list",
+        "v-list-item",
+        "v-container",
+        "v-row",
+        "v-col",
+        "v-app-bar",
+        "v-navigation-drawer",
     ]
 
     all_classes = vue_classes + component_classes
@@ -1183,7 +1769,7 @@ def random_data_attributes(rng: random.Random, style: HtmlStyle) -> dict[str, st
             attrs["data-testid"] = f"test-{''.join(rng.choices(hash_chars, k=6))}"
 
     elif style == HtmlStyle.ANGULAR:
-        scope_hash = "".join(rng.choices(hash_chars, k=8))
+        "".join(rng.choices(hash_chars, k=8))
         attrs[f"_ngcontent-ng-c{rng.randint(100, 999)}"] = ""
         if rng.random() < 0.3:
             attrs["ng-reflect-ng-class"] = rng.choice(["active", "disabled", "primary"])
@@ -1333,7 +1919,7 @@ def generate_repeated_elements(
         elif element_type == "option":
             content = f"Option {i + 1}"
         else:
-            content = random_paragraph(rng, sentences=1).split('.')[0]
+            content = random_paragraph(rng, sentences=1).split(".")[0]
 
         elements.append(f'<{element_type} class="{class_str}">{content}</{element_type}>')
 
@@ -1368,11 +1954,37 @@ def generate_repeated_navigation(rng: random.Random, style: HtmlStyle, count: in
         nav_class += " " + random_branded_class(rng)
 
     pages = [
-        "Home", "About", "Products", "Services", "Blog", "News", "Contact",
-        "FAQ", "Support", "Pricing", "Features", "Team", "Careers", "Press",
-        "Partners", "Investors", "Legal", "Privacy", "Terms", "Help",
-        "Documentation", "API", "Status", "Community", "Forums", "Events",
-        "Webinars", "Resources", "Downloads", "Updates", "Changelog",
+        "Home",
+        "About",
+        "Products",
+        "Services",
+        "Blog",
+        "News",
+        "Contact",
+        "FAQ",
+        "Support",
+        "Pricing",
+        "Features",
+        "Team",
+        "Careers",
+        "Press",
+        "Partners",
+        "Investors",
+        "Legal",
+        "Privacy",
+        "Terms",
+        "Help",
+        "Documentation",
+        "API",
+        "Status",
+        "Community",
+        "Forums",
+        "Events",
+        "Webinars",
+        "Resources",
+        "Downloads",
+        "Updates",
+        "Changelog",
     ]
 
     items = []
@@ -1443,35 +2055,41 @@ def generate_head_content(
     parts.append('<meta name="viewport" content="width=device-width, initial-scale=1.0">')
 
     if complexity in ("medium", "high"):
-        description = rng.choice([
-            "Welcome to our website with great content.",
-            "Find the best products and services here.",
-            "Your source for quality information.",
-            "Discover amazing content on our platform.",
-        ])
+        description = rng.choice(
+            [
+                "Welcome to our website with great content.",
+                "Find the best products and services here.",
+                "Your source for quality information.",
+                "Discover amazing content on our platform.",
+            ]
+        )
         parts.append(f'<meta name="description" content="{description}">')
         parts.append('<meta name="robots" content="index, follow">')
 
     if complexity == "high":
         # Open Graph tags
-        parts.extend([
-            f'<meta property="og:title" content="{title}">',
-            '<meta property="og:type" content="website">',
-            '<meta property="og:url" content="https://example.com/page">',
-            '<meta property="og:image" content="https://example.com/image.jpg">',
-            # Twitter cards
-            '<meta name="twitter:card" content="summary_large_image">',
-            f'<meta name="twitter:title" content="{title}">',
-        ])
+        parts.extend(
+            [
+                f'<meta property="og:title" content="{title}">',
+                '<meta property="og:type" content="website">',
+                '<meta property="og:url" content="https://example.com/page">',
+                '<meta property="og:image" content="https://example.com/image.jpg">',
+                # Twitter cards
+                '<meta name="twitter:card" content="summary_large_image">',
+                f'<meta name="twitter:title" content="{title}">',
+            ]
+        )
 
     # Style-specific assets
     if style == HtmlStyle.TRADITIONAL:
         parts.append('<link rel="stylesheet" href="/static/styles.css">')
 
     elif style == HtmlStyle.BOOTSTRAP:
-        parts.extend([
-            '<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">',
-        ])
+        parts.extend(
+            [
+                '<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">',
+            ]
+        )
         if complexity in ("medium", "high"):
             parts.append('<link rel="stylesheet" href="/static/custom.css">')
 
@@ -1479,24 +2097,30 @@ def generate_head_content(
         parts.append('<script src="https://cdn.tailwindcss.com"></script>')
 
     elif style == HtmlStyle.REACT_SPA:
-        parts.extend([
-            '<link rel="stylesheet" href="/static/main.css">',
-            '<script defer src="/static/bundle.js"></script>',
-        ])
+        parts.extend(
+            [
+                '<link rel="stylesheet" href="/static/main.css">',
+                '<script defer src="/static/bundle.js"></script>',
+            ]
+        )
 
     elif style == HtmlStyle.ANGULAR:
-        parts.extend([
-            '<link rel="stylesheet" href="styles.css">',
-            '<script src="runtime.js" defer></script>',
-            '<script src="polyfills.js" defer></script>',
-            '<script src="main.js" defer></script>',
-        ])
+        parts.extend(
+            [
+                '<link rel="stylesheet" href="styles.css">',
+                '<script src="runtime.js" defer></script>',
+                '<script src="polyfills.js" defer></script>',
+                '<script src="main.js" defer></script>',
+            ]
+        )
 
     elif style == HtmlStyle.VUE:
-        parts.extend([
-            '<link rel="stylesheet" href="/css/app.css">',
-            '<script type="module" src="/js/app.js"></script>',
-        ])
+        parts.extend(
+            [
+                '<link rel="stylesheet" href="/css/app.css">',
+                '<script type="module" src="/js/app.js"></script>',
+            ]
+        )
 
     # Favicon
     if complexity in ("medium", "high"):
@@ -1504,13 +2128,13 @@ def generate_head_content(
 
     # Analytics (high complexity only)
     if complexity == "high":
-        analytics_snippet = '''<script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
+        analytics_snippet = """<script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
   gtag('config', 'GA_MEASUREMENT_ID');
-</script>'''
+</script>"""
         parts.append(analytics_snippet)
 
     return "\n    ".join(parts)
@@ -1535,18 +2159,18 @@ def generate_navigation(rng: random.Random, style: HtmlStyle) -> str:
         links = "\n        ".join(
             f'<li><a href="/{item.lower()}">{item}</a></li>' for item in nav_items
         )
-        return f'''<nav class="main-navigation">
+        return f"""<nav class="main-navigation">
     <ul class="nav-list">
         {links}
     </ul>
-</nav>'''
+</nav>"""
 
     elif style == HtmlStyle.BOOTSTRAP:
         links = "\n            ".join(
             f'<li class="nav-item"><a class="nav-link" href="/{item.lower()}">{item}</a></li>'
             for item in nav_items
         )
-        return f'''<nav class="navbar navbar-expand-lg navbar-light bg-light">
+        return f"""<nav class="navbar navbar-expand-lg navbar-light bg-light">
     <div class="container-fluid">
         <a class="navbar-brand" href="#">Brand</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -1558,14 +2182,14 @@ def generate_navigation(rng: random.Random, style: HtmlStyle) -> str:
             </ul>
         </div>
     </div>
-</nav>'''
+</nav>"""
 
     elif style == HtmlStyle.TAILWIND:
         links = "\n                ".join(
             f'<a href="/{item.lower()}" class="text-gray-700 hover:text-blue-600 px-3 py-2">{item}</a>'
             for item in nav_items
         )
-        return f'''<nav class="bg-white shadow-sm">
+        return f"""<nav class="bg-white shadow-sm">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
             <div class="flex items-center">
@@ -1576,44 +2200,44 @@ def generate_navigation(rng: random.Random, style: HtmlStyle) -> str:
             </div>
         </div>
     </div>
-</nav>'''
+</nav>"""
 
     elif style == HtmlStyle.REACT_SPA:
         links = "\n            ".join(
             f'<a href="/{item.lower()}" class="NavLink_item__x7k2j">{item}</a>'
             for item in nav_items
         )
-        return f'''<nav class="Navigation_root__abc12" data-testid="main-nav">
+        return f"""<nav class="Navigation_root__abc12" data-testid="main-nav">
     <div class="Navigation_container__def34">
         <div class="Navigation_brand__ghi56">Brand</div>
         <div class="Navigation_links__jkl78">
             {links}
         </div>
     </div>
-</nav>'''
+</nav>"""
 
     elif style == HtmlStyle.ANGULAR:
         links = "\n            ".join(
             f'<a mat-button routerLink="/{item.lower()}">{item}</a>' for item in nav_items
         )
-        return f'''<mat-toolbar color="primary" _ngcontent-ng-c123>
+        return f"""<mat-toolbar color="primary" _ngcontent-ng-c123>
     <span>Brand</span>
     <span class="spacer"></span>
     <nav _ngcontent-ng-c124>
         {links}
     </nav>
-</mat-toolbar>'''
+</mat-toolbar>"""
 
     elif style == HtmlStyle.VUE:
         links = "\n            ".join(
             f'<router-link to="/{item.lower()}" class="nav-link" data-v-abc1234>{item}</router-link>'
             for item in nav_items
         )
-        return f'''<nav class="v-navigation-drawer" data-v-abc1234>
+        return f"""<nav class="v-navigation-drawer" data-v-abc1234>
     <div class="v-list" data-v-abc1234>
         {links}
     </div>
-</nav>'''
+</nav>"""
 
     return ""
 
@@ -1632,7 +2256,7 @@ def generate_footer(rng: random.Random, style: HtmlStyle) -> str:
     company = rng.choice(["Acme Corp", "Example Inc", "Demo LLC", "Sample Co"])
 
     if style == HtmlStyle.TRADITIONAL:
-        return f'''<footer class="site-footer">
+        return f"""<footer class="site-footer">
     <div class="footer-content">
         <p>&copy; {year} {company}. All rights reserved.</p>
         <nav class="footer-nav">
@@ -1640,10 +2264,10 @@ def generate_footer(rng: random.Random, style: HtmlStyle) -> str:
             <a href="/terms">Terms of Service</a>
         </nav>
     </div>
-</footer>'''
+</footer>"""
 
     elif style == HtmlStyle.BOOTSTRAP:
-        return f'''<footer class="bg-light py-4 mt-auto">
+        return f"""<footer class="bg-light py-4 mt-auto">
     <div class="container">
         <div class="row">
             <div class="col-md-6">
@@ -1655,10 +2279,10 @@ def generate_footer(rng: random.Random, style: HtmlStyle) -> str:
             </div>
         </div>
     </div>
-</footer>'''
+</footer>"""
 
     elif style == HtmlStyle.TAILWIND:
-        return f'''<footer class="bg-gray-100 border-t border-gray-200">
+        return f"""<footer class="bg-gray-100 border-t border-gray-200">
     <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col md:flex-row justify-between items-center">
             <p class="text-gray-500 text-sm">&copy; {year} {company}</p>
@@ -1668,17 +2292,17 @@ def generate_footer(rng: random.Random, style: HtmlStyle) -> str:
             </div>
         </div>
     </div>
-</footer>'''
+</footer>"""
 
     elif style in (HtmlStyle.REACT_SPA, HtmlStyle.ANGULAR, HtmlStyle.VUE):
         class_suffix = "".join(rng.choices(string.ascii_lowercase, k=5))
-        return f'''<footer class="Footer_root__{class_suffix}">
+        return f"""<footer class="Footer_root__{class_suffix}">
     <div class="Footer_container__{class_suffix}">
         <p>&copy; {year} {company}</p>
     </div>
-</footer>'''
+</footer>"""
 
-    return f"<footer>Footer content</footer>"
+    return "<footer>Footer content</footer>"
 
 
 def wrap_with_realistic_chrome(
@@ -1726,54 +2350,54 @@ def wrap_with_realistic_chrome(
 
     # Main content wrapper based on style
     if style == HtmlStyle.TRADITIONAL:
-        body_parts.append(f'''<main class="main-content" role="main">
+        body_parts.append(f"""<main class="main-content" role="main">
     <article class="page-article">
         {body_content}
     </article>
-</main>''')
+</main>""")
 
     elif style == HtmlStyle.BOOTSTRAP:
-        body_parts.append(f'''<main class="container py-4">
+        body_parts.append(f"""<main class="container py-4">
     <div class="row">
         <div class="col-lg-8 col-md-10 mx-auto">
             {body_content}
         </div>
     </div>
-</main>''')
+</main>""")
 
     elif style == HtmlStyle.TAILWIND:
-        body_parts.append(f'''<main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        body_parts.append(f"""<main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div class="bg-white rounded-lg shadow-sm p-6">
         {body_content}
     </div>
-</main>''')
+</main>""")
 
     elif style == HtmlStyle.REACT_SPA:
-        body_parts.append(f'''<div id="root" data-reactroot>
+        body_parts.append(f"""<div id="root" data-reactroot>
     <main class="App_main__xyz12">
         <div class="Content_wrapper__abc34">
             {body_content}
         </div>
     </main>
-</div>''')
+</div>""")
 
     elif style == HtmlStyle.ANGULAR:
-        body_parts.append(f'''<app-root _nghost-ng-c100>
+        body_parts.append(f"""<app-root _nghost-ng-c100>
     <main class="mat-app-background" _ngcontent-ng-c101>
         <div class="content-wrapper" _ngcontent-ng-c102>
             {body_content}
         </div>
     </main>
-</app-root>''')
+</app-root>""")
 
     elif style == HtmlStyle.VUE:
-        body_parts.append(f'''<div id="app" data-v-app>
+        body_parts.append(f"""<div id="app" data-v-app>
     <main class="v-main" data-v-main>
         <div class="v-container" data-v-container>
             {body_content}
         </div>
     </main>
-</div>''')
+</div>""")
 
     else:
         body_parts.append(f"<main>{body_content}</main>")
@@ -1794,7 +2418,9 @@ def wrap_with_realistic_chrome(
 
         # Add repeated elements section (like long dropdown menus)
         repeated_dropdown = generate_repeated_elements(
-            rng, style, count=rng.randint(30, 50),
+            rng,
+            style,
+            count=rng.randint(30, 50),
             element_type="li",
             wrapper_tag="ul",
             wrapper_class=f"mega-menu {random_branded_class(rng)}",
@@ -1824,7 +2450,7 @@ def wrap_with_realistic_chrome(
     body_html = "\n".join(body_parts)
 
     # Assemble full document
-    return f'''<!DOCTYPE html>
+    return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     {head_content}
@@ -1832,7 +2458,7 @@ def wrap_with_realistic_chrome(
 <body>
 {body_html}
 </body>
-</html>'''
+</html>"""
 
 
 # =============================================================================
@@ -1855,38 +2481,75 @@ def generate_sidebar_content(rng: random.Random, style: HtmlStyle, items: int = 
         HTML string for sidebar content.
     """
     # Recent posts/articles section
-    recent_titles = [random_paragraph(rng, sentences=1).split('.')[0] for _ in range(items // 2)]
+    recent_titles = [random_paragraph(rng, sentences=1).split(".")[0] for _ in range(items // 2)]
     recent_items = "\n".join(
         f'<li class="{random_class_for_style(rng, style, 2)}"><a href="/post/{i}">{title}</a></li>'
         for i, title in enumerate(recent_titles)
     )
 
     # Categories section
-    categories = ["Technology", "Business", "Health", "Science", "Entertainment",
-                  "Sports", "Travel", "Food", "Fashion", "Finance"]
+    categories = [
+        "Technology",
+        "Business",
+        "Health",
+        "Science",
+        "Entertainment",
+        "Sports",
+        "Travel",
+        "Food",
+        "Fashion",
+        "Finance",
+    ]
     cat_items = "\n".join(
         f'<li class="{random_class_for_style(rng, style, 2)}"><a href="/category/{cat.lower()}">{cat}</a> <span>({rng.randint(5, 50)})</span></li>'
         for cat in rng.sample(categories, min(len(categories), items // 3))
     )
 
     # Tags cloud
-    tags = ["python", "javascript", "react", "vue", "angular", "css", "html",
-            "nodejs", "django", "flask", "aws", "docker", "kubernetes", "ml", "ai"]
+    tags = [
+        "python",
+        "javascript",
+        "react",
+        "vue",
+        "angular",
+        "css",
+        "html",
+        "nodejs",
+        "django",
+        "flask",
+        "aws",
+        "docker",
+        "kubernetes",
+        "ml",
+        "ai",
+    ]
     tag_items = " ".join(
         f'<a href="/tag/{tag}" class="{random_class_for_style(rng, style, 3)}">{tag}</a>'
         for tag in rng.sample(tags, min(len(tags), items // 2))
     )
 
     # Archive section
-    months = ["January", "February", "March", "April", "May", "June",
-              "July", "August", "September", "October", "November", "December"]
+    months = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+    ]
     archive_items = "\n".join(
         f'<li><a href="/archive/2024/{i+1:02d}">{month} 2024</a></li>'
-        for i, month in enumerate(months[:items // 3])
+        for i, month in enumerate(months[: items // 3])
     )
 
     if style == HtmlStyle.BOOTSTRAP:
-        return f'''<aside class="col-lg-4">
+        return f"""<aside class="col-lg-4">
     <div class="card mb-4">
         <div class="card-header">Recent Posts</div>
         <ul class="list-group list-group-flush">
@@ -1911,10 +2574,10 @@ def generate_sidebar_content(rng: random.Random, style: HtmlStyle, items: int = 
             {archive_items}
         </ul>
     </div>
-</aside>'''
+</aside>"""
 
     elif style == HtmlStyle.TAILWIND:
-        return f'''<aside class="w-full lg:w-1/4 px-4">
+        return f"""<aside class="w-full lg:w-1/4 px-4">
     <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
         <h3 class="text-lg font-semibold mb-3">Recent Posts</h3>
         <ul class="space-y-2">
@@ -1933,10 +2596,10 @@ def generate_sidebar_content(rng: random.Random, style: HtmlStyle, items: int = 
             {tag_items}
         </div>
     </div>
-</aside>'''
+</aside>"""
 
     else:
-        return f'''<aside class="sidebar">
+        return f"""<aside class="sidebar">
     <section class="widget">
         <h3>Recent Posts</h3>
         <ul>{recent_items}</ul>
@@ -1953,7 +2616,7 @@ def generate_sidebar_content(rng: random.Random, style: HtmlStyle, items: int = 
         <h3>Archive</h3>
         <ul>{archive_items}</ul>
     </section>
-</aside>'''
+</aside>"""
 
 
 def generate_product_grid(rng: random.Random, style: HtmlStyle, count: int = 12) -> str:
@@ -1979,7 +2642,7 @@ def generate_product_grid(rng: random.Random, style: HtmlStyle, count: int = 12)
         desc = random_paragraph(rng, sentences=2)
 
         if style == HtmlStyle.BOOTSTRAP:
-            product = f'''<div class="col-md-4 col-sm-6 mb-4">
+            product = f"""<div class="col-md-4 col-sm-6 mb-4">
     <div class="card h-100">
         <img src="/images/product-{i}.jpg" class="card-img-top" alt="{name}">
         <div class="card-body">
@@ -1994,10 +2657,10 @@ def generate_product_grid(rng: random.Random, style: HtmlStyle, count: int = 12)
             <button class="btn btn-primary w-100">Add to Cart</button>
         </div>
     </div>
-</div>'''
+</div>"""
 
         elif style == HtmlStyle.TAILWIND:
-            product = f'''<div class="bg-white rounded-lg shadow-sm overflow-hidden">
+            product = f"""<div class="bg-white rounded-lg shadow-sm overflow-hidden">
     <img src="/images/product-{i}.jpg" class="w-full h-48 object-cover" alt="{name}">
     <div class="p-4">
         <h3 class="text-lg font-semibold text-gray-900">{name}</h3>
@@ -2010,10 +2673,10 @@ def generate_product_grid(rng: random.Random, style: HtmlStyle, count: int = 12)
             Add to Cart
         </button>
     </div>
-</div>'''
+</div>"""
 
         else:
-            product = f'''<div class="product-card">
+            product = f"""<div class="product-card">
     <img src="/images/product-{i}.jpg" alt="{name}">
     <div class="product-info">
         <h3 class="product-title">{name}</h3>
@@ -2022,7 +2685,7 @@ def generate_product_grid(rng: random.Random, style: HtmlStyle, count: int = 12)
         <span class="product-rating">{rating} ({reviews})</span>
         <button class="add-to-cart">Add to Cart</button>
     </div>
-</div>'''
+</div>"""
 
         products.append(product)
 
@@ -2061,7 +2724,7 @@ def generate_comments_section(rng: random.Random, style: HtmlStyle, count: int =
             reply_author = random_person_name(rng)
             reply_content = random_paragraph(rng, sentences=rng.randint(1, 3))
             if style == HtmlStyle.BOOTSTRAP:
-                replies_html = f'''<div class="ms-4 mt-3 p-3 bg-light rounded">
+                replies_html = f"""<div class="ms-4 mt-3 p-3 bg-light rounded">
     <div class="d-flex">
         <img src="/avatars/default.jpg" class="rounded-circle me-2" width="32" height="32">
         <div>
@@ -2069,18 +2732,18 @@ def generate_comments_section(rng: random.Random, style: HtmlStyle, count: int =
             <p class="mb-0">{reply_content}</p>
         </div>
     </div>
-</div>'''
+</div>"""
             else:
-                replies_html = f'''<div class="comment-reply">
+                replies_html = f"""<div class="comment-reply">
     <img src="/avatars/default.jpg" class="avatar-small">
     <div class="reply-content">
         <strong>{reply_author}</strong>
         <p>{reply_content}</p>
     </div>
-</div>'''
+</div>"""
 
         if style == HtmlStyle.BOOTSTRAP:
-            comment = f'''<div class="card mb-3">
+            comment = f"""<div class="card mb-3">
     <div class="card-body">
         <div class="d-flex">
             <img src="/avatars/user-{i}.jpg" class="rounded-circle me-3" width="48" height="48">
@@ -2098,10 +2761,10 @@ def generate_comments_section(rng: random.Random, style: HtmlStyle, count: int =
             </div>
         </div>
     </div>
-</div>'''
+</div>"""
 
         elif style == HtmlStyle.TAILWIND:
-            comment = f'''<div class="bg-white rounded-lg shadow-sm p-4 mb-4">
+            comment = f"""<div class="bg-white rounded-lg shadow-sm p-4 mb-4">
     <div class="flex">
         <img src="/avatars/user-{i}.jpg" class="w-12 h-12 rounded-full mr-4">
         <div class="flex-1">
@@ -2117,10 +2780,10 @@ def generate_comments_section(rng: random.Random, style: HtmlStyle, count: int =
             {replies_html}
         </div>
     </div>
-</div>'''
+</div>"""
 
         else:
-            comment = f'''<div class="comment">
+            comment = f"""<div class="comment">
     <img src="/avatars/user-{i}.jpg" class="avatar">
     <div class="comment-body">
         <div class="comment-header">
@@ -2134,14 +2797,14 @@ def generate_comments_section(rng: random.Random, style: HtmlStyle, count: int =
         </div>
         {replies_html}
     </div>
-</div>'''
+</div>"""
 
         comments.append(comment)
 
-    return f'''<section class="comments-section">
+    return f"""<section class="comments-section">
     <h3>Comments ({count})</h3>
     {"".join(comments)}
-</section>'''
+</section>"""
 
 
 def generate_deep_nested_wrapper(
@@ -2165,7 +2828,7 @@ def generate_deep_nested_wrapper(
         Deeply nested HTML string.
     """
     result = content
-    for i in range(depth):
+    for _i in range(depth):
         # Use mixed framework classes for more realistic nesting
         class_attr = generate_mixed_framework_classes(rng, style, count=rng.randint(1, 3))
         data_attrs = format_attributes(random_data_attributes(rng, style))
@@ -2196,28 +2859,27 @@ def generate_bulk_noise(rng: random.Random, style: HtmlStyle, target_size: int =
         lambda: generate_product_grid(rng, style, count=rng.randint(6, 12)),
         lambda: generate_comments_section(rng, style, count=rng.randint(5, 15)),
         lambda: generate_sidebar_content(rng, style, items=rng.randint(15, 30)),
-
         # Mixed framework content blocks
         lambda: "".join(
             generate_mixed_framework_element(rng, style, random_paragraph(rng, rng.randint(2, 5)))
             for _ in range(rng.randint(5, 10))
         ),
-
         # Repeated elements with same class (like real dropdown menus)
         lambda: generate_repeated_elements(
-            rng, style, count=rng.randint(20, 40),
-            element_type="li", wrapper_tag="ul",
+            rng,
+            style,
+            count=rng.randint(20, 40),
+            element_type="li",
+            wrapper_tag="ul",
             wrapper_class=random_branded_class(rng),
         ),
-
         # Repeated navigation-style sections
         lambda: generate_repeated_navigation(rng, style, count=rng.randint(15, 25)),
-
         # Branded content sections
-        lambda: f'''<section class="{random_branded_class(rng)} {random_state_class(rng)}">
+        lambda: f"""<section class="{random_branded_class(rng)} {random_state_class(rng)}">
     <h2 class="{random_branded_class(rng)}">{random_paragraph(rng, 1).split('.')[0]}</h2>
     {generate_repeated_elements(rng, style, count=rng.randint(10, 20), element_type="div")}
-</section>''',
+</section>""",
     ]
 
     while current_size < target_size:
@@ -2290,7 +2952,7 @@ def random_mixed_language_content(
     Returns:
         Mixed language content string.
     """
-    from bs4_env.data.i18n_content import get_random_phrase, get_random_language
+    from bs4_env.data.i18n_content import get_random_language, get_random_phrase
 
     # Generate base English content
     english_sentences = [generate_sentence(rng) for _ in range(base_sentences)]
@@ -2395,7 +3057,7 @@ def generate_i18n_paragraph(
     Returns:
         Tuple of (paragraph_text, language_code).
     """
-    from bs4_env.data.i18n_content import get_random_phrase, get_random_language
+    from bs4_env.data.i18n_content import get_random_language, get_random_phrase
 
     if language is None:
         language = get_random_language(rng)

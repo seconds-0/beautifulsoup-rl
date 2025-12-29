@@ -33,7 +33,7 @@ class ArchetypeSpec:
     """
 
     archetype_id: str
-    generator_class: type["Generator"]
+    generator_class: type[Generator]
     category: str
     difficulty: Literal["easy", "medium", "hard"]
     solvable: bool = True
@@ -60,7 +60,7 @@ def register(
     answer_schema: dict | None = None,
     allowed_limit_reasons: list[str] | None = None,
     evidence_patterns: list[str] | None = None,
-) -> Callable[[type["Generator"]], type["Generator"]]:
+) -> Callable[[type[Generator]], type[Generator]]:
     """Decorator to register a generator class as an archetype.
 
     Usage:
@@ -92,7 +92,7 @@ def register(
         ValueError: If archetype_id is already registered.
     """
 
-    def decorator(cls: type["Generator"]) -> type["Generator"]:
+    def decorator(cls: type[Generator]) -> type[Generator]:
         if archetype_id in _REGISTRY:
             raise ValueError(f"Archetype '{archetype_id}' is already registered")
 

@@ -13,25 +13,22 @@ This module implements harder tasks that test real-world scraping skills:
 These archetypes go beyond API trivia to test genuine parsing ability.
 """
 
-from bs4_env.config import STRING_SCHEMA, LIST_SCHEMA, DICT_SCHEMA, DICT_LIST_SCHEMA
+from bs4_env.config import DICT_LIST_SCHEMA, LIST_SCHEMA, STRING_SCHEMA
 from bs4_env.generators.base import (
     Generator,
     HtmlStyle,
     TaskInstance,
-    make_rng,
     generate_variable_content,
-    random_id,
+    introduce_malformation,
+    make_rng,
     random_class_name,
+    random_id,
+    random_person_name,
     random_price,
     random_product_name,
-    random_person_name,
-    add_noise_comments,
     wrap_with_realistic_chrome,
-    introduce_malformation,
-    generate_deep_nested_wrapper,
 )
 from bs4_env.registry import register
-
 
 # =============================================================================
 # Deep Nesting Archetype
@@ -98,12 +95,16 @@ class DeepNestingExtractionGenerator(Generator):
             if rng.random() < 0.4:
                 decoy_text = generate_variable_content(rng, min_sentences=1, max_sentences=2)
                 decoy_class = random_class_name(rng)
-                html_parts.append("  " * (indent + 1) + f'<div class="{decoy_class}">{decoy_text}</div>')
+                html_parts.append(
+                    "  " * (indent + 1) + f'<div class="{decoy_class}">{decoy_text}</div>'
+                )
 
             indent += 1
 
         # Target element at deepest level
-        html_parts.append("  " * indent + f'<span id="{target_id}" class="target-content">{target_text}</span>')
+        html_parts.append(
+            "  " * indent + f'<span id="{target_id}" class="target-content">{target_text}</span>'
+        )
 
         # Close all divs
         for i in range(depth - 1, -1, -1):
@@ -200,16 +201,16 @@ class SemanticAmbiguityGenerator(Generator):
         rng.shuffle(price_types)
 
         price_html_parts = []
-        for ptype, value, cls, label in price_types:
-            price_html_parts.append(f'''
+        for _ptype, value, cls, label in price_types:
+            price_html_parts.append(f"""
 <div class="price-row">
     <span class="price-label">{label}:</span>
     <span class="price-value {cls}">{value}</span>
-</div>''')
+</div>""")
 
         product_name = random_product_name(rng)
 
-        body_content = f'''
+        body_content = f"""
 <article class="product-card">
     <h1 class="product-name">{product_name}</h1>
     <div class="pricing-section">
@@ -217,7 +218,7 @@ class SemanticAmbiguityGenerator(Generator):
     </div>
     <button class="add-to-cart">Add to Cart</button>
 </article>
-'''
+"""
 
         # Wrap with realistic chrome
         html = wrap_with_realistic_chrome(
@@ -234,7 +235,7 @@ class SemanticAmbiguityGenerator(Generator):
             html = introduce_malformation(html, rng)
 
         # Query asks for specific price type
-        query = f'Extract the {target_label.lower()} for this product. There are multiple prices shown - return only the {target_label.lower()}.'
+        query = f"Extract the {target_label.lower()} for this product. There are multiple prices shown - return only the {target_label.lower()}."
 
         return TaskInstance(
             html=html,
@@ -307,8 +308,10 @@ class AttributeSelectorGenerator(Generator):
             rng.shuffle(fields)
 
             for name, value in fields:
-                body_content += f'<input type="text" name="{name}" value="{value}" class="form-input">\n'
-            body_content += '</form>'
+                body_content += (
+                    f'<input type="text" name="{name}" value="{value}" class="form-input">\n'
+                )
+            body_content += "</form>"
 
             query = f'Extract the value from the input field with name="{target_attr_name}".'
 
@@ -328,8 +331,10 @@ class AttributeSelectorGenerator(Generator):
 
             body_content = '<div class="product-list">\n'
             for data_id, name in items:
-                body_content += f'<div class="product-item" data-product-id="{data_id}">{name}</div>\n'
-            body_content += '</div>'
+                body_content += (
+                    f'<div class="product-item" data-product-id="{data_id}">{name}</div>\n'
+                )
+            body_content += "</div>"
 
             query = f'Extract the product name from the element with data-product-id="{target_id}".'
             target_value = target_text
@@ -339,7 +344,7 @@ class AttributeSelectorGenerator(Generator):
             target_type = "submit"
             target_value = f"Submit Form {rng.randint(1, 99)}"
 
-            body_content = f'''
+            body_content = f"""
 <form>
     <input type="text" value="Enter text here">
     <input type="password" value="secret">
@@ -347,7 +352,7 @@ class AttributeSelectorGenerator(Generator):
     <input type="{target_type}" value="{target_value}">
     <input type="reset" value="Clear Form">
 </form>
-'''
+"""
             query = f'Extract the value attribute from the input with type="{target_type}".'
 
         else:  # href_pattern
@@ -366,7 +371,7 @@ class AttributeSelectorGenerator(Generator):
             body_content = '<nav class="site-nav">\n'
             for href, text in links:
                 body_content += f'<a href="{href}" class="nav-link">{text}</a>\n'
-            body_content += '</nav>'
+            body_content += "</nav>"
 
             query = f'Extract the text from the link with href="{target_href}".'
             target_value = target_text
@@ -435,12 +440,8 @@ class CSSCombinatorGenerator(Generator):
         style = rng.choice(list(HtmlStyle))
 
         # Generate menu items
-        top_level_items = [
-            f"Menu Item {i}" for i in range(1, rng.randint(3, 5) + 1)
-        ]
-        submenu_items = [
-            f"Submenu Item {i}" for i in range(1, rng.randint(4, 7) + 1)
-        ]
+        top_level_items = [f"Menu Item {i}" for i in range(1, rng.randint(3, 5) + 1)]
+        submenu_items = [f"Submenu Item {i}" for i in range(1, rng.randint(4, 7) + 1)]
 
         # Build menu with nested structure
         body_content = '<nav class="main-menu">\n'
@@ -451,8 +452,8 @@ class CSSCombinatorGenerator(Generator):
                 body_content += '<div class="submenu">\n'
                 for j, subitem in enumerate(submenu_items):
                     body_content += f'<a href="/sub{j}" class="menu-link">{subitem}</a>\n'
-                body_content += '</div>\n'
-        body_content += '</nav>'
+                body_content += "</div>\n"
+        body_content += "</nav>"
 
         # Wrap with realistic chrome
         html = wrap_with_realistic_chrome(
@@ -469,8 +470,8 @@ class CSSCombinatorGenerator(Generator):
             html = introduce_malformation(html, rng)
 
         query = (
-            'Extract only the TOP-LEVEL menu link texts from the .main-menu element. '
-            'Do NOT include submenu items. Return as a list of strings.'
+            "Extract only the TOP-LEVEL menu link texts from the .main-menu element. "
+            "Do NOT include submenu items. Return as a list of strings."
         )
 
         return TaskInstance(
@@ -528,7 +529,6 @@ class PartialDataExtractionGenerator(Generator):
 
         # Generate products with some missing fields
         num_products = rng.randint(3, 5)
-        products = []
         ground_truth = []
 
         body_content = '<div class="product-list">\n'
@@ -548,15 +548,17 @@ class PartialDataExtractionGenerator(Generator):
                 body_content += f'  <span class="product-price">{price}</span>\n'
             if has_description:
                 body_content += f'  <p class="product-description">{description}</p>\n'
-            body_content += '</div>\n'
+            body_content += "</div>\n"
 
-            ground_truth.append({
-                "name": name,
-                "price": price,
-                "description": description,
-            })
+            ground_truth.append(
+                {
+                    "name": name,
+                    "price": price,
+                    "description": description,
+                }
+            )
 
-        body_content += '</div>'
+        body_content += "</div>"
 
         # Wrap with realistic chrome
         html = wrap_with_realistic_chrome(
@@ -573,7 +575,7 @@ class PartialDataExtractionGenerator(Generator):
             html = introduce_malformation(html, rng)
 
         query = (
-            'Extract all products as a list of dictionaries. Each dictionary should have: '
+            "Extract all products as a list of dictionaries. Each dictionary should have: "
             '"name", "price", and "description" keys. If a field is missing, use null.'
         )
 
@@ -635,12 +637,12 @@ class ListExtractionGenerator(Generator):
             body_content = f'<{list_type} class="item-list">\n'
             for item in items:
                 body_content += f'  <li class="list-item">{item}</li>\n'
-            body_content += f'</{list_type}>'
+            body_content += f"</{list_type}>"
         else:
             body_content = '<div class="item-list">\n'
             for item in items:
                 body_content += f'  <div class="list-item">{item}</div>\n'
-            body_content += '</div>'
+            body_content += "</div>"
 
         # Wrap with realistic chrome
         html = wrap_with_realistic_chrome(
@@ -656,7 +658,7 @@ class ListExtractionGenerator(Generator):
         if rng.random() < 0.3:
             html = introduce_malformation(html, rng)
 
-        query = 'Extract all item texts from the list. Return as a list of strings.'
+        query = "Extract all item texts from the list. Return as a list of strings."
 
         return TaskInstance(
             html=html,
@@ -713,7 +715,10 @@ class SiblingNavigationGenerator(Generator):
         pairs = [
             ("Name", random_person_name(rng)),
             ("Email", f"user{rng.randint(100, 999)}@example.com"),
-            ("Phone", f"+1-{rng.randint(200, 999)}-{rng.randint(100, 999)}-{rng.randint(1000, 9999)}"),
+            (
+                "Phone",
+                f"+1-{rng.randint(200, 999)}-{rng.randint(100, 999)}-{rng.randint(1000, 9999)}",
+            ),
             ("Location", rng.choice(["New York", "Los Angeles", "Chicago", "Houston", "Phoenix"])),
         ]
 
@@ -728,7 +733,7 @@ class SiblingNavigationGenerator(Generator):
         for label, value in pairs:
             body_content += f'  <dt class="info-label">{label}:</dt>\n'
             body_content += f'  <dd class="info-value">{value}</dd>\n'
-        body_content += '</dl>'
+        body_content += "</dl>"
 
         # Wrap with realistic chrome
         html = wrap_with_realistic_chrome(
@@ -744,7 +749,9 @@ class SiblingNavigationGenerator(Generator):
         if rng.random() < 0.3:
             html = introduce_malformation(html, rng)
 
-        query = f'Find the value that comes after the "{target_label}:" label. Use sibling navigation.'
+        query = (
+            f'Find the value that comes after the "{target_label}:" label. Use sibling navigation.'
+        )
 
         return TaskInstance(
             html=html,
@@ -813,28 +820,30 @@ class ParserDifferencesGenerator(Generator):
 
         if malform_type == "unclosed_tag":
             # Unclosed <p> tag - parsers handle the boundary differently
-            body_content = f'''<div class="content">
+            body_content = f"""<div class="content">
 <p class="decoy">{decoy_text}
 <p class="{target_class}">{target_text}</p>
 <p class="other">Other content here.</p>
-</div>'''
-            parser_note = "Note: The first <p> is not closed. Use html.parser for consistent results."
+</div>"""
+            parser_note = (
+                "Note: The first <p> is not closed. Use html.parser for consistent results."
+            )
 
         elif malform_type == "mismatched_nesting":
             # Tags closed in wrong order
-            body_content = f'''<div class="wrapper">
+            body_content = f"""<div class="wrapper">
 <b><i class="{target_class}">{target_text}</b></i>
 <p>{decoy_text}</p>
-</div>'''
+</div>"""
             parser_note = "Note: Tags are closed in wrong order (<b><i>...</b></i>). Parsers may restructure this differently."
 
         else:  # unquoted_attribute
             # Attribute without quotes (space in value causes issues)
             target_class_simple = f"target{rng.randint(100, 999)}"
-            body_content = f'''<div class="container">
+            body_content = f"""<div class="container">
 <span class={target_class_simple}>{target_text}</span>
 <span class="decoy">{decoy_text}</span>
-</div>'''
+</div>"""
             target_class = target_class_simple
             parser_note = "Note: Class attribute is unquoted. Some parsers handle this differently."
 

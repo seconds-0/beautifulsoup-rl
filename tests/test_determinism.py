@@ -1,9 +1,7 @@
 """Tests for deterministic task generation."""
 
-import pytest
-
-from bs4_env.generators.base import make_rng, stable_int_seed, TaskInstance
-from bs4_env.registry import get_archetype, list_archetypes, clear_registry
+from bs4_env.generators.base import make_rng, stable_int_seed
+from bs4_env.registry import list_archetypes
 
 
 class TestStableSeed:

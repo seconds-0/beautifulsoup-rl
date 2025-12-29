@@ -14,28 +14,21 @@ These archetypes are designed to:
 """
 
 from bs4_env.config import (
-    STRING_SCHEMA,
-    LIST_SCHEMA,
-    DICT_SCHEMA,
-    FLOAT_SCHEMA,
     INT_SCHEMA,
+    STRING_SCHEMA,
 )
 from bs4_env.generators.base import (
     Generator,
     HtmlStyle,
     TaskInstance,
+    introduce_malformation,
     make_rng,
-    generate_variable_content,
-    random_id,
     random_class_name,
     random_price,
     random_product_name,
-    random_person_name,
     wrap_with_realistic_chrome,
-    introduce_malformation,
 )
 from bs4_env.registry import register
-
 
 # =============================================================================
 # Relational Query Archetype
@@ -88,30 +81,30 @@ class RelationalQueryGenerator(Generator):
         layout = rng.choice(["table", "dl", "div_pairs"])
 
         if layout == "table":
-            body_content = '''<table class="order-summary">
+            body_content = """<table class="order-summary">
   <thead><tr><th>Item</th><th>Amount</th></tr></thead>
   <tbody>
-'''
+"""
             for label, value in pairs:
                 row_class = random_class_name(rng)
                 body_content += f'    <tr class="{row_class}"><td class="label">{label}</td><td class="value">{value}</td></tr>\n'
-            body_content += '  </tbody>\n</table>'
+            body_content += "  </tbody>\n</table>"
 
         elif layout == "dl":
             body_content = '<dl class="order-summary">\n'
             for label, value in pairs:
-                body_content += f'  <dt>{label}</dt>\n  <dd>{value}</dd>\n'
-            body_content += '</dl>'
+                body_content += f"  <dt>{label}</dt>\n  <dd>{value}</dd>\n"
+            body_content += "</dl>"
 
         else:  # div_pairs
             body_content = '<div class="order-summary">\n'
             for label, value in pairs:
                 row_class = random_class_name(rng)
-                body_content += f'''  <div class="row {row_class}">
+                body_content += f"""  <div class="row {row_class}">
     <span class="label">{label}</span>
     <span class="amount">{value}</span>
-  </div>\n'''
-            body_content += '</div>'
+  </div>\n"""
+            body_content += "</div>"
 
         # Wrap with realistic chrome
         html = wrap_with_realistic_chrome(
@@ -184,14 +177,16 @@ class MultiHopFilterGenerator(Generator):
         num_products = rng.randint(4, 7)
         products = []
 
-        for i in range(num_products):
-            products.append({
-                "name": random_product_name(rng),
-                "price": random_price(rng, min_val=20, max_val=200),
-                "rating": round(rng.uniform(2.5, 5.0), 1),
-                "sku": f"SKU-{rng.randint(10000, 99999)}",
-                "in_stock": rng.random() > 0.3,
-            })
+        for _i in range(num_products):
+            products.append(
+                {
+                    "name": random_product_name(rng),
+                    "price": random_price(rng, min_val=20, max_val=200),
+                    "rating": round(rng.uniform(2.5, 5.0), 1),
+                    "sku": f"SKU-{rng.randint(10000, 99999)}",
+                    "in_stock": rng.random() > 0.3,
+                }
+            )
 
         # Choose filter condition and target field
         filter_types = [
@@ -237,14 +232,14 @@ class MultiHopFilterGenerator(Generator):
         body_content = '<div class="product-grid">\n'
         for p in products:
             stock_class = "in-stock" if p["in_stock"] else "out-of-stock"
-            body_content += f'''  <div class="product-card {stock_class}">
+            body_content += f"""  <div class="product-card {stock_class}">
     <h3 class="product-name">{p["name"]}</h3>
     <span class="price">{p["price"]}</span>
     <span class="rating" data-rating="{p["rating"]}">{p["rating"]} stars</span>
     <span class="sku">{p["sku"]}</span>
     <span class="stock-status">{"In Stock" if p["in_stock"] else "Out of Stock"}</span>
-  </div>\n'''
-        body_content += '</div>'
+  </div>\n"""
+        body_content += "</div>"
 
         # Wrap with realistic chrome
         html = wrap_with_realistic_chrome(
@@ -260,7 +255,7 @@ class MultiHopFilterGenerator(Generator):
         if rng.random() < 0.3:
             html = introduce_malformation(html, rng)
 
-        query = f'Find the product where {filter_field} {filter_desc}. If multiple products match, use the first one listed. Extract its {extract_desc}.'
+        query = f"Find the product where {filter_field} {filter_desc}. If multiple products match, use the first one listed. Extract its {extract_desc}."
 
         return TaskInstance(
             html=html,
@@ -322,14 +317,16 @@ class AggregationMinMaxGenerator(Generator):
         prices = []
         products = []
 
-        for i in range(num_products):
+        for _i in range(num_products):
             price_val = round(rng.uniform(10, 200), 2)
             prices.append(price_val)
-            products.append({
-                "name": random_product_name(rng),
-                "price": price_val,
-                "price_formatted": f"${price_val:.2f}",
-            })
+            products.append(
+                {
+                    "name": random_product_name(rng),
+                    "price": price_val,
+                    "price_formatted": f"${price_val:.2f}",
+                }
+            )
 
         # Choose aggregation type
         agg_types = [
@@ -348,11 +345,11 @@ class AggregationMinMaxGenerator(Generator):
         # Build HTML
         body_content = '<div class="product-list">\n'
         for p in products:
-            body_content += f'''  <div class="product">
+            body_content += f"""  <div class="product">
     <span class="name">{p["name"]}</span>
     <span class="price">{p["price_formatted"]}</span>
-  </div>\n'''
-        body_content += '</div>'
+  </div>\n"""
+        body_content += "</div>"
 
         # Wrap with realistic chrome
         html = wrap_with_realistic_chrome(
@@ -437,13 +434,15 @@ class StructuredOutputGenerator(Generator):
         num_products = rng.randint(3, 6)
         products = []
 
-        for i in range(num_products):
-            products.append({
-                "name": random_product_name(rng),
-                "price": random_price(rng, min_val=20, max_val=200),
-                "sku": f"SKU-{rng.randint(10000, 99999)}",
-                "url": f"/products/{rng.randint(1000, 9999)}",
-            })
+        for _ in range(num_products):
+            products.append(
+                {
+                    "name": random_product_name(rng),
+                    "price": random_price(rng, min_val=20, max_val=200),
+                    "sku": f"SKU-{rng.randint(10000, 99999)}",
+                    "url": f"/products/{rng.randint(1000, 9999)}",
+                }
+            )
 
         # Select target using identifying hints (class-based, allows shuffling)
         identifying_hints = [
@@ -467,13 +466,13 @@ class StructuredOutputGenerator(Generator):
             if i == target_idx:
                 extra_class = f" {hint_type}"
 
-            body_content += f'''  <div class="product-card{extra_class}">
+            body_content += f"""  <div class="product-card{extra_class}">
     <h3 class="product-name">{p["name"]}</h3>
     <a href="{p["url"]}" class="product-link">View Details</a>
     <span class="price">{p["price"]}</span>
     <span class="sku">{p["sku"]}</span>
-  </div>\n'''
-        body_content += '</div>'
+  </div>\n"""
+        body_content += "</div>"
 
         # Wrap with realistic chrome
         html = wrap_with_realistic_chrome(
@@ -550,7 +549,7 @@ class CountElementsGenerator(Generator):
         in_stock_count = 0
         high_rated_count = 0
 
-        for i in range(num_products):
+        for _i in range(num_products):
             in_stock = rng.random() > 0.4
             rating = round(rng.uniform(2.5, 5.0), 1)
 
@@ -559,11 +558,13 @@ class CountElementsGenerator(Generator):
             if rating >= 4.0:
                 high_rated_count += 1
 
-            products.append({
-                "name": random_product_name(rng),
-                "in_stock": in_stock,
-                "rating": rating,
-            })
+            products.append(
+                {
+                    "name": random_product_name(rng),
+                    "in_stock": in_stock,
+                    "rating": rating,
+                }
+            )
 
         # Choose count condition
         count_types = [
@@ -578,12 +579,12 @@ class CountElementsGenerator(Generator):
         for p in products:
             stock_class = "in-stock" if p["in_stock"] else "out-of-stock"
             rating_class = "high-rated" if p["rating"] >= 4.0 else "low-rated"
-            body_content += f'''  <div class="product {stock_class} {rating_class}">
+            body_content += f"""  <div class="product {stock_class} {rating_class}">
     <span class="name">{p["name"]}</span>
     <span class="rating">{p["rating"]} stars</span>
     <span class="stock">{"In Stock" if p["in_stock"] else "Out of Stock"}</span>
-  </div>\n'''
-        body_content += '</div>'
+  </div>\n"""
+        body_content += "</div>"
 
         # Wrap with realistic chrome
         html = wrap_with_realistic_chrome(
@@ -599,7 +600,7 @@ class CountElementsGenerator(Generator):
         if rng.random() < 0.3:
             html = introduce_malformation(html, rng)
 
-        query = f'Count how many products are {count_desc}. Return just the number.'
+        query = f"Count how many products are {count_desc}. Return just the number."
 
         return TaskInstance(
             html=html,
@@ -652,13 +653,15 @@ class SemanticDecoyExtremeGenerator(Generator):
 
         # Generate many similar items
         num_items = rng.randint(5, 8)
-        base_name = rng.choice([
-            "Product",
-            "Item",
-            "Option",
-            "Plan",
-            "Package",
-        ])
+        base_name = rng.choice(
+            [
+                "Product",
+                "Item",
+                "Option",
+                "Plan",
+                "Package",
+            ]
+        )
 
         # Differentiators
         colors = ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Black", "White"]
@@ -667,7 +670,7 @@ class SemanticDecoyExtremeGenerator(Generator):
         items = []
         used_combos = set()
 
-        for i in range(num_items):
+        for _i in range(num_items):
             # Ensure unique combinations
             while True:
                 color = rng.choice(colors)
@@ -677,13 +680,15 @@ class SemanticDecoyExtremeGenerator(Generator):
                     used_combos.add(combo)
                     break
 
-            items.append({
-                "name": f"{color} {size} {base_name}",
-                "color": color,
-                "size": size,
-                "price": random_price(rng, min_val=20, max_val=100),
-                "sku": f"SKU-{rng.randint(10000, 99999)}",
-            })
+            items.append(
+                {
+                    "name": f"{color} {size} {base_name}",
+                    "color": color,
+                    "size": size,
+                    "price": random_price(rng, min_val=20, max_val=100),
+                    "sku": f"SKU-{rng.randint(10000, 99999)}",
+                }
+            )
 
         # Select target
         target = rng.choice(items)
@@ -694,12 +699,12 @@ class SemanticDecoyExtremeGenerator(Generator):
         # Build HTML with all items looking similar
         body_content = '<div class="item-list">\n'
         for item in items:
-            body_content += f'''  <div class="item-card" data-color="{item["color"]}" data-size="{item["size"]}">
+            body_content += f"""  <div class="item-card" data-color="{item["color"]}" data-size="{item["size"]}">
     <h3 class="item-name">{item["name"]}</h3>
     <span class="item-price">{item["price"]}</span>
     <span class="item-sku">{item["sku"]}</span>
-  </div>\n'''
-        body_content += '</div>'
+  </div>\n"""
+        body_content += "</div>"
 
         # Wrap with realistic chrome
         html = wrap_with_realistic_chrome(

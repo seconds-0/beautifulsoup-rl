@@ -2,7 +2,7 @@
 
 import pytest
 
-from bs4_env.tools.executor import LocalSubprocessExecutor, ExecResult
+from bs4_env.tools.executor import LocalSubprocessExecutor
 from bs4_env.tools.harness import build_runner_script
 
 

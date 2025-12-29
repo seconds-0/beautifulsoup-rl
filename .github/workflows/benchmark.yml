@@ -1,0 +1,116 @@
+name: Benchmark LLMs
+
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        type: string
+        description: "Model to benchmark (OpenRouter format)"
+        required: true
+        default: "openai/gpt-5.2"
+      num_examples:
+        type: number
+        description: "Number of examples (max 680)"
+        default: 680
+      start_index:
+        type: number
+        description: "Starting index (for resuming)"
+        default: 0
+      mode:
+        type: choice
+        description: "Archetype mode"
+        default: "all"
+        options:
+          - mvp
+          - phase2
+          - all
+      runner_size:
+        type: choice
+        description: "Runner size (Namespace)"
+        default: "4-core"
+        options:
+          - 4-core
+          - 8-core
+
+run-name: "Benchmark: ${{ inputs.model }} (${{ inputs.num_examples }} examples)"
+
+jobs:
+  benchmark:
+    runs-on: ${{ inputs.runner_size == '8-core' && 'nscloud-ubuntu-22.04-amd64-8x16' || 'nscloud-ubuntu-22.04-amd64-4x8' }}
+    timeout-minutes: 480  # 8 hours max
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Run benchmark
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          # Sanitize model name for filename
+          MODEL_SAFE=$(echo "${{ inputs.model }}" | tr '/' '_')
+          OUTPUT_FILE="results_${MODEL_SAFE}_$(date +%Y%m%d_%H%M%S).json"
+
+          echo "Running benchmark..."
+          echo "  Model: ${{ inputs.model }}"
+          echo "  Examples: ${{ inputs.num_examples }}"
+          echo "  Start: ${{ inputs.start_index }}"
+          echo "  Mode: ${{ inputs.mode }}"
+          echo "  Output: $OUTPUT_FILE"
+
+          uv run python -m bs4_env.scripts.eval_with_llm \
+            --model "${{ inputs.model }}" \
+            --num ${{ inputs.num_examples }} \
+            --start ${{ inputs.start_index }} \
+            --mode ${{ inputs.mode }} \
+            --output "$OUTPUT_FILE"
+
+          echo "output_file=$OUTPUT_FILE" >> $GITHUB_ENV
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-${{ github.run_id }}
+          path: results_*.json
+          retention-days: 90
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Benchmark Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Model:** \`${{ inputs.model }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Examples:** ${{ inputs.num_examples }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f "${{ env.output_file }}" ]; then
+            echo "### Results" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`json" >> $GITHUB_STEP_SUMMARY
+            # Extract key stats
+            python3 -c "
+import json
+with open('${{ env.output_file }}') as f:
+    data = json.load(f)
+print(f'Average Reward: {data.get(\"avg_reward\", 0):.3f}')
+print(f'Pass Rate: {data.get(\"pass_rate\", 0):.1%}')
+print(f'Perfect Rate: {data.get(\"perfect_rate\", 0):.1%}')
+print(f'Examples: {data.get(\"num_examples\", 0)}')
+print(f'Checkpoint: {data.get(\"checkpoint\", False)}')
+"
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No results file found." >> $GITHUB_STEP_SUMMARY
+          fi

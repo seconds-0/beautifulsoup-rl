@@ -23,18 +23,17 @@ recipe, and article pages.
 
 import json
 
-from bs4_env.config import STRING_SCHEMA, DICT_SCHEMA
+from bs4_env.config import STRING_SCHEMA
 from bs4_env.generators.base import (
     Generator,
     HtmlStyle,
     TaskInstance,
-    make_rng,
-    generate_variable_content,
-    wrap_with_realistic_chrome,
     add_noise_comments,
+    generate_variable_content,
+    make_rng,
+    wrap_with_realistic_chrome,
 )
 from bs4_env.registry import register
-
 
 # Schema.org types commonly found in JSON-LD
 SCHEMA_TYPES = {
@@ -71,50 +70,70 @@ def generate_json_ld_data(rng, schema_type: str) -> dict:
     Returns:
         Dictionary with JSON-LD data.
     """
-    schema = SCHEMA_TYPES[schema_type]
+    SCHEMA_TYPES[schema_type]
     data = {
         "@context": "https://schema.org",
         "@type": schema_type,
     }
 
     if schema_type == "Product":
-        data["name"] = rng.choice([
-            "Premium Wireless Headphones",
-            "Ergonomic Office Chair",
-            "Stainless Steel Water Bottle",
-            "Organic Cotton T-Shirt",
-            "Smart Home Hub Controller",
-        ])
+        data["name"] = rng.choice(
+            [
+                "Premium Wireless Headphones",
+                "Ergonomic Office Chair",
+                "Stainless Steel Water Bottle",
+                "Organic Cotton T-Shirt",
+                "Smart Home Hub Controller",
+            ]
+        )
         data["description"] = generate_variable_content(rng, min_sentences=1, max_sentences=2)
-        data["brand"] = {"@type": "Brand", "name": rng.choice(["TechPro", "HomeLife", "EcoWear", "SmartGear"])}
+        data["brand"] = {
+            "@type": "Brand",
+            "name": rng.choice(["TechPro", "HomeLife", "EcoWear", "SmartGear"]),
+        }
         data["sku"] = f"SKU-{rng.randint(10000, 99999)}"
         data["offers"] = {
             "@type": "Offer",
             "price": f"{rng.randint(10, 500)}.{rng.randint(0, 99):02d}",
             "priceCurrency": "USD",
-            "availability": rng.choice(["https://schema.org/InStock", "https://schema.org/OutOfStock"]),
+            "availability": rng.choice(
+                ["https://schema.org/InStock", "https://schema.org/OutOfStock"]
+            ),
         }
 
     elif schema_type == "Article":
-        data["headline"] = rng.choice([
-            "Breaking News: Major Discovery Announced",
-            "How to Improve Your Productivity in 5 Steps",
-            "The Future of Technology: What Experts Say",
-            "Local Community Celebrates Annual Festival",
-        ])
-        data["author"] = {"@type": "Person", "name": rng.choice(["Jane Smith", "John Doe", "Alex Johnson", "Sam Brown"])}
+        data["headline"] = rng.choice(
+            [
+                "Breaking News: Major Discovery Announced",
+                "How to Improve Your Productivity in 5 Steps",
+                "The Future of Technology: What Experts Say",
+                "Local Community Celebrates Annual Festival",
+            ]
+        )
+        data["author"] = {
+            "@type": "Person",
+            "name": rng.choice(["Jane Smith", "John Doe", "Alex Johnson", "Sam Brown"]),
+        }
         data["datePublished"] = f"2024-{rng.randint(1, 12):02d}-{rng.randint(1, 28):02d}"
         data["description"] = generate_variable_content(rng, min_sentences=1, max_sentences=2)
-        data["publisher"] = {"@type": "Organization", "name": rng.choice(["Daily News", "Tech Weekly", "Local Times"])}
+        data["publisher"] = {
+            "@type": "Organization",
+            "name": rng.choice(["Daily News", "Tech Weekly", "Local Times"]),
+        }
 
     elif schema_type == "Recipe":
-        data["name"] = rng.choice([
-            "Classic Chocolate Chip Cookies",
-            "Homemade Margherita Pizza",
-            "Easy Chicken Stir-Fry",
-            "Creamy Mushroom Risotto",
-        ])
-        data["author"] = {"@type": "Person", "name": rng.choice(["Chef Maria", "Cook Bob", "Baker Lisa"])}
+        data["name"] = rng.choice(
+            [
+                "Classic Chocolate Chip Cookies",
+                "Homemade Margherita Pizza",
+                "Easy Chicken Stir-Fry",
+                "Creamy Mushroom Risotto",
+            ]
+        )
+        data["author"] = {
+            "@type": "Person",
+            "name": rng.choice(["Chef Maria", "Cook Bob", "Baker Lisa"]),
+        }
         data["recipeIngredient"] = [
             f"{rng.randint(1, 3)} cups flour",
             f"{rng.randint(1, 2)} tsp baking soda",
@@ -132,7 +151,9 @@ def generate_json_ld_data(rng, schema_type: str) -> dict:
         data["recipeYield"] = f"{rng.randint(4, 12)} servings"
 
     elif schema_type == "LocalBusiness":
-        data["name"] = rng.choice(["Joe's Coffee Shop", "Main Street Bookstore", "Green Leaf Restaurant"])
+        data["name"] = rng.choice(
+            ["Joe's Coffee Shop", "Main Street Bookstore", "Green Leaf Restaurant"]
+        )
         data["address"] = {
             "@type": "PostalAddress",
             "streetAddress": f"{rng.randint(100, 999)} Main Street",
@@ -140,7 +161,9 @@ def generate_json_ld_data(rng, schema_type: str) -> dict:
             "addressRegion": rng.choice(["CA", "OR", "WA"]),
             "postalCode": f"{rng.randint(10000, 99999)}",
         }
-        data["telephone"] = f"+1-{rng.randint(200, 999)}-{rng.randint(100, 999)}-{rng.randint(1000, 9999)}"
+        data["telephone"] = (
+            f"+1-{rng.randint(200, 999)}-{rng.randint(100, 999)}-{rng.randint(1000, 9999)}"
+        )
 
     elif schema_type == "Organization":
         data["name"] = rng.choice(["TechCorp Inc.", "Global Solutions Ltd.", "Innovation Labs"])
@@ -259,15 +282,19 @@ class JsonLdExtractionGenerator(Generator):
         ground_truth = get_nested_value(json_ld_data, path)
 
         # Generate JSON-LD script tag
-        json_ld_script = f'<script type="application/ld+json">\n{json.dumps(json_ld_data, indent=2)}\n</script>'
+        json_ld_script = (
+            f'<script type="application/ld+json">\n{json.dumps(json_ld_data, indent=2)}\n</script>'
+        )
 
         # Sometimes add multiple JSON-LD scripts (like Redfin with 60!)
         num_extra_scripts = rng.randint(0, 3)
         extra_scripts = []
         for _ in range(num_extra_scripts):
-            extra_type = rng.choice([t for t in SCHEMA_TYPES.keys() if t != schema_type])
+            extra_type = rng.choice([t for t in SCHEMA_TYPES if t != schema_type])
             extra_data = generate_json_ld_data(rng, extra_type)
-            extra_scripts.append(f'<script type="application/ld+json">\n{json.dumps(extra_data, indent=2)}\n</script>')
+            extra_scripts.append(
+                f'<script type="application/ld+json">\n{json.dumps(extra_data, indent=2)}\n</script>'
+            )
 
         # Generate visible page content (the JSON-LD might have DIFFERENT data!)
         # This tests that the model extracts from JSON-LD, not visible HTML

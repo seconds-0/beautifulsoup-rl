@@ -246,9 +246,6 @@ def normalize_url(url: str) -> str:
     if "://" in url:
         scheme_end = url.find("://") + 3
         path_start = url.find("/", scheme_end)
-        if path_start > 0:
-            url = url[:path_start].lower() + url[path_start:]
-        else:
-            url = url.lower()
+        url = url[:path_start].lower() + url[path_start:] if path_start > 0 else url.lower()
 
     return url

@@ -11,26 +11,24 @@ archetypes are available.
 # Add new generator modules here as they are created
 
 # MVP Phase 1 generators
-from bs4_env.generators import mvp_core_extraction  # noqa: F401
-from bs4_env.generators import mvp_tables  # noqa: F401
-from bs4_env.generators import mvp_error_bait  # noqa: F401
-from bs4_env.generators import mvp_limitations  # noqa: F401
-from bs4_env.generators import mvp_i18n  # noqa: F401
-
 # MVP Phase 2 generators (advanced difficulty)
-from bs4_env.generators import mvp_advanced  # noqa: F401
-
 # BS4 Gotcha generators (from documentation research)
-from bs4_env.generators import mvp_multivalue_class  # noqa: F401
-from bs4_env.generators import mvp_whitespace_sibling  # noqa: F401
-from bs4_env.generators import mvp_json_ld  # noqa: F401
-from bs4_env.generators import mvp_navigablestring  # noqa: F401
-
 # Hard archetypes (semantic reasoning, aggregation, multi-hop)
-from bs4_env.generators import mvp_hard  # noqa: F401
-
 # Multi-step archetypes (navigation between pages)
-from bs4_env.generators import mvp_multistep  # noqa: F401
+from bs4_env.generators import (
+    mvp_advanced,  # noqa: F401
+    mvp_core_extraction,  # noqa: F401
+    mvp_error_bait,  # noqa: F401
+    mvp_hard,  # noqa: F401
+    mvp_i18n,  # noqa: F401
+    mvp_json_ld,  # noqa: F401
+    mvp_limitations,  # noqa: F401
+    mvp_multistep,  # noqa: F401
+    mvp_multivalue_class,  # noqa: F401
+    mvp_navigablestring,  # noqa: F401
+    mvp_tables,  # noqa: F401
+    mvp_whitespace_sibling,  # noqa: F401
+)
 
 
 def ensure_registered() -> None:

@@ -9,11 +9,11 @@ from bs4_env.generators.base import (
     Generator,
     HtmlStyle,
     TaskInstance,
+    add_noise_comments,
     make_rng,
     random_paragraph,
-    random_product_name,
     random_price,
-    add_noise_comments,
+    random_product_name,
     wrap_with_realistic_chrome,
 )
 from bs4_env.registry import register

@@ -22,8 +22,8 @@ Usage:
 
 from typing import Any
 
+from bs4_env.adapters.verifiers_adapter import MinimalEnv, build_verifiers_environment
 from bs4_env.config import EnvConfig
-from bs4_env.adapters.verifiers_adapter import build_verifiers_environment, MinimalEnv
 
 
 def load_environment(

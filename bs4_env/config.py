@@ -37,11 +37,13 @@ class EnvConfig:
     split: Literal["train", "eval", "bench"] = "train"
     mode: Literal["mvp", "phase2", "all", "hard_only", "tiered"] = "mvp"
     difficulty: Literal["easy", "medium", "hard", "mixed"] = "mixed"
-    difficulty_weights: dict[str, float] = field(default_factory=lambda: {
-        "easy": 0.2,    # 20% easy tasks
-        "medium": 0.4,  # 40% medium tasks
-        "hard": 0.4,    # 40% hard tasks (overweight for RL signal)
-    })
+    difficulty_weights: dict[str, float] = field(
+        default_factory=lambda: {
+            "easy": 0.2,  # 20% easy tasks
+            "medium": 0.4,  # 40% medium tasks
+            "hard": 0.4,  # 40% hard tasks (overweight for RL signal)
+        }
+    )
     num_examples: int | None = None
     seed: int = 42
     executor_backend: Literal["local", "prime"] = "local"

@@ -63,10 +63,10 @@ class TestRegistryIntegration:
     def test_registry_functions_exist(self):
         """Registry functions should be importable."""
         from bs4_env.registry import (
-            register,
+            get_all_archetype_ids,
             get_archetype,
             list_archetypes,
-            get_all_archetype_ids,
+            register,
         )
 
         assert callable(register)
@@ -88,10 +88,10 @@ class TestGradingIntegration:
     def test_grading_imports(self):
         """Grading module should be importable."""
         from bs4_env.grading import (
-            compute_reward,
-            validate_output,
             check_safety,
+            compute_reward,
             normalize_string,
+            validate_output,
         )
 
         assert callable(compute_reward)
@@ -173,7 +173,6 @@ class TestNavigateVerifiersIntegration:
 
     def test_navigate_href_normalization(self):
         """Navigate should normalize hrefs correctly."""
-        import json
 
         def _normalize_href(href: str, pages: dict) -> str:
             href = href.strip()
@@ -292,6 +291,7 @@ class TestVerifiersEnvResponse:
             pytest.skip("verifiers not installed")
 
         from unittest.mock import AsyncMock, patch
+
         from bs4_env.adapters.verifiers_adapter import _build_real_verifiers_env
         from bs4_env.config import EnvConfig
 
@@ -345,6 +345,7 @@ class TestVerifiersEnvResponse:
             pytest.skip("verifiers not installed")
 
         from unittest.mock import AsyncMock, patch
+
         from bs4_env.adapters.verifiers_adapter import _build_real_verifiers_env
         from bs4_env.config import EnvConfig
 
@@ -389,7 +390,7 @@ class TestVerifiersEnvResponse:
         content = f"{marker}/page2\n\nSuccessfully navigated. Use run_python to extract data from the new page."
 
         assert content.startswith(marker)
-        marker_content = content[len(marker):]
+        marker_content = content[len(marker) :]
         normalized_href = marker_content.split("\n")[0].strip()
         assert normalized_href == "/page2"
 
@@ -406,6 +407,6 @@ class TestVerifiersEnvResponse:
 
         for href, expected in test_cases:
             content = f"{marker}{href}\n\nSuccessfully navigated."
-            marker_content = content[len(marker):]
+            marker_content = content[len(marker) :]
             normalized_href = marker_content.split("\n")[0].strip()
             assert normalized_href == expected, f"Failed for href: {href}"

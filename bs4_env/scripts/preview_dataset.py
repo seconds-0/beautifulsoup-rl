@@ -5,11 +5,11 @@ Usage:
     python -m bs4_env.scripts.preview_dataset
     python -m bs4_env.scripts.preview_dataset --split eval --num 5
 """
+
 from __future__ import annotations
 
 import argparse
 import json
-import textwrap
 
 from beautiful_soup_env import load_environment
 
@@ -36,15 +36,15 @@ def preview_example(example: dict, idx: int) -> None:
     print(f"Seed: {info.get('seed')}")
 
     # Query
-    print(f"\n--- Query ---")
+    print("\n--- Query ---")
     print(example["query"])
 
     # HTML (truncated)
-    print(f"\n--- HTML (truncated) ---")
+    print("\n--- HTML (truncated) ---")
     print(truncate(example["html"], 300))
 
     # Ground truth
-    print(f"\n--- Ground Truth ---")
+    print("\n--- Ground Truth ---")
     gt = info.get("ground_truth")
     if isinstance(gt, (dict, list)):
         print(json.dumps(gt, indent=2))
@@ -52,14 +52,14 @@ def preview_example(example: dict, idx: int) -> None:
         print(gt)
 
     # Answer schema
-    print(f"\n--- Answer Schema ---")
+    print("\n--- Answer Schema ---")
     schema = info.get("answer_schema", {})
     print(json.dumps(schema, indent=2))
 
     # Limit info (if applicable)
     limit_info = info.get("limit_info")
     if limit_info:
-        print(f"\n--- Limit Info ---")
+        print("\n--- Limit Info ---")
         print(json.dumps(limit_info, indent=2))
 
 
@@ -89,7 +89,7 @@ def main():
             break
 
     if shown == 0:
-        print(f"No examples found matching criteria")
+        print("No examples found matching criteria")
 
     # Summary statistics
     print(f"\n{'='*60}")
@@ -110,15 +110,15 @@ def main():
         difficulty_counts[diff] = difficulty_counts.get(diff, 0) + 1
         solvable_counts[solv] = solvable_counts.get(solv, 0) + 1
 
-    print(f"\nBy archetype:")
+    print("\nBy archetype:")
     for arch, count in sorted(archetype_counts.items()):
         print(f"  {arch}: {count}")
 
-    print(f"\nBy difficulty:")
+    print("\nBy difficulty:")
     for diff, count in sorted(difficulty_counts.items()):
         print(f"  {diff}: {count}")
 
-    print(f"\nBy solvability:")
+    print("\nBy solvability:")
     print(f"  Solvable: {solvable_counts['True']}")
     print(f"  Limitation: {solvable_counts['False']}")
 

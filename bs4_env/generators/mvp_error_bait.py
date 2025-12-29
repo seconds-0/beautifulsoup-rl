@@ -14,12 +14,11 @@ from bs4_env.generators.base import (
     Generator,
     HtmlStyle,
     TaskInstance,
-    make_rng,
-    random_paragraph,
-    generate_variable_content,
-    random_id,
-    random_class_name,
     add_noise_comments,
+    generate_variable_content,
+    make_rng,
+    random_class_name,
+    random_id,
     wrap_with_realistic_chrome,
 )
 from bs4_env.registry import register
@@ -221,8 +220,7 @@ class ClassReservedWordGenerator(Generator):
 
         # Generate distractor paragraphs with random classes
         distractor_texts = [
-            generate_variable_content(rng, min_sentences=1, max_sentences=2)
-            for _ in range(2)
+            generate_variable_content(rng, min_sentences=1, max_sentences=2) for _ in range(2)
         ]
         distractor_classes = [random_class_name(rng) for _ in range(2)]
 

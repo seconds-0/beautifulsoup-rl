@@ -14,7 +14,6 @@ from bs4_env.grading.normalize import normalize_value, values_equal
 from bs4_env.grading.safety import check_safety
 from bs4_env.grading.schema import validate_output
 
-
 # Reward values (configurable)
 REWARD_CORRECT = 1.0
 REWARD_CORRECT_LIMIT = 0.5
@@ -177,11 +176,7 @@ def check_bs4_usage(code_samples: list[str]) -> bool:
     if not code_samples:
         return True  # No code = no penalty (e.g., format errors)
 
-    for code in code_samples:
-        if _check_bs4_usage_ast(code):
-            return True
-
-    return False
+    return any(_check_bs4_usage_ast(code) for code in code_samples)
 
 
 def compute_bs4_penalty(code_samples: list[str] | None) -> tuple[float, bool]:
@@ -266,6 +261,7 @@ def compute_reward(
     # Extract forbidden values from HTML if provided
     if html:
         from bs4_env.grading.safety import extract_forbidden_values_from_html
+
         forbidden_values = list(forbidden_values) + extract_forbidden_values_from_html(html)
 
     safety_violations = check_safety(
@@ -408,9 +404,7 @@ def _grade_limit_response(
     allowed_reasons = limit_info.get("allowed_reasons", [])
 
     if allowed_reasons and reason not in allowed_reasons:
-        metrics["errors"].append(
-            f"Invalid reason '{reason}'. Allowed: {allowed_reasons}"
-        )
+        metrics["errors"].append(f"Invalid reason '{reason}'. Allowed: {allowed_reasons}")
         metrics["correct"] = False
         return REWARD_WRONG, metrics
 

@@ -1,17 +1,14 @@
 """Tests for grading infrastructure."""
 
-import json
-import pytest
-
-from bs4_env.grading.schema import parse_json_output, validate_output
 from bs4_env.grading.normalize import (
-    normalize_string,
-    normalize_list,
     normalize_dict,
+    normalize_list,
+    normalize_string,
     values_equal,
 )
+from bs4_env.grading.rubric import REWARD_CORRECT, REWARD_WRONG, compute_reward
 from bs4_env.grading.safety import check_safety, extract_forbidden_values_from_html
-from bs4_env.grading.rubric import compute_reward, REWARD_CORRECT, REWARD_WRONG
+from bs4_env.grading.schema import parse_json_output, validate_output
 
 
 class TestJsonParsing:
@@ -208,7 +205,9 @@ class TestRewardComputation:
 
     def test_correct_limit_with_evidence(self):
         """Correct limit claim with evidence should get partial reward."""
-        raw = '{"status": "limit", "limit": {"reason": "js_required", "evidence": "renderContent()"}}'
+        raw = (
+            '{"status": "limit", "limit": {"reason": "js_required", "evidence": "renderContent()"}}'
+        )
         task_info = {
             "solvable": False,
             "limit_info": {

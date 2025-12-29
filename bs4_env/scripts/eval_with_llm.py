@@ -26,6 +26,7 @@ Available cheap models on OpenRouter:
     - qwen/qwen3-8b (~$0.028/1M tokens)
     - anthropic/claude-3-haiku (~$0.00025/1K input)
 """
+
 from __future__ import annotations
 
 import argparse
@@ -39,7 +40,6 @@ from openai import OpenAI
 
 from beautiful_soup_env import load_environment
 from bs4_env.tools.harness import RUN_PYTHON_TOOL_SCHEMA
-
 
 # OpenRouter base URL
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
@@ -70,10 +70,7 @@ def get_tools() -> list[dict]:
 
     Uses the same schema defined in harness.py for consistency with Prime.
     """
-    return [{
-        "type": "function",
-        "function": RUN_PYTHON_TOOL_SCHEMA
-    }]
+    return [{"type": "function", "function": RUN_PYTHON_TOOL_SCHEMA}]
 
 
 def run_llm_agent(
@@ -108,21 +105,40 @@ def run_llm_agent(
     stats = {"input_tokens": 0, "output_tokens": 0, "turns": 0, "tool_calls": 0}
     final_output = ""
 
-    for turn in range(max_turns):
+    for _turn in range(max_turns):
         stats["turns"] += 1
 
-        try:
-            response = client.chat.completions.create(
-                model=model,
-                messages=conversation,
-                tools=tools,
-                tool_choice="auto",
-                temperature=0.0,
-                max_tokens=4000,
-                # Note: response_format not used - conflicts with tools on some providers
-            )
-        except Exception as e:
-            return json.dumps({"status": "error", "error": str(e)}), tool_history, stats
+        # Retry logic with exponential backoff
+        max_retries = 3
+        for retry in range(max_retries):
+            try:
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=conversation,
+                    tools=tools,
+                    tool_choice="auto",
+                    temperature=0.0,
+                    max_tokens=4000,
+                    # Note: response_format not used - conflicts with tools on some providers
+                )
+                # Check for valid response
+                if response.choices is None or len(response.choices) == 0:
+                    if retry < max_retries - 1:
+                        wait_time = 2**retry * 5  # 5, 10, 20 seconds
+                        time.sleep(wait_time)
+                        continue
+                    return (
+                        json.dumps({"status": "error", "error": "Empty response from API"}),
+                        tool_history,
+                        stats,
+                    )
+                break  # Success
+            except Exception as e:
+                if retry < max_retries - 1:
+                    wait_time = 2**retry * 5
+                    time.sleep(wait_time)
+                    continue
+                return json.dumps({"status": "error", "error": str(e)}), tool_history, stats
 
         # Track token usage
         if response.usage:
@@ -134,27 +150,37 @@ def run_llm_agent(
         # Check if model wants to call tools
         if message.tool_calls:
             # Add assistant message with tool calls to conversation
-            conversation.append({
-                "role": "assistant",
-                "content": message.content,
-                "tool_calls": [
-                    {
-                        "id": tc.id,
-                        "type": "function",
-                        "function": {
-                            "name": tc.function.name,
-                            "arguments": tc.function.arguments
+            conversation.append(
+                {
+                    "role": "assistant",
+                    "content": message.content,
+                    "tool_calls": [
+                        {
+                            "id": tc.id,
+                            "type": "function",
+                            "function": {
+                                "name": tc.function.name,
+                                "arguments": tc.function.arguments,
+                            },
                         }
-                    }
-                    for tc in message.tool_calls
-                ]
-            })
+                        for tc in message.tool_calls
+                    ],
+                }
+            )
 
             # Execute each tool call
             for tool_call in message.tool_calls:
                 stats["tool_calls"] += 1
                 func_name = tool_call.function.name
-                func_args = json.loads(tool_call.function.arguments)
+
+                # Parse arguments with error handling for malformed JSON
+                try:
+                    func_args = json.loads(tool_call.function.arguments)
+                except json.JSONDecodeError as e:
+                    result = json.dumps({"error": f"Invalid JSON in tool arguments: {e}"})
+                    tool_history.append({"tool": func_name, "args": {}, "result": result})
+                    conversation.append({"role": "tool", "tool_call_id": tool_call.id, "content": result})
+                    continue
 
                 # Execute the tool
                 if func_name == "run_python":
@@ -162,18 +188,18 @@ def run_llm_agent(
                 else:
                     result = json.dumps({"error": f"Unknown tool: {func_name}"})
 
-                tool_history.append({
-                    "tool": func_name,
-                    "args": func_args,
-                    "result": result[:1000]  # Truncate for history
-                })
+                tool_history.append(
+                    {
+                        "tool": func_name,
+                        "args": func_args,
+                        "result": result[:1000],  # Truncate for history
+                    }
+                )
 
                 # Add tool result to conversation
-                conversation.append({
-                    "role": "tool",
-                    "tool_call_id": tool_call.id,
-                    "content": result
-                })
+                conversation.append(
+                    {"role": "tool", "tool_call_id": tool_call.id, "content": result}
+                )
         else:
             # Model is done calling tools - this is the final response
             final_output = message.content or ""
@@ -182,21 +208,45 @@ def run_llm_agent(
     return final_output, tool_history, stats
 
 
+def _save_checkpoint(output_file: str, model: str, results: list, total_tokens: dict, total_tool_calls: int) -> None:
+    """Save incremental checkpoint to avoid losing progress."""
+    checkpoint = {
+        "model": model,
+        "num_examples": len(results),
+        "avg_reward": sum(r["reward"] for r in results) / len(results) if results else 0,
+        "pass_rate": sum(1 for r in results if r["reward"] >= 0.5) / len(results) if results else 0,
+        "perfect_rate": sum(1 for r in results if r["reward"] == 1.0) / len(results) if results else 0,
+        "total_tool_calls": total_tool_calls,
+        "total_tokens": total_tokens,
+        "results": results,
+        "checkpoint": True,  # Mark as checkpoint (not final)
+    }
+    with open(output_file, "w") as f:
+        json.dump(checkpoint, f, indent=2, default=str)
+    print(f"  [Checkpoint saved: {len(results)} examples]")
+
+
 def run_evaluation(
     model: str,
     num_examples: int,
+    start_index: int = 0,
     split: str = "bench",
     mode: str = "mvp",
     verbose: bool = False,
+    output_file: str | None = None,
+    checkpoint_interval: int = 10,
 ) -> dict:
     """Run full evaluation.
 
     Args:
         model: Model name.
         num_examples: Number of examples to evaluate.
+        start_index: Starting index (for resuming).
         split: Dataset split.
         mode: Archetype mode.
         verbose: Print detailed output.
+        output_file: Path to save results (enables incremental saves).
+        checkpoint_interval: Save checkpoint every N examples.
 
     Returns:
         Evaluation results dict.
@@ -207,21 +257,26 @@ def run_evaluation(
 
     client = create_openrouter_client()
     print(f"Model: {model}")
-    print(f"Using OpenAI function calling API (production-match)")
-    print(f"Evaluating {num_examples} examples...\n")
+    print("Using OpenAI function calling API (production-match)")
+    end_index = min(start_index + num_examples, len(env))
+    print(f"Evaluating examples {start_index+1} to {end_index}...\n")
 
     results = []
     total_reward = 0.0
     total_tokens = {"input": 0, "output": 0}
     total_tool_calls = 0
 
-    num_to_test = min(num_examples, len(env))
+    num_to_test = end_index - start_index
 
-    for i in range(num_to_test):
+    for i in range(start_index, end_index):
         example = env.get_example(i)
         info = example["info"]
 
-        print(f"[{i+1}/{num_to_test}] {info.get('archetype_id')} (seed={info.get('seed')})...", end=" ", flush=True)
+        print(
+            f"[{i+1}/{end_index}] {info.get('archetype_id')} (seed={info.get('seed')})...",
+            end=" ",
+            flush=True,
+        )
 
         start_time = time.time()
 
@@ -241,21 +296,23 @@ def run_evaluation(
         # Grade the output (include tool call count for efficiency penalty)
         reward, metrics = env.grade(final_output, example, tool_call_count=stats["tool_calls"])
 
-        results.append({
-            "idx": i,
-            "archetype_id": info.get("archetype_id"),
-            "seed": info.get("seed"),
-            "solvable": info.get("solvable"),
-            "reward": reward,
-            "metrics": metrics,
-            "turns": stats["turns"],
-            "tool_calls": stats["tool_calls"],
-            "input_tokens": stats["input_tokens"],
-            "output_tokens": stats["output_tokens"],
-            "elapsed_s": elapsed,
-            "final_output": final_output[:500] if verbose else None,
-            "ground_truth": info.get("ground_truth") if verbose else None,
-        })
+        results.append(
+            {
+                "idx": i,
+                "archetype_id": info.get("archetype_id"),
+                "seed": info.get("seed"),
+                "solvable": info.get("solvable"),
+                "reward": reward,
+                "metrics": metrics,
+                "turns": stats["turns"],
+                "tool_calls": stats["tool_calls"],
+                "input_tokens": stats["input_tokens"],
+                "output_tokens": stats["output_tokens"],
+                "elapsed_s": elapsed,
+                "final_output": final_output[:500] if verbose else None,
+                "ground_truth": info.get("ground_truth") if verbose else None,
+            }
+        )
 
         total_reward += reward
         total_tokens["input"] += stats["input_tokens"]
@@ -264,6 +321,10 @@ def run_evaluation(
 
         status = "PASS" if reward >= 0.5 else "FAIL"
         print(f"{status} (r={reward:.2f}, {elapsed:.1f}s, {stats['tool_calls']} calls)")
+
+        # Incremental checkpoint save
+        if output_file and len(results) % checkpoint_interval == 0:
+            _save_checkpoint(output_file, model, results, total_tokens, total_tool_calls)
 
         if verbose and reward < 0.5:
             print(f"  Ground truth: {info.get('ground_truth')}")
@@ -281,7 +342,9 @@ def run_evaluation(
     print(f"Examples: {num_to_test}")
     print(f"Average reward: {avg_reward:.3f}")
     print(f"Pass rate (r>=0.5): {sum(1 for r in results if r['reward'] >= 0.5) / num_to_test:.1%}")
-    print(f"Perfect rate (r=1.0): {sum(1 for r in results if r['reward'] == 1.0) / num_to_test:.1%}")
+    print(
+        f"Perfect rate (r=1.0): {sum(1 for r in results if r['reward'] == 1.0) / num_to_test:.1%}"
+    )
     print(f"Total tool calls: {total_tool_calls}")
     print(f"Total tokens: {total_tokens['input']:,} input, {total_tokens['output']:,} output")
 
@@ -293,7 +356,7 @@ def run_evaluation(
             archetype_results[arch] = []
         archetype_results[arch].append(r["reward"])
 
-    print(f"\nBy archetype:")
+    print("\nBy archetype:")
     for arch, rewards in sorted(archetype_results.items()):
         avg = sum(rewards) / len(rewards)
         perfect = sum(1 for r in rewards if r == 1.0)
@@ -314,37 +377,47 @@ def run_evaluation(
         "perfect_rate": sum(1 for r in results if r["reward"] == 1.0) / num_to_test,
         "total_tool_calls": total_tool_calls,
         "total_tokens": total_tokens,
-        "by_archetype": {k: sum(v)/len(v) for k, v in archetype_results.items()},
+        "by_archetype": {k: sum(v) / len(v) for k, v in archetype_results.items()},
         "results": results,
     }
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Evaluate BS4 environment with LLMs (production-match)")
-    parser.add_argument("--model", "-m", default="openai/gpt-4o-mini",
-                       help="Model name (OpenRouter format, e.g., openai/gpt-4o-mini)")
-    parser.add_argument("--num", "-n", type=int, default=20,
-                       help="Number of examples to evaluate")
+    parser = argparse.ArgumentParser(
+        description="Evaluate BS4 environment with LLMs (production-match)"
+    )
+    parser.add_argument(
+        "--model",
+        "-m",
+        default="openai/gpt-4o-mini",
+        help="Model name (OpenRouter format, e.g., openai/gpt-4o-mini)",
+    )
+    parser.add_argument("--num", "-n", type=int, default=20, help="Number of examples to evaluate")
+    parser.add_argument("--start", "-s", type=int, default=0, help="Starting index (for resuming)")
     parser.add_argument("--split", default="bench", choices=["train", "eval", "bench"])
     parser.add_argument("--mode", default="mvp", choices=["mvp", "phase2", "all"])
-    parser.add_argument("--verbose", "-v", action="store_true",
-                       help="Show detailed output for failures")
-    parser.add_argument("--output", "-o", type=str, default=None,
-                       help="Save results to JSON file")
+    parser.add_argument(
+        "--verbose", "-v", action="store_true", help="Show detailed output for failures"
+    )
+    parser.add_argument("--output", "-o", type=str, default=None, help="Save results to JSON file")
     args = parser.parse_args()
 
     results = run_evaluation(
         model=args.model,
         num_examples=args.num,
+        start_index=args.start,
         split=args.split,
         mode=args.mode,
         verbose=args.verbose,
+        output_file=args.output,  # Enable incremental saves
     )
 
+    # Final save (overwrites checkpoint with complete results)
     if args.output:
+        results["checkpoint"] = False  # Mark as final
         with open(args.output, "w") as f:
             json.dump(results, f, indent=2, default=str)
-        print(f"\nResults saved to {args.output}")
+        print(f"\nFinal results saved to {args.output}")
 
     # Return exit code based on performance
     return 0 if results["avg_reward"] >= 0.3 else 1
