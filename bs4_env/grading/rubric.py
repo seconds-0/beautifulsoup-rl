@@ -6,6 +6,7 @@ This module implements the rubric that converts model outputs into rewards.
 The reward function must be deterministic and follow the anti-hacking rules.
 """
 
+import ast
 import re
 from typing import Any
 
@@ -25,6 +26,9 @@ REWARD_FORMAT_ERROR = 0.0
 MAX_TOOL_CALLS = 10  # Hard cutoff - more than this is considered failure
 EFFICIENCY_PENALTY_PER_CALL = 0.1  # -10% per additional call after first
 EFFICIENCY_FLOOR = 0.2  # Minimum multiplier before hard cutoff
+
+# BS4 usage settings - creates gradient toward BS4 usage without rejecting alternatives
+BS4_USAGE_PENALTY = 0.15  # Penalty for not using BeautifulSoup
 
 
 def compute_efficiency_multiplier(tool_call_count: int) -> float:
@@ -52,11 +56,160 @@ def compute_efficiency_multiplier(tool_call_count: int) -> float:
     return max(EFFICIENCY_FLOOR, 1.0 - EFFICIENCY_PENALTY_PER_CALL * (tool_call_count - 1))
 
 
+def _check_bs4_usage_ast(code: str) -> bool:
+    """Check if code uses BeautifulSoup using AST analysis.
+
+    Uses AST parsing to detect actual BS4 usage, ignoring comments and strings.
+    This prevents bypassing the penalty by mentioning "BeautifulSoup" in comments.
+
+    Args:
+        code: A single code string to analyze.
+
+    Returns:
+        True if BS4 usage is detected in actual code (not comments/strings).
+    """
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        # If code doesn't parse, fall back to string heuristic
+        # but only for unambiguous patterns
+        return False
+
+    # BS4-specific method names that don't appear in standard library
+    bs4_methods = {
+        "find_all",
+        "select",
+        "select_one",
+        "get_text",
+        "prettify",
+        "decode_contents",
+        "encode_contents",
+        "new_tag",
+        "new_string",
+    }
+
+    # BS4-specific attribute names
+    # Note: Excludes .name and .string as they're too common (file.name, path.name, etc.)
+    bs4_attrs = {
+        "next_sibling",
+        "previous_sibling",
+        "next_siblings",
+        "previous_siblings",
+        "next_element",
+        "previous_element",
+        "children",
+        "descendants",
+        "contents",
+        "attrs",
+    }
+
+    class BS4Visitor(ast.NodeVisitor):
+        """AST visitor to detect BS4 usage."""
+
+        def __init__(self):
+            self.found_bs4 = False
+
+        def visit_Import(self, node):
+            """Check for 'import bs4'."""
+            for alias in node.names:
+                if alias.name == "bs4" or alias.name.startswith("bs4."):
+                    self.found_bs4 = True
+            self.generic_visit(node)
+
+        def visit_ImportFrom(self, node):
+            """Check for 'from bs4 import ...'."""
+            if node.module and (node.module == "bs4" or node.module.startswith("bs4.")):
+                self.found_bs4 = True
+            self.generic_visit(node)
+
+        def visit_Call(self, node):
+            """Check for BeautifulSoup() or make_soup() calls."""
+            # Check direct call: BeautifulSoup(...)
+            if isinstance(node.func, ast.Name):
+                if node.func.id in ("BeautifulSoup", "make_soup", "NavigableString"):
+                    self.found_bs4 = True
+
+            # Check attribute call: bs4.BeautifulSoup(...)
+            elif isinstance(node.func, ast.Attribute):
+                if node.func.attr in ("BeautifulSoup", "make_soup", "NavigableString"):
+                    self.found_bs4 = True
+                # Check for BS4-specific method calls
+                if node.func.attr in bs4_methods:
+                    self.found_bs4 = True
+
+            self.generic_visit(node)
+
+        def visit_Attribute(self, node):
+            """Check for BS4-specific attribute access."""
+            if node.attr in bs4_attrs:
+                # These attributes are fairly BS4-specific
+                # (contents, descendants, next_sibling, etc.)
+                self.found_bs4 = True
+            self.generic_visit(node)
+
+    visitor = BS4Visitor()
+    visitor.visit(tree)
+    return visitor.found_bs4
+
+
+def check_bs4_usage(code_samples: list[str]) -> bool:
+    """Check if any code sample uses BeautifulSoup.
+
+    This creates a gradient toward BS4 usage without rejecting alternatives.
+    Regex and string solutions still work but receive a penalty.
+
+    Uses AST-based detection to identify actual BS4 API usage, ignoring
+    mentions of "BeautifulSoup" in comments or strings. This prevents
+    trivial bypasses like adding a comment mentioning BS4.
+
+    The detection looks for:
+    1. Import statements (import bs4, from bs4 import ...)
+    2. Constructor calls (BeautifulSoup(), make_soup(), NavigableString())
+    3. BS4-specific method calls (.find_all(), .select(), .get_text(), etc.)
+    4. BS4-specific attribute access (.next_sibling, .contents, etc.)
+
+    Args:
+        code_samples: List of code strings executed during the episode.
+
+    Returns:
+        True if BS4 appears to be used in any sample.
+    """
+    if not code_samples:
+        return True  # No code = no penalty (e.g., format errors)
+
+    for code in code_samples:
+        if _check_bs4_usage_ast(code):
+            return True
+
+    return False
+
+
+def compute_bs4_penalty(code_samples: list[str] | None) -> tuple[float, bool]:
+    """Compute BS4 usage penalty.
+
+    Args:
+        code_samples: List of code strings, or None if not available.
+
+    Returns:
+        Tuple of (penalty_amount, bs4_used).
+        penalty_amount is 0.0 if BS4 was used, BS4_USAGE_PENALTY otherwise.
+    """
+    if code_samples is None:
+        return 0.0, True  # Unknown - no penalty
+
+    bs4_used = check_bs4_usage(code_samples)
+    if bs4_used:
+        return 0.0, True
+    else:
+        return BS4_USAGE_PENALTY, False
+
+
 def compute_reward(
     raw_output: str,
     task_info: dict,
     html: str | None = None,
     tool_call_count: int | None = None,
+    code_samples: list[str] | None = None,
 ) -> tuple[float, dict[str, Any]]:
     """Compute reward for a model output.
 
@@ -65,6 +218,7 @@ def compute_reward(
     2. Checks for safety violations
     3. Computes correctness based on task type
     4. Applies efficiency multiplier based on tool call count
+    5. Applies BS4 usage penalty if solution doesn't use BeautifulSoup
 
     Args:
         raw_output: The raw string output from the model.
@@ -72,6 +226,8 @@ def compute_reward(
         html: The original HTML (for safety checking and evidence verification).
         tool_call_count: Number of tool calls made. If provided, applies efficiency
             multiplier to reward (fewer calls = higher reward).
+        code_samples: List of code strings executed during the episode. If provided,
+            applies BS4 usage penalty for solutions that don't use BeautifulSoup.
 
     Returns:
         Tuple of (reward, metrics). Metrics include detailed breakdown of
@@ -87,6 +243,8 @@ def compute_reward(
         "warnings": [],
         "tool_calls": tool_call_count,
         "efficiency_multiplier": None,
+        "bs4_used": None,
+        "bs4_penalty": None,
     }
 
     # Step 1: Validate output format
@@ -136,6 +294,7 @@ def compute_reward(
         return REWARD_FORMAT_ERROR, metrics
 
     # Step 4: Apply efficiency multiplier (only for positive rewards)
+    final_reward = base_reward
     if tool_call_count is not None and base_reward > 0:
         efficiency = compute_efficiency_multiplier(tool_call_count)
         metrics["efficiency_multiplier"] = efficiency
@@ -148,9 +307,21 @@ def compute_reward(
             )
             metrics["correct"] = False
 
-        return final_reward, metrics
+    # Step 5: Apply BS4 usage penalty (only for positive rewards on solvable tasks)
+    # This creates a gradient toward BS4 usage without rejecting alternatives
+    solvable = task_info.get("solvable", True)
+    if code_samples is not None and final_reward > 0 and solvable:
+        bs4_penalty, bs4_used = compute_bs4_penalty(code_samples)
+        metrics["bs4_used"] = bs4_used
+        metrics["bs4_penalty"] = bs4_penalty
 
-    return base_reward, metrics
+        if not bs4_used:
+            final_reward = max(0.0, final_reward - bs4_penalty)
+            metrics["warnings"].append(
+                f"BS4 not detected in solution - penalty of {bs4_penalty} applied"
+            )
+
+    return final_reward, metrics
 
 
 def _grade_ok_response(

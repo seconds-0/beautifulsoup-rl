@@ -26,6 +26,12 @@ from bs4_env.generators import mvp_whitespace_sibling  # noqa: F401
 from bs4_env.generators import mvp_json_ld  # noqa: F401
 from bs4_env.generators import mvp_navigablestring  # noqa: F401
 
+# Hard archetypes (semantic reasoning, aggregation, multi-hop)
+from bs4_env.generators import mvp_hard  # noqa: F401
+
+# Multi-step archetypes (navigation between pages)
+from bs4_env.generators import mvp_multistep  # noqa: F401
+
 
 def ensure_registered() -> None:
     """Ensure all generators are imported and registered.

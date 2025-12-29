@@ -252,3 +252,27 @@ LINT_JSON_TOOL_SCHEMA = {
         "required": ["json_string"],
     },
 }
+
+NAVIGATE_TOOL_SCHEMA = {
+    "name": "navigate",
+    "description": (
+        "Navigate to a linked page by its href. For multi-step tasks, "
+        "use this tool to follow links. After successful navigation, "
+        "the HTML global in run_python will be updated with the new page. "
+        "Returns a success message or error if the href is not found."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "href": {
+                "type": "string",
+                "description": "The href attribute of the link to navigate to",
+            }
+        },
+        "required": ["href"],
+    },
+}
+
+# Structured marker for navigate success - used by env_response to detect navigation
+# This is more robust than parsing user-facing message text
+NAVIGATE_SUCCESS_MARKER = "NAVIGATE_OK:"

@@ -50,7 +50,11 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
         A vf.StatefulToolEnv instance.
     """
     from bs4_env.tools.executor import get_executor
-    from bs4_env.tools.harness import build_runner_script, build_tool_response
+    from bs4_env.tools.harness import (
+        build_runner_script,
+        build_tool_response,
+        NAVIGATE_SUCCESS_MARKER,
+    )
 
     # Build the HuggingFace dataset
     dataset = build_dataset(config)
@@ -94,6 +98,76 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
         result = executor.run(code, globals_dict, timeout_s=config.timeout_s)
         return build_tool_response(result.to_dict())
 
+    # Define the navigate tool for multi-step tasks
+    # Note: pages_json is injected via update_tool_args and skipped from schema
+    def navigate(
+        href: str,
+        pages_json: str = "{}",
+    ) -> str:
+        """Navigate to a different page by following a link.
+
+        Use this tool to follow links found in the HTML. After navigating,
+        the HTML global in run_python will contain the new page content.
+
+        Args:
+            href: The href attribute of the link to follow (e.g., '/products/123').
+
+        Returns:
+            Success message if navigation succeeded, error message otherwise.
+        """
+        pages = json.loads(pages_json) if pages_json else {}
+
+        if not href:
+            return "Error: No href provided"
+
+        if not pages:
+            return "Error: This task does not support navigation. Use run_python to parse the current page."
+
+        # Normalize href for lookup
+        normalized = _normalize_href(href, pages)
+
+        if normalized not in pages:
+            return f"Error: Page '{href}' not found. Check the HTML for valid links."
+
+        # Return structured marker + user message
+        # env_response parses the marker to update state["html"]
+        return (
+            f"{NAVIGATE_SUCCESS_MARKER}{normalized}\n\n"
+            f"Successfully navigated. Use run_python to extract data from the new page."
+        )
+
+    def _normalize_href(href: str, pages: dict) -> str:
+        """Normalize an href for lookup in pages dict."""
+        href = href.strip()
+
+        # Try exact match first
+        if href in pages:
+            return href
+
+        # Try with/without leading slash
+        if href.startswith("/"):
+            without_slash = href[1:]
+            if without_slash in pages:
+                return without_slash
+        else:
+            with_slash = "/" + href
+            if with_slash in pages:
+                return with_slash
+
+        # Try without query string
+        if "?" in href:
+            base = href.split("?")[0]
+            if base in pages:
+                return base
+
+        # Try without fragment
+        if "#" in href:
+            base = href.split("#")[0]
+            if base in pages:
+                return base
+
+        return href
+
     # Define reward function
     def bs4_reward(completion, state: dict, info: dict = None, **kwargs) -> float:
         """Compute reward for BeautifulSoup task completion.
@@ -112,14 +186,28 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
         task_info = info or state.get("info", {}) or state.get("task_info", {})
         html = state.get("html", "")
 
-        # Count tool calls from completion history for efficiency penalty
+        # Count tool calls and extract code samples from completion history
         tool_call_count = 0
+        code_samples = []
         if isinstance(completion, list):
             for msg in completion:
                 if isinstance(msg, dict) and msg.get("role") == "assistant":
                     tool_calls = msg.get("tool_calls", [])
                     if tool_calls:
                         tool_call_count += len(tool_calls)
+                        # Extract code from run_python tool calls
+                        for tc in tool_calls:
+                            if isinstance(tc, dict):
+                                func = tc.get("function", {})
+                                if func.get("name") == "run_python":
+                                    args = func.get("arguments", "{}")
+                                    try:
+                                        args_dict = json.loads(args) if isinstance(args, str) else args
+                                        code = args_dict.get("code", "")
+                                        if code:
+                                            code_samples.append(code)
+                                    except json.JSONDecodeError:
+                                        pass
 
         # Extract string content from completion
         if isinstance(completion, list):
@@ -146,6 +234,7 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
             task_info=task_info,
             html=html,
             tool_call_count=tool_call_count if tool_call_count > 0 else None,
+            code_samples=code_samples if code_samples else None,
         )
         return reward
 
@@ -176,11 +265,16 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
                 "allowed_limit_reasons": info.get("limit_info", {}).get("allowed_reasons", []),
             }
 
+            # Store pages for multi-step tasks
+            pages = info.get("pages", {})
+
             # Store in state
             state["html"] = html
             state["query"] = query
             state["constraints"] = constraints
             state["task_info"] = info
+            state["pages"] = pages
+            state["navigation_history"] = []
 
             return state
 
@@ -195,17 +289,58 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
                     "query": state.get("query", ""),
                     "constraints_json": json.dumps(state.get("constraints", {})),
                 }
+            elif tool_name == "navigate":
+                return {
+                    **tool_args,
+                    "pages_json": json.dumps(state.get("pages", {})),
+                }
             return tool_args
 
-    # Create environment and add tool with skipped args
+        async def env_response(self, messages: list, state: dict, **kwargs):
+            """Process environment response after tool execution.
+
+            Detects successful navigate calls and updates state["html"] accordingly.
+            """
+            # Call parent implementation first
+            response, state = await super().env_response(messages, state, **kwargs)
+
+            # Check for navigate success in recent messages
+            pages = state.get("pages", {})
+            if pages:
+                for msg in reversed(messages):
+                    if not isinstance(msg, dict):
+                        continue
+
+                    # Look for tool results (role: "tool" messages contain tool output)
+                    if msg.get("role") == "tool":
+                        content = msg.get("content", "")
+                        # Use structured marker for robust detection
+                        if isinstance(content, str) and content.startswith(NAVIGATE_SUCCESS_MARKER):
+                            # Extract href from marker: "NAVIGATE_OK:href\n..."
+                            marker_content = content[len(NAVIGATE_SUCCESS_MARKER):]
+                            normalized_href = marker_content.split("\n")[0].strip()
+                            if normalized_href in pages:
+                                state["html"] = pages[normalized_href]
+                                state["navigation_history"].append(normalized_href)
+                            # Only process the most recent navigate
+                            break
+
+            return response, state
+
+    # Create environment and add tools
     env = BeautifulSoupEnv(
         dataset=dataset,
         tools=[],  # Add tools after construction
         max_turns=10,
         rubric=rubric,
     )
+
     # Add the run_python tool, skipping state-injected args from schema
     env.add_tool(run_python, args_to_skip=["html", "query", "constraints_json"])
+
+    # Add navigate tool, skipping state-injected args from schema
+    # Note: navigate is always available, but only works if pages exist in the task
+    env.add_tool(navigate, args_to_skip=["pages_json"])
 
     return env
 
@@ -301,6 +436,7 @@ class MinimalEnv:
 
         Returns:
             ToolRegistry with run_python and optional tools configured.
+            For multi-step tasks, includes navigate tool.
         """
         from bs4_env.tools.tool_defs import create_tool_registry
 
@@ -311,6 +447,9 @@ class MinimalEnv:
             ),
         )
 
+        # Get pages for multi-step tasks
+        pages = example["info"].get("pages", {})
+
         return create_tool_registry(
             executor=self.executor,
             html=example["html"],
@@ -318,6 +457,7 @@ class MinimalEnv:
             constraints=constraints.__dict__,
             task_info=example["info"],
             timeout_s=self.config.timeout_s,
+            pages=pages if pages else None,
         )
 
     def grade(
@@ -325,6 +465,7 @@ class MinimalEnv:
         output: str,
         example: dict,
         tool_call_count: int | None = None,
+        code_samples: list[str] | None = None,
     ) -> tuple[float, dict]:
         """Grade a model output.
 
@@ -332,6 +473,7 @@ class MinimalEnv:
             output: The raw model output string.
             example: The example dictionary.
             tool_call_count: Number of tool calls made (for efficiency penalty).
+            code_samples: List of code strings executed (for BS4 usage penalty).
 
         Returns:
             Tuple of (reward, metrics).
@@ -341,6 +483,7 @@ class MinimalEnv:
             task_info=example["info"],
             html=example["html"],
             tool_call_count=tool_call_count,
+            code_samples=code_samples,
         )
 
     def run_episode(
@@ -364,8 +507,31 @@ class MinimalEnv:
         # Run agent
         final_output, tool_history = agent_fn(example["prompt"], tool_registry)
 
-        # Grade output
-        reward, metrics = self.grade(final_output, example)
+        # Extract code samples from tool history for BS4 penalty
+        code_samples = []
+        for call in tool_history:
+            if isinstance(call, dict):
+                # Direct code key (our format)
+                if "code" in call:
+                    code_samples.append(call["code"])
+                # OpenAI-style tool call format
+                elif "arguments" in call:
+                    args = call.get("arguments", {})
+                    if isinstance(args, str):
+                        try:
+                            args = json.loads(args)
+                        except (json.JSONDecodeError, TypeError):
+                            pass
+                    if isinstance(args, dict) and "code" in args:
+                        code_samples.append(args["code"])
+
+        # Grade output with tool call metrics for efficiency and BS4 penalties
+        reward, metrics = self.grade(
+            final_output,
+            example,
+            tool_call_count=len(tool_history),
+            code_samples=code_samples if code_samples else None,
+        )
 
         return {
             "idx": idx,
