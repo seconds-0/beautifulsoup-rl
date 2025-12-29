@@ -53,6 +53,15 @@ bs4_env/
 
 ## Critical Rules
 
+### 0. Test How You Measure (Production Quality)
+**Local testing must match Prime's production flow exactly.** No shortcuts.
+
+- If Prime uses function calling, our local eval uses function calling
+- If Prime uses specific tool schemas, we use the same schemas
+- Our local results should predict actual Prime performance
+
+This ensures we're building production-quality tooling, not approximations that break in deployment.
+
 ### 1. Never Derive Ground Truth by Parsing
 Ground truth must come from structured data BEFORE HTML rendering. Never do this:
 ```python
@@ -114,7 +123,22 @@ python -m bs4_env.scripts.preview_dataset
 
 # End-to-end local smoke test
 python -m bs4_env.scripts.smoke_eval_local
+
+# LLM evaluation via OpenRouter
+uv run python -m bs4_env.scripts.eval_with_llm --model <model> --num 50
 ```
+
+## Test Records
+
+**Always update `TEST_RECORDS.md` after running evaluations.**
+
+This file tracks:
+- Which models have been tested
+- Pass rates by archetype
+- Blocked models (API issues, rate limits)
+- Environment changes that affect results
+
+Target **small/weak models** for testing - they benefit most from RL training.
 
 ## Running Prime Evaluation
 
