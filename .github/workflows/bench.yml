@@ -98,20 +98,9 @@ jobs:
 
           if [ -f "${{ env.output_file }}" ]; then
             echo "### Results" >> $GITHUB_STEP_SUMMARY
-            echo "\`\`\`json" >> $GITHUB_STEP_SUMMARY
-            # Extract key stats
-            python3 -c "
-import json
-with open('${{ env.output_file }}') as f:
-    data = json.load(f)
-print(f'Average Reward: {data.get(\"avg_reward\", 0):.3f}')
-print(f'Pass Rate: {data.get(\"pass_rate\", 0):.1%}')
-print(f'Perfect Rate: {data.get(\"perfect_rate\", 0):.1%}')
-print(f'Examples: {data.get(\"num_examples\", 0)}')
-print(f'Checkpoint: {data.get(\"checkpoint\", False)}')
-"
-            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            python3 -c "import json; d=json.load(open('${{ env.output_file }}')); print(f'Average Reward: {d.get(\"avg_reward\", 0):.3f}'); print(f'Pass Rate: {d.get(\"pass_rate\", 0):.1%}'); print(f'Perfect Rate: {d.get(\"perfect_rate\", 0):.1%}'); print(f'Examples: {d.get(\"num_examples\", 0)}')" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
           else
             echo "No results file found." >> $GITHUB_STEP_SUMMARY
           fi
-# Trigger workflow refresh
