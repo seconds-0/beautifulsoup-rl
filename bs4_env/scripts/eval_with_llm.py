@@ -119,6 +119,7 @@ def run_llm_agent(
                 tool_choice="auto",
                 temperature=0.0,
                 max_tokens=4000,
+                response_format={"type": "json_object"},  # Ensure valid JSON output
             )
         except Exception as e:
             return json.dumps({"status": "error", "error": str(e)}), tool_history, stats

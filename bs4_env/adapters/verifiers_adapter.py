@@ -166,26 +166,9 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
             if isinstance(info, str):
                 info = json.loads(info)
 
-            # Extract HTML and query from prompt
-            prompt = row.get("prompt", [])
-            user_msg = next((m for m in prompt if m.get("role") == "user"), {})
-            content = user_msg.get("content", "")
-
-            # Parse HTML from prompt
-            html = ""
-            start = content.find("```html")
-            if start >= 0:
-                start += 7
-                end = content.find("```", start)
-                html = content[start:end].strip() if end > start else content[start:].strip()
-
-            # Parse query from prompt
-            query = ""
-            start = content.find("## Task")
-            if start >= 0:
-                start += 7
-                end = content.find("##", start)
-                query = content[start:end].strip() if end > start else content[start:].strip()
+            # HTML and query are stored in info (not in prompt)
+            html = info.get("html", "")
+            query = info.get("query", "")
 
             # Build constraints
             constraints = {
@@ -290,46 +273,25 @@ class MinimalEnv:
         row = self.dataset[idx]
         info = json.loads(row["info"]) if isinstance(row["info"], str) else row["info"]
 
-        # Extract HTML and query from the prompt
-        # (they're embedded in the user message)
-        prompt = row["prompt"]
-        user_msg = next(m for m in prompt if m["role"] == "user")
-
-        # Parse HTML from the prompt
-        html = self._extract_html_from_prompt(user_msg["content"])
-        query = self._extract_query_from_prompt(user_msg["content"])
+        # HTML and query are stored in info (not in prompt)
+        html = self._extract_html_from_info(info)
+        query = self._extract_query_from_info(info)
 
         return {
-            "prompt": prompt,
+            "prompt": row["prompt"],
             "info": info,
             "html": html,
             "query": query,
             "idx": idx,
         }
 
-    def _extract_html_from_prompt(self, content: str) -> str:
-        """Extract HTML from prompt content."""
-        # HTML is between ```html and ```
-        start = content.find("```html")
-        if start < 0:
-            return ""
-        start += 7  # len("```html")
-        end = content.find("```", start)
-        if end < 0:
-            return content[start:].strip()
-        return content[start:end].strip()
+    def _extract_html_from_info(self, info: dict) -> str:
+        """Extract HTML from info dict."""
+        return info.get("html", "")
 
-    def _extract_query_from_prompt(self, content: str) -> str:
-        """Extract query from prompt content."""
-        # Query is after "## Task" and before the next ##
-        start = content.find("## Task")
-        if start < 0:
-            return ""
-        start += 7  # len("## Task")
-        end = content.find("##", start)
-        if end < 0:
-            return content[start:].strip()
-        return content[start:end].strip()
+    def _extract_query_from_info(self, info: dict) -> str:
+        """Extract query from info dict."""
+        return info.get("query", "")
 
     def create_tool_registry(self, example: dict) -> Any:
         """Create a tool registry for an example.
