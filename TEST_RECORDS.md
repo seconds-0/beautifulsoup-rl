@@ -24,6 +24,37 @@ Focus on **small/weak models** - they benefit most from RL training on this envi
 
 ## Benchmark Runs
 
+### 2025-12-28: Ministral 8B (Full - 200/200)
+
+**Model:** `mistralai/ministral-8b`
+**Config:** split=bench, mode=mvp, 200 examples
+**Status:** Complete
+
+| Archetype | Avg Reward | Perfect | Pass Rate |
+|-----------|------------|---------|-----------|
+| `mvp.string_returns_none` | 0.465 | 6/20 | 47% |
+| `mvp.table_list_of_lists` | 0.425 | 6/20 | 43% |
+| `mvp.class_reserved_word` | 0.420 | 5/20 | 42% |
+| `mvp.extract_text_by_id` | 0.380 | 2/20 | 38% |
+| `mvp.none_attribute_error` | 0.320 | 3/20 | 32% |
+| `mvp.multivalue_class` | 0.250 | 1/20 | 25% |
+| `mvp.extract_text_by_class` | 0.160 | 0/20 | 16% |
+| `mvp.table_list_of_dicts` | 0.045 | 0/20 | 5% |
+| `mvp.limit_js_required` | 0.000 | 0/20 | 0% |
+| `mvp.limit_image_text` | 0.000 | 0/20 | 0% |
+| **Total** | **0.246** | **23/200** | **27.5%** |
+
+**Observations:**
+- MUCH worse than Qwen3-8B (27.5% vs 52.5%)
+- Heavy looping: 1,518 tool calls vs Qwen3's 246 (6x more)
+- Burned 16.4M tokens (32x more than Qwen3's 518K)
+- Tables were HARD (5-43%) unlike Qwen3 (100%)
+- string_returns_none was BETTER (47% vs 20%) - opposite pattern
+
+**Token Usage:** 16.4M input, 190K output (~16.6M total) - VERY expensive
+
+---
+
 ### 2024-12-28: Qwen3-8B (Full - 200/200)
 
 **Model:** `qwen/qwen3-8b`
