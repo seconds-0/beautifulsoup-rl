@@ -7,12 +7,14 @@ The correct behavior is to recognize the limitation and abstain with evidence.
 from bs4_env.config import STRING_SCHEMA
 from bs4_env.generators.base import (
     Generator,
+    HtmlStyle,
     TaskInstance,
     make_rng,
     random_paragraph,
     random_product_name,
     random_price,
     add_noise_comments,
+    wrap_with_realistic_chrome,
 )
 from bs4_env.registry import register
 
@@ -218,15 +220,14 @@ class ImageTextGenerator(Generator):
     def generate(self, seed: int) -> TaskInstance:
         rng = make_rng(self.archetype_id, seed)
 
+        # Select random HTML style for realistic variation
+        style = rng.choice(list(HtmlStyle))
+
         # The text that's "in" the image
         hidden_text = random_paragraph(rng, sentences=1)
         image_filename = f"content-{rng.randint(1000, 9999)}.png"
 
-        html = f"""<!DOCTYPE html>
-<html>
-<head><title>Document</title></head>
-<body>
-<article>
+        body_content = f"""<article>
     <h1>Important Information</h1>
     <p>Please see the details below:</p>
     <div class="content-image">
@@ -236,10 +237,18 @@ class ImageTextGenerator(Generator):
              data-content="{hidden_text}">
     </div>
     <p>For more information, contact support.</p>
-</article>
-</body>
-</html>"""
+</article>"""
 
+        # Wrap with realistic chrome for real-world difficulty
+        html = wrap_with_realistic_chrome(
+            body_content,
+            style,
+            rng,
+            title="Document",
+            complexity="realistic",
+            include_nav=True,
+            include_footer=True,
+        )
         html = add_noise_comments(html, rng, count=1)
 
         query = (

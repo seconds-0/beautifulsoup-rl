@@ -2,6 +2,13 @@
 
 This module implements the fundamental extraction tasks that form the
 foundation of BS4 proficiency.
+
+Anti-shortcut measures:
+- No semantic prefixes (target_id uses random base, not "target-")
+- Randomized element positions (target not always in position 2)
+- Varied tag types for targets (article, section, div, main, etc.)
+- Near-duplicate decoy content to prevent text-matching shortcuts
+- Attribute order randomization (when realistic chrome is used)
 """
 
 from bs4_env.config import STRING_SCHEMA
@@ -11,14 +18,33 @@ from bs4_env.generators.base import (
     TaskInstance,
     make_rng,
     random_paragraph,
+    generate_variable_content,
     random_id,
     random_class_name,
     random_class_for_style,
     add_noise_comments,
     add_decoy_elements,
     wrap_with_realistic_chrome,
+    randomize_attribute_order,
+    # i18n functions
+    random_mixed_language_content,
+    add_emoji_noise,
+    # Semantic decoy functions
+    generate_semantic_decoy,
+    generate_near_duplicate,
+    generate_similar_id,
+    generate_similar_class,
+    # Malformation function
+    introduce_malformation,
 )
 from bs4_env.registry import register
+
+
+# Tags that can be used for target elements (prevents always using <article>)
+TARGET_TAGS = ["article", "section", "div", "main", "aside", "p", "span"]
+
+# Tags for distractor elements (varied to prevent pattern matching)
+DISTRACTOR_TAGS = ["div", "aside", "section", "span", "p", "article"]
 
 
 @register(
@@ -59,7 +85,7 @@ class ExtractTextByIdGenerator(Generator):
             seed: Random seed for deterministic generation.
             style: HTML framework style. If None, randomly selected.
             use_realistic_chrome: If True, wrap content with realistic HTML.
-            complexity: "low", "medium", or "high" for head content richness.
+            complexity: "low", "medium", "high", or "realistic".
 
         Returns:
             TaskInstance with extraction task.
@@ -70,24 +96,80 @@ class ExtractTextByIdGenerator(Generator):
         if style is None:
             style = rng.choice(list(HtmlStyle))
 
+        # Always use realistic complexity for real-world difficulty
+        # Real websites always have noise - training without it makes tasks too easy
+        complexity = "realistic"
+
         # Generate the target content (ground truth comes FIRST)
-        target_text = random_paragraph(rng, sentences=rng.randint(1, 3))
-        target_id = random_id(rng, prefix="target")
+        # Use variable-length content to prevent length-based shortcuts
+        target_text = generate_variable_content(rng, min_sentences=1, max_sentences=5)
 
-        # Generate distractor content
-        distractor_texts = [random_paragraph(rng, sentences=1) for _ in range(3)]
-        distractor_ids = [random_id(rng, prefix="other") for _ in range(3)]
+        # 20% chance of international content (mixed language or emoji)
+        use_i18n = rng.random() < 0.2
+        if use_i18n:
+            i18n_type = rng.choice(["mixed", "emoji"])
+            if i18n_type == "mixed":
+                # Mix English with another language
+                target_text = random_mixed_language_content(rng, base_sentences=3)
+            else:
+                # Add emoji to content
+                target_text = add_emoji_noise(target_text, rng, density=0.15)
 
-        # Build core body content with distractors
+        # NO semantic prefixes - just random IDs
+        target_id = random_id(rng)  # No prefix!
+
+        # Generate SIMILAR IDs (harder decoys) - mix of similar and random
+        distractor_ids = [
+            generate_similar_id(rng, target_id),  # Similar to target
+            generate_similar_id(rng, target_id),  # Another similar one
+            random_id(rng),  # One truly random for variety
+        ]
+
+        # Generate SEMANTIC DECOY content (harder than random text)
+        distractor_texts = [
+            generate_semantic_decoy(rng, target_text, "partial_overlap"),  # Shares content
+            generate_semantic_decoy(rng, target_text, "similar_topic"),    # Same length/tone
+            generate_variable_content(rng, min_sentences=1, max_sentences=3),  # Random for variety
+        ]
+
+        # If using i18n, also add to some distractors for consistency
+        if use_i18n and rng.random() < 0.5:
+            idx = rng.randint(0, 2)
+            if i18n_type == "emoji":
+                distractor_texts[idx] = add_emoji_noise(distractor_texts[idx], rng, density=0.1)
+
+        # Add near-duplicate decoy (almost the same as target - hardest decoy)
+        decoy_text = generate_near_duplicate(rng, target_text)
+
+        # Randomize tag types (target not always <article>)
+        target_tag = rng.choice(TARGET_TAGS)
+        distractor_tags = [rng.choice(DISTRACTOR_TAGS) for _ in range(3)]
+
+        # Build elements list for shuffling (randomize position)
         content_class = random_class_for_style(rng, style, count=2)
         sidebar_class = random_class_for_style(rng, style, count=2)
 
-        body_content = f"""<div id="{distractor_ids[0]}" class="{sidebar_class}">{distractor_texts[0]}</div>
-<article id="{target_id}" class="{content_class}">
-{target_text}
-</article>
-<div id="{distractor_ids[1]}">{distractor_texts[1]}</div>
-<aside id="{distractor_ids[2]}">{distractor_texts[2]}</aside>"""
+        elements = [
+            (target_id, target_text, target_tag, content_class, True),  # is_target=True
+            (distractor_ids[0], distractor_texts[0], distractor_tags[0], sidebar_class, False),
+            (distractor_ids[1], distractor_texts[1], distractor_tags[1], "", False),
+            (distractor_ids[2], distractor_texts[2], distractor_tags[2], "", False),
+        ]
+
+        # Shuffle to randomize target position
+        rng.shuffle(elements)
+
+        # Build body content
+        body_parts = []
+        for elem_id, text, tag, cls, is_target in elements:
+            class_attr = f' class="{cls}"' if cls else ""
+            body_parts.append(f'<{tag} id="{elem_id}"{class_attr}>{text}</{tag}>')
+
+        # Add near-duplicate decoy after shuffled elements
+        decoy_class = random_class_for_style(rng, style, count=1)
+        body_parts.append(f'<div class="related-content {decoy_class}">{decoy_text}</div>')
+
+        body_content = "\n".join(body_parts)
 
         if use_realistic_chrome:
             # Wrap with full realistic HTML document
@@ -102,20 +184,17 @@ class ExtractTextByIdGenerator(Generator):
             )
         else:
             # Simple HTML structure (backward compatible)
+            # Still shuffle position in simple mode
             html_parts = [
                 "<!DOCTYPE html>",
                 "<html>",
                 "<head><title>Test Page</title></head>",
                 "<body>",
                 "<header>",
-                f'<nav id="{distractor_ids[0]}">{distractor_texts[0]}</nav>',
+                f'<nav id="nav-{rng.randint(1000, 9999)}">Navigation</nav>',
                 "</header>",
                 "<main>",
-                f'<div id="{distractor_ids[1]}" class="sidebar">{distractor_texts[1]}</div>',
-                f'<article id="{target_id}" class="content">',
-                target_text,
-                "</article>",
-                f'<aside id="{distractor_ids[2]}">{distractor_texts[2]}</aside>',
+                body_content,
                 "</main>",
                 "<footer>Footer content</footer>",
                 "</body>",
@@ -129,6 +208,11 @@ class ExtractTextByIdGenerator(Generator):
         if not use_realistic_chrome:
             # Only add decoy elements for simple mode
             html = add_decoy_elements(html, rng, count=rng.randint(0, 2))
+
+        # Introduce malformed HTML 30% of the time (real websites are messy)
+        is_malformed = rng.random() < 0.3
+        if is_malformed:
+            html = introduce_malformation(html, rng)
 
         # Build query
         query = f'Extract the text content from the element with id="{target_id}".'
@@ -148,10 +232,13 @@ class ExtractTextByIdGenerator(Generator):
             },
             metadata={
                 "target_id": target_id,
+                "target_tag": target_tag,
                 "distractor_count": 3,
                 "html_style": style.value,
                 "use_realistic_chrome": use_realistic_chrome,
                 "complexity": complexity,
+                "is_malformed": is_malformed,
+                "i18n_content": use_i18n,
             },
         )
 
@@ -171,38 +258,95 @@ class ExtractTextByClassGenerator(Generator):
 
     This tests the common pattern of finding elements by class,
     including the BS4 gotcha of using `class_` instead of `class`.
+
+    Anti-shortcut measures:
+    - No semantic prefixes (class names use random bases)
+    - Randomized element positions
+    - Variable tag types
+    - Variable content lengths
     """
 
-    def generate(self, seed: int) -> TaskInstance:
+    def generate(
+        self,
+        seed: int,
+        style: HtmlStyle | None = None,
+        complexity: str = "medium",
+    ) -> TaskInstance:
         rng = make_rng(self.archetype_id, seed)
 
-        # Generate target content
-        target_text = random_paragraph(rng, sentences=rng.randint(1, 2))
-        target_class = random_class_name(rng, prefix="highlight")
+        # Select style randomly if not specified
+        if style is None:
+            style = rng.choice(list(HtmlStyle))
 
-        # Generate distractors with similar-ish classes
-        distractor_texts = [random_paragraph(rng, sentences=1) for _ in range(3)]
+        # Always use realistic complexity for real-world difficulty
+        complexity = "realistic"
+
+        # Generate target content with variable length
+        target_text = generate_variable_content(rng, min_sentences=1, max_sentences=4)
+
+        # NO semantic prefixes - generate random class names
+        target_class = random_class_name(rng)  # No prefix!
+
+        # Generate SIMILAR class names (harder decoys) - mix of similar and random
         distractor_classes = [
-            random_class_name(rng, prefix="content"),
-            random_class_name(rng, prefix="section"),
-            random_class_name(rng, prefix="block"),
+            generate_similar_class(rng, target_class),  # Similar to target
+            generate_similar_class(rng, target_class),  # Another similar one
+            random_class_name(rng),  # One truly random for variety
         ]
 
-        # Build HTML
-        html_parts = [
-            "<!DOCTYPE html>",
-            "<html>",
-            "<body>",
-            f'<div class="{distractor_classes[0]}">{distractor_texts[0]}</div>',
-            f'<div class="{distractor_classes[1]}">{distractor_texts[1]}</div>',
-            f'<span class="{target_class}">{target_text}</span>',
-            f'<div class="{distractor_classes[2]}">{distractor_texts[2]}</div>',
-            "</body>",
-            "</html>",
+        # Generate SEMANTIC DECOY content (harder than random text)
+        distractor_texts = [
+            generate_semantic_decoy(rng, target_text, "partial_overlap"),  # Shares content
+            generate_semantic_decoy(rng, target_text, "similar_topic"),    # Same length/tone
+            generate_variable_content(rng, min_sentences=1, max_sentences=3),  # Random for variety
         ]
 
-        html = "\n".join(html_parts)
+        # Add near-duplicate decoy (almost the same as target)
+        decoy_text = generate_near_duplicate(rng, target_text)
+
+        # Randomize tag types
+        target_tag = rng.choice(TARGET_TAGS)
+        distractor_tags = [rng.choice(DISTRACTOR_TAGS) for _ in range(3)]
+
+        # Build elements for shuffling (randomize position)
+        elements = [
+            (target_tag, target_class, target_text, True),  # is_target=True
+            (distractor_tags[0], distractor_classes[0], distractor_texts[0], False),
+            (distractor_tags[1], distractor_classes[1], distractor_texts[1], False),
+            (distractor_tags[2], distractor_classes[2], distractor_texts[2], False),
+        ]
+
+        # Shuffle to randomize target position
+        rng.shuffle(elements)
+
+        # Build body content
+        body_parts = []
+        for tag, cls, text, is_target in elements:
+            body_parts.append(f'<{tag} class="{cls}">{text}</{tag}>')
+
+        # Add near-duplicate decoy
+        decoy_class = random_class_name(rng)
+        body_parts.append(f'<div class="excerpt {decoy_class}">{decoy_text}</div>')
+
+        body_content = "\n".join(body_parts)
+
+        # Always wrap with realistic HTML chrome
+        html = wrap_with_realistic_chrome(
+            body_content,
+            style,
+            rng,
+            title="Content Page",
+            complexity=complexity,
+            include_nav=True,
+            include_footer=True,
+        )
+
         html = add_noise_comments(html, rng, count=2)
+
+        # Introduce malformed HTML 30% of the time (real websites are messy)
+        is_malformed = rng.random() < 0.3
+        if is_malformed:
+            html = introduce_malformation(html, rng)
 
         query = f'Extract the text content from the element with class="{target_class}".'
 
@@ -221,6 +365,10 @@ class ExtractTextByClassGenerator(Generator):
             },
             metadata={
                 "target_class": target_class,
+                "target_tag": target_tag,
+                "html_style": style.value,
+                "complexity": complexity,
+                "is_malformed": is_malformed,
                 "gotcha": "Must use class_ not class in BS4",
             },
         )

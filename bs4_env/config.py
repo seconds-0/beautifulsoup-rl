@@ -73,9 +73,11 @@ class TaskConstraints:
 # Default schemas for common answer types
 STRING_SCHEMA = {"type": "string"}
 STRING_LIST_SCHEMA = {"type": "array", "items": {"type": "string"}}
+LIST_SCHEMA = STRING_LIST_SCHEMA  # Alias for string lists
 INT_SCHEMA = {"type": "integer"}
 FLOAT_SCHEMA = {"type": "number"}
 BOOL_SCHEMA = {"type": "boolean"}
+DICT_SCHEMA = {"type": "object", "additionalProperties": {"type": ["string", "null"]}}
 
 LINK_OBJECT_SCHEMA = {
     "type": "object",

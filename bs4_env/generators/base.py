@@ -98,6 +98,9 @@ class TaskInstance:
             "limit_info": self.limit_info,
             "safety_info": self.safety_info,
             "metadata": self.metadata,
+            # HTML and query stored here since not in prompt
+            "html": self.html,
+            "query": self.query,
         }
 
 
@@ -334,18 +337,27 @@ def random_class_name(rng: random.Random, prefix: str = "") -> str:
     return "-".join(parts)
 
 
-def random_id(rng: random.Random, prefix: str = "") -> str:
+def random_id(rng: random.Random, prefix: str | None = None) -> str:
     """Generate a random HTML ID.
+
+    By default, generates fully random IDs with no semantic prefix.
+    This prevents models from shortcutting by pattern-matching on prefixes
+    like "target-" vs "other-".
 
     Args:
         rng: Random instance.
-        prefix: Optional prefix for the ID.
+        prefix: Optional prefix for the ID. If None (default), uses random base.
 
     Returns:
         A random ID string.
     """
-    base = prefix or rng.choice(["el", "node", "item", "block", "comp"])
-    suffix = "".join(rng.choices(string.ascii_lowercase + string.digits, k=6))
+    # Use fully random bases by default to avoid semantic prefixes
+    bases = [
+        "el", "node", "item", "block", "comp", "sect", "wrap", "unit",
+        "elem", "box", "part", "seg", "zone", "area", "cell", "slot",
+    ]
+    base = prefix if prefix is not None else rng.choice(bases)
+    suffix = "".join(rng.choices(string.ascii_lowercase + string.digits, k=8))
     return f"{base}-{suffix}"
 
 
@@ -468,28 +480,401 @@ def random_email(rng: random.Random) -> str:
 
 def random_paragraph(rng: random.Random, sentences: int = 3) -> str:
     """Generate a random paragraph of lorem ipsum-like text."""
-    sentence_templates = [
-        "The {adj} {noun} {verb} the {noun2}.",
-        "A {noun} was {verb} by the {adj} {noun2}.",
-        "Several {adj} {noun}s {verb} near the {noun2}.",
-        "The {noun} appeared to be {adj} and {verb}.",
-    ]
-    adjectives = ["quick", "lazy", "bright", "dark", "small", "large", "old", "new"]
-    nouns = ["fox", "dog", "cat", "bird", "tree", "house", "car", "book"]
-    verbs = ["jumped", "ran", "walked", "flew", "sat", "stood", "moved", "rested"]
-
     result = []
     for _ in range(sentences):
-        template = rng.choice(sentence_templates)
-        sentence = template.format(
-            adj=rng.choice(adjectives),
-            noun=rng.choice(nouns),
-            noun2=rng.choice(nouns),
-            verb=rng.choice(verbs),
-        )
-        result.append(sentence)
-
+        result.append(generate_sentence(rng))
     return " ".join(result)
+
+
+def generate_sentence(rng: random.Random) -> str:
+    """Generate a single random sentence with varied length and structure.
+
+    Returns sentences from short (5-8 words) to complex (20+ words).
+    """
+    template = rng.choice(SENTENCE_TEMPLATES)
+    return template.format(
+        adj=rng.choice(ADJECTIVES),
+        adj2=rng.choice(ADJECTIVES),
+        noun=rng.choice(NOUNS),
+        noun2=rng.choice(NOUNS),
+        verb=rng.choice(VERBS),
+        verb2=rng.choice(VERBS),
+    )
+
+
+def generate_variable_content(
+    rng: random.Random,
+    min_sentences: int = 1,
+    max_sentences: int = 10,
+) -> str:
+    """Generate content with variable sentence count for unpredictable lengths.
+
+    Real content varies widely - some elements have one sentence, others have
+    paragraphs. This prevents models from learning length patterns.
+
+    Args:
+        rng: Random instance.
+        min_sentences: Minimum sentences (default 1).
+        max_sentences: Maximum sentences (default 10).
+
+    Returns:
+        Content string with random number of sentences.
+    """
+    sentence_count = rng.randint(min_sentences, max_sentences)
+    return " ".join(generate_sentence(rng) for _ in range(sentence_count))
+
+
+# =============================================================================
+# Semantic Decoy Generation
+# =============================================================================
+
+
+def generate_semantic_decoy(
+    rng: random.Random,
+    target_text: str,
+    variation_type: str | None = None,
+) -> str:
+    """Generate content that's semantically similar to the target.
+
+    This creates harder decoys that can't be distinguished by simple
+    pattern matching - they have similar structure and vocabulary but
+    different specific content.
+
+    Args:
+        rng: Random instance.
+        target_text: The target content to create a variation of.
+        variation_type: Type of variation. If None, randomly selected.
+            Options: "paraphrase", "similar_topic", "partial_overlap"
+
+    Returns:
+        Semantically similar but different content.
+    """
+    if variation_type is None:
+        variation_type = rng.choice(["paraphrase", "similar_topic", "partial_overlap"])
+
+    sentences = target_text.split(". ")
+    num_sentences = len(sentences)
+
+    if variation_type == "paraphrase":
+        # Keep similar structure but swap vocabulary
+        result = []
+        for _ in range(num_sentences):
+            result.append(generate_sentence(rng))
+        return " ".join(result)
+
+    elif variation_type == "similar_topic":
+        # Generate content with the same approximate length and tone
+        word_count = len(target_text.split())
+        target_sentences = max(1, word_count // 12)  # ~12 words per sentence
+        return " ".join(generate_sentence(rng) for _ in range(target_sentences))
+
+    elif variation_type == "partial_overlap":
+        # Use some of the target text mixed with new content
+        if num_sentences >= 2:
+            # Keep first sentence, generate rest
+            kept = sentences[0]
+            new_content = " ".join(generate_sentence(rng) for _ in range(num_sentences - 1))
+            return f"{kept}. {new_content}"
+        else:
+            return generate_sentence(rng)
+
+    return generate_variable_content(rng, min_sentences=1, max_sentences=3)
+
+
+def generate_near_duplicate(
+    rng: random.Random,
+    target_text: str,
+    mutation_type: str | None = None,
+) -> str:
+    """Generate content that's almost identical to target with subtle differences.
+
+    Creates decoys that are hard to distinguish from the target without
+    careful reading - tests whether the model is actually extracting the
+    right element vs. guessing based on similarity.
+
+    Args:
+        rng: Random instance.
+        target_text: The target content to mutate.
+        mutation_type: Type of mutation. If None, randomly selected.
+            Options: "truncate", "append", "swap_words", "add_qualifier"
+
+    Returns:
+        Near-duplicate content that's subtly different.
+    """
+    if mutation_type is None:
+        mutation_type = rng.choice(["truncate", "append", "swap_words", "add_qualifier"])
+
+    if mutation_type == "truncate":
+        # Cut off at a natural boundary
+        sentences = target_text.split(". ")
+        if len(sentences) > 1:
+            cut_point = rng.randint(1, len(sentences) - 1)
+            return ". ".join(sentences[:cut_point]) + "..."
+        else:
+            # Cut mid-sentence
+            words = target_text.split()
+            if len(words) > 5:
+                cut_point = rng.randint(len(words) // 2, len(words) - 2)
+                return " ".join(words[:cut_point]) + "..."
+        return target_text[:len(target_text) // 2] + "..."
+
+    elif mutation_type == "append":
+        # Add extra content at the end
+        suffixes = [
+            " (continued on next page)",
+            " Read more below.",
+            " See related content.",
+            " Additional details available.",
+            " [Last updated: 2024]",
+            " (Source: internal data)",
+        ]
+        return target_text + rng.choice(suffixes)
+
+    elif mutation_type == "swap_words":
+        # Replace a few words with synonyms or similar words
+        words = target_text.split()
+        if len(words) > 5:
+            # Swap 1-2 words
+            num_swaps = rng.randint(1, min(2, len(words) // 3))
+            for _ in range(num_swaps):
+                idx = rng.randint(0, len(words) - 1)
+                # Replace with a random word of similar length
+                original = words[idx]
+                if len(original) > 3:
+                    replacement = rng.choice(["similar", "related", "relevant", "comparable", "corresponding", "associated"])
+                    words[idx] = replacement
+            return " ".join(words)
+        return target_text
+
+    elif mutation_type == "add_qualifier":
+        # Add qualifiers that change meaning slightly
+        qualifiers = [
+            ("", " (preliminary data)"),
+            ("", " (subject to change)"),
+            ("", " (estimated)"),
+            ("Note: ", ""),
+            ("Important: ", ""),
+            ("Updated: ", ""),
+        ]
+        prefix, suffix = rng.choice(qualifiers)
+        return prefix + target_text + suffix
+
+    return target_text
+
+
+def generate_similar_id(
+    rng: random.Random,
+    target_id: str,
+    similarity_type: str | None = None,
+) -> str:
+    """Generate an ID that looks similar to the target ID.
+
+    Creates decoy IDs that could be confused with the target,
+    testing whether the model is reading IDs carefully.
+
+    Args:
+        rng: Random instance.
+        target_id: The target ID to create a variant of.
+        similarity_type: Type of similarity. If None, randomly selected.
+            Options: "suffix_change", "prefix_change", "typo", "numeric_similar"
+
+    Returns:
+        Similar but different ID.
+    """
+    if similarity_type is None:
+        similarity_type = rng.choice(["suffix_change", "prefix_change", "typo", "numeric_similar"])
+
+    if similarity_type == "suffix_change":
+        # Change last few characters
+        if len(target_id) > 4:
+            base = target_id[:-3]
+            new_suffix = "".join(rng.choices(string.ascii_lowercase + string.digits, k=3))
+            return base + new_suffix
+        return target_id + str(rng.randint(1, 99))
+
+    elif similarity_type == "prefix_change":
+        # Change first few characters
+        if len(target_id) > 4:
+            suffix = target_id[3:]
+            new_prefix = "".join(rng.choices(string.ascii_lowercase, k=3))
+            return new_prefix + suffix
+        return "x" + target_id[1:] if target_id else random_id(rng)
+
+    elif similarity_type == "typo":
+        # Introduce a single character change
+        if len(target_id) > 2:
+            idx = rng.randint(1, len(target_id) - 2)
+            char_list = list(target_id)
+            # Replace with a similar-looking character
+            similar = {
+                'a': 'e', 'e': 'a', 'i': 'l', 'l': 'i', 'o': '0', '0': 'o',
+                '1': 'l', 'm': 'n', 'n': 'm', 'p': 'q', 'q': 'p', 'u': 'v',
+                'v': 'u', 'b': 'd', 'd': 'b', 's': '5', '5': 's',
+            }
+            old_char = char_list[idx]
+            char_list[idx] = similar.get(old_char, rng.choice(string.ascii_lowercase))
+            return "".join(char_list)
+        return target_id + "x"
+
+    elif similarity_type == "numeric_similar":
+        # If ID has numbers, change them slightly
+        result = []
+        for char in target_id:
+            if char.isdigit():
+                # Change to adjacent number
+                num = int(char)
+                new_num = (num + rng.choice([-1, 1])) % 10
+                result.append(str(new_num))
+            else:
+                result.append(char)
+        new_id = "".join(result)
+        return new_id if new_id != target_id else target_id + "2"
+
+    return random_id(rng)
+
+
+def generate_similar_class(
+    rng: random.Random,
+    target_class: str,
+) -> str:
+    """Generate a class name that looks similar to the target.
+
+    Args:
+        rng: Random instance.
+        target_class: The target class to create a variant of.
+
+    Returns:
+        Similar but different class name.
+    """
+    # Use similar generation logic to IDs
+    similarity_type = rng.choice(["suffix_change", "prefix_change", "modifier"])
+
+    if similarity_type == "suffix_change":
+        parts = target_class.rsplit("-", 1)
+        if len(parts) == 2:
+            return f"{parts[0]}-{rng.choice(['alt', 'v2', 'new', 'old', 'temp'])}"
+        return target_class + "-alt"
+
+    elif similarity_type == "prefix_change":
+        parts = target_class.split("-", 1)
+        if len(parts) == 2:
+            prefixes = ["main", "sub", "alt", "sec", "pri"]
+            return f"{rng.choice(prefixes)}-{parts[1]}"
+        return "alt-" + target_class
+
+    elif similarity_type == "modifier":
+        modifiers = ["primary", "secondary", "active", "hidden", "new", "legacy"]
+        return f"{target_class}-{rng.choice(modifiers)}"
+
+    return random_class_name(rng)
+
+
+# =============================================================================
+# Expanded Vocabularies (10x the original 8 items each)
+# =============================================================================
+
+# 80+ adjectives organized by category
+ADJECTIVES = [
+    # Physical properties
+    "quick", "slow", "lazy", "energetic", "bright", "dark", "dim", "radiant",
+    "small", "large", "tiny", "massive", "heavy", "light", "dense", "hollow",
+    "old", "new", "ancient", "modern", "vintage", "contemporary", "antique", "fresh",
+    "warm", "cold", "hot", "cool", "frozen", "tepid", "scorching", "chilly",
+    "soft", "hard", "firm", "flexible", "rigid", "elastic", "brittle", "supple",
+    # Texture and appearance
+    "rough", "smooth", "bumpy", "sleek", "glossy", "matte", "shiny", "dull",
+    "clean", "dirty", "pristine", "grimy", "spotless", "dusty", "polished", "tarnished",
+    # Size and shape
+    "narrow", "wide", "thin", "thick", "tall", "short", "round", "square",
+    "deep", "shallow", "long", "brief", "curved", "straight", "angular", "circular",
+    # Quality and state
+    "simple", "complex", "plain", "ornate", "basic", "elaborate", "minimal", "intricate",
+    "quiet", "loud", "silent", "noisy", "peaceful", "chaotic", "calm", "turbulent",
+]
+
+# 80+ nouns organized by category
+NOUNS = [
+    # Animals
+    "fox", "dog", "cat", "bird", "wolf", "bear", "deer", "rabbit",
+    "eagle", "owl", "hawk", "sparrow", "dolphin", "whale", "shark", "octopus",
+    "lion", "tiger", "elephant", "giraffe", "zebra", "horse", "cow", "sheep",
+    # Nature
+    "tree", "river", "mountain", "valley", "forest", "meadow", "ocean", "desert",
+    "garden", "flower", "leaf", "branch", "rock", "stone", "pebble", "boulder",
+    "cloud", "rain", "snow", "wind", "storm", "thunder", "lightning", "rainbow",
+    # Buildings and structures
+    "house", "tower", "bridge", "castle", "cabin", "barn", "church", "temple",
+    "window", "door", "gate", "wall", "roof", "floor", "ceiling", "staircase",
+    # Objects
+    "car", "book", "table", "chair", "lamp", "clock", "mirror", "carpet",
+    "phone", "computer", "camera", "bicycle", "airplane", "ship", "train", "bus",
+    "cup", "plate", "bowl", "knife", "spoon", "fork", "bottle", "jar",
+    "pen", "paper", "envelope", "stamp", "key", "lock", "box", "bag",
+]
+
+# 64+ verbs organized by category
+VERBS = [
+    # Movement
+    "jumped", "ran", "walked", "flew", "crawled", "climbed", "fell", "rolled",
+    "sprinted", "strolled", "marched", "dashed", "glided", "soared", "plunged", "leaped",
+    "spun", "twirled", "rotated", "swayed", "bounced", "slid", "tumbled", "wandered",
+    # Position changes
+    "sat", "stood", "lay", "knelt", "crouched", "leaned", "bent", "stretched",
+    "rose", "dropped", "lifted", "lowered", "raised", "sank", "floated", "hovered",
+    # State changes
+    "appeared", "vanished", "emerged", "faded", "grew", "shrank", "expanded", "contracted",
+    "opened", "closed", "folded", "unfolded", "wrapped", "unwrapped", "locked", "unlocked",
+    # Actions
+    "moved", "rested", "waited", "watched", "listened", "spoke", "whispered", "shouted",
+    "searched", "found", "lost", "discovered", "created", "destroyed", "built", "demolished",
+]
+
+# 30+ sentence templates with variable lengths (short/medium/long/complex)
+SENTENCE_TEMPLATES = [
+    # Short forms (5-8 words)
+    "The {adj} {noun} {verb}.",
+    "A {noun} {verb} nearby.",
+    "{noun}s often {verb} here.",
+    "The {noun} seemed {adj}.",
+    "Something {adj} {verb} quietly.",
+    "The {noun} was {adj}.",
+
+    # Medium forms (8-12 words)
+    "The {adj} {noun} {verb} the {noun2}.",
+    "A {noun} was {verb} by the {adj} {noun2}.",
+    "Several {adj} {noun}s {verb} near the {noun2}.",
+    "The {noun} appeared to be {adj} and {verb}.",
+    "When the {noun} {verb}, the {adj} {noun2} remained still.",
+    "Despite being {adj}, the {noun} {verb} towards the {noun2}.",
+    "The {adj} {noun} slowly {verb} across the room.",
+    "Near the {noun}, a {adj} {noun2} {verb} softly.",
+
+    # Long forms (12-20 words)
+    "The {noun2} watched as the {adj} {noun} {verb} slowly across the floor.",
+    "Neither the {noun} nor the {noun2} had {verb} before that moment.",
+    "Only the {adj} {noun} knew why the {noun2} had {verb} so suddenly.",
+    "Before the {noun} {verb}, everything in the room seemed perfectly {adj}.",
+    "After the {adj} {noun2} {verb}, silence filled the room completely.",
+    "Between the {noun} and the {noun2}, something {adj} began to stir.",
+    "The {adj} {noun} {verb} while the {noun2} continued to watch carefully.",
+    "Without warning, the {noun} {verb} and startled the nearby {noun2}.",
+
+    # Complex forms (20+ words)
+    "In the {adj} corner of the room, a {noun} {verb} while the {noun2} watched with interest.",
+    "The {noun} had never {verb} like this before, and the {adj} {noun2} took notice immediately.",
+    "Although the {noun} tried to remain {adj}, it eventually {verb} when the {noun2} approached.",
+    "No one expected the {adj} {noun} to {verb2}, but when it did, the {noun2} reacted instantly.",
+    "Throughout the {adj} afternoon, the {noun} {verb} repeatedly near the {noun2}.",
+    "The {noun2} wondered why the {adj} {noun} had {verb} without any warning.",
+    "From across the {adj} field, a {noun} could be seen as it {verb} towards the {noun2}.",
+    "Despite the {adj} weather, the {noun} continued to {verb2} near the waiting {noun2}.",
+    "As the {noun} {verb}, the {adj} {noun2} prepared to respond in kind.",
+    "The {adj} {noun} {verb} three times before the startled {noun2} could react.",
+    "Under the {adj} sky, the {noun} and the {noun2} both {verb} at the same moment.",
+    "It was unusual for a {noun} to {verb} so close to where the {adj} {noun2} rested.",
+    "The {noun2} had always been {adj}, but today it {verb} with unexpected grace.",
+    "When the {adj} {noun} finally {verb}, everyone near the {noun2} fell silent.",
+]
 
 
 # =============================================================================
@@ -1833,3 +2218,232 @@ def generate_bulk_noise(rng: random.Random, style: HtmlStyle, target_size: int =
         current_size += len(chunk)
 
     return "\n".join(parts)
+
+
+# =============================================================================
+# International Content Generators
+# =============================================================================
+
+
+def random_i18n_content(
+    rng: random.Random,
+    language: str | None = None,
+) -> tuple[str, str]:
+    """Generate content in a random or specified non-English language.
+
+    Args:
+        rng: Random instance.
+        language: Language code (zh, ar, ja, ko, ru, de, etc.). If None, randomly selected.
+
+    Returns:
+        Tuple of (content_text, language_code).
+    """
+    from bs4_env.data.i18n_content import get_random_phrase
+
+    return get_random_phrase(rng, language)
+
+
+def random_i18n_word(
+    rng: random.Random,
+    language: str | None = None,
+) -> tuple[str, str]:
+    """Generate a single word in a random or specified language.
+
+    Args:
+        rng: Random instance.
+        language: Language code. If None, randomly selected.
+
+    Returns:
+        Tuple of (word, language_code).
+    """
+    from bs4_env.data.i18n_content import get_random_word
+
+    return get_random_word(rng, language)
+
+
+def random_mixed_language_content(
+    rng: random.Random,
+    base_sentences: int = 3,
+    foreign_ratio: float = 0.2,
+) -> str:
+    """Generate content mixing English with another language.
+
+    Creates realistic mixed-language content like on international e-commerce
+    sites that have partially translated pages.
+
+    Example output: "Welcome to our store. 欢迎光临。 Browse our products below."
+
+    Args:
+        rng: Random instance.
+        base_sentences: Number of English sentences to generate.
+        foreign_ratio: Probability of inserting foreign phrase after each sentence.
+
+    Returns:
+        Mixed language content string.
+    """
+    from bs4_env.data.i18n_content import get_random_phrase, get_random_language
+
+    # Generate base English content
+    english_sentences = [generate_sentence(rng) for _ in range(base_sentences)]
+
+    # Pick a single foreign language for consistency
+    foreign_lang = get_random_language(rng)
+    result = []
+
+    for sentence in english_sentences:
+        result.append(sentence)
+        # Sometimes insert foreign phrase
+        if rng.random() < foreign_ratio:
+            foreign_phrase, _ = get_random_phrase(rng, foreign_lang)
+            result.append(foreign_phrase)
+
+    return " ".join(result)
+
+
+def add_emoji_noise(
+    text: str,
+    rng: random.Random,
+    density: float = 0.1,
+    category: str | None = None,
+) -> str:
+    """Add realistic emoji to text content.
+
+    Emojis are common in modern web content, especially social media,
+    e-commerce reviews, and marketing pages.
+
+    Args:
+        text: Base text to add emoji to.
+        rng: Random instance.
+        density: Probability of adding emoji after each sentence (0-1).
+        category: Emoji category (positive, commerce, navigation, status, social).
+                  If None, randomly selected per emoji.
+
+    Returns:
+        Text with emoji inserted.
+    """
+    from bs4_env.data.i18n_content import get_random_emoji
+
+    sentences = text.split(". ")
+    result = []
+
+    for sentence in sentences:
+        result.append(sentence)
+        if rng.random() < density:
+            emoji = get_random_emoji(rng, category)
+            # Add emoji at end of sentence
+            if result[-1] and not result[-1].endswith((".", "!", "?")):
+                result[-1] = result[-1] + " " + emoji
+            else:
+                result.append(emoji)
+
+    return ". ".join(result)
+
+
+def add_special_unicode(
+    text: str,
+    rng: random.Random,
+    density: float = 0.05,
+    category: str | None = None,
+) -> str:
+    """Add special Unicode characters that can cause parsing issues.
+
+    Tests edge cases like zero-width characters, diacritics, and special
+    symbols that are common in real web content.
+
+    Args:
+        text: Base text.
+        rng: Random instance.
+        density: Probability of inserting special char at each position.
+        category: Character category. If None, randomly selected.
+
+    Returns:
+        Text with special characters inserted.
+    """
+    from bs4_env.data.i18n_content import get_random_special_char
+
+    result = []
+    for char in text:
+        result.append(char)
+        if rng.random() < density:
+            special = get_random_special_char(rng, category)
+            result.append(special)
+
+    return "".join(result)
+
+
+def generate_i18n_paragraph(
+    rng: random.Random,
+    language: str | None = None,
+    sentences: int = 3,
+) -> tuple[str, str]:
+    """Generate a paragraph in a specific language.
+
+    Args:
+        rng: Random instance.
+        language: Language code. If None, randomly selected.
+        sentences: Number of phrases to combine.
+
+    Returns:
+        Tuple of (paragraph_text, language_code).
+    """
+    from bs4_env.data.i18n_content import get_random_phrase, get_random_language
+
+    if language is None:
+        language = get_random_language(rng)
+
+    phrases = []
+    for _ in range(sentences):
+        phrase, _ = get_random_phrase(rng, language)
+        phrases.append(phrase)
+
+    # Use appropriate punctuation
+    if language in {"zh", "ja"}:
+        # Chinese/Japanese use different punctuation
+        text = "。".join(phrases) + "。"
+    elif language == "ar":
+        # Arabic punctuation
+        text = "، ".join(phrases) + "."
+    else:
+        text = ". ".join(phrases) + "."
+
+    return text, language
+
+
+def get_rtl_wrapper(content: str, language: str) -> str:
+    """Wrap RTL content with proper HTML direction attribute.
+
+    Args:
+        content: Text content.
+        language: Language code.
+
+    Returns:
+        HTML span with dir attribute if RTL, otherwise just content.
+    """
+    from bs4_env.data.i18n_content import is_rtl_language
+
+    if is_rtl_language(language):
+        return f'<span dir="rtl" lang="{language}">{content}</span>'
+    return f'<span lang="{language}">{content}</span>'
+
+
+def generate_variable_i18n_content(
+    rng: random.Random,
+    min_sentences: int = 1,
+    max_sentences: int = 5,
+    language: str | None = None,
+) -> tuple[str, str]:
+    """Generate variable-length international content.
+
+    Combines variable-length content with i18n support for maximum variation.
+
+    Args:
+        rng: Random instance.
+        min_sentences: Minimum phrases.
+        max_sentences: Maximum phrases.
+        language: Language code. If None, randomly selected.
+
+    Returns:
+        Tuple of (content, language_code).
+    """
+    sentence_count = rng.randint(min_sentences, max_sentences)
+    return generate_i18n_paragraph(rng, language, sentence_count)
