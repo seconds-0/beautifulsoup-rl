@@ -88,3 +88,5 @@ bench_manifest.json.local
 credentials.json
 *.pem
 *.key
+outputs/
+example_rendered.html
