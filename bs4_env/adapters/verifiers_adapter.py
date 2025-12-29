@@ -329,6 +329,10 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
 
             return response, state
 
+        def __len__(self) -> int:
+            """Return number of examples in dataset."""
+            return len(self.dataset)
+
     # Create environment and add tools
     env = BeautifulSoupEnv(
         dataset=dataset,
