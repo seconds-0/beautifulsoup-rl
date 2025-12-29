@@ -94,6 +94,73 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
         result = executor.run(code, globals_dict, timeout_s=config.timeout_s)
         return build_tool_response(result.to_dict())
 
+    # Define the navigate tool for multi-step tasks
+    # Note: pages_json is injected via update_tool_args and skipped from schema
+    def navigate(
+        href: str,
+        pages_json: str = "{}",
+    ) -> str:
+        """Navigate to a different page by following a link.
+
+        Use this tool to follow links found in the HTML. After navigating,
+        the HTML global in run_python will contain the new page content.
+
+        Args:
+            href: The href attribute of the link to follow (e.g., '/products/123').
+
+        Returns:
+            Success message if navigation succeeded, error message otherwise.
+        """
+        pages = json.loads(pages_json) if pages_json else {}
+
+        if not href:
+            return "Error: No href provided"
+
+        # Normalize href for lookup
+        normalized = _normalize_href(href, pages)
+
+        if normalized not in pages:
+            return f"Error: Page '{href}' not found. Check the HTML for valid links."
+
+        # Return success message - env_response will detect this and update state
+        return (
+            f"Successfully navigated to '{normalized}'. "
+            f"The HTML global has been updated with the new page content. "
+            f"Use run_python to extract data from the new page."
+        )
+
+    def _normalize_href(href: str, pages: dict) -> str:
+        """Normalize an href for lookup in pages dict."""
+        href = href.strip()
+
+        # Try exact match first
+        if href in pages:
+            return href
+
+        # Try with/without leading slash
+        if href.startswith("/"):
+            without_slash = href[1:]
+            if without_slash in pages:
+                return without_slash
+        else:
+            with_slash = "/" + href
+            if with_slash in pages:
+                return with_slash
+
+        # Try without query string
+        if "?" in href:
+            base = href.split("?")[0]
+            if base in pages:
+                return base
+
+        # Try without fragment
+        if "#" in href:
+            base = href.split("#")[0]
+            if base in pages:
+                return base
+
+        return href
+
     # Define reward function
     def bs4_reward(completion, state: dict, info: dict = None, **kwargs) -> float:
         """Compute reward for BeautifulSoup task completion.
@@ -191,11 +258,16 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
                 "allowed_limit_reasons": info.get("limit_info", {}).get("allowed_reasons", []),
             }
 
+            # Store pages for multi-step tasks
+            pages = info.get("pages", {})
+
             # Store in state
             state["html"] = html
             state["query"] = query
             state["constraints"] = constraints
             state["task_info"] = info
+            state["pages"] = pages
+            state["navigation_history"] = []
 
             return state
 
@@ -210,17 +282,62 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
                     "query": state.get("query", ""),
                     "constraints_json": json.dumps(state.get("constraints", {})),
                 }
+            elif tool_name == "navigate":
+                return {
+                    **tool_args,
+                    "pages_json": json.dumps(state.get("pages", {})),
+                }
             return tool_args
 
-    # Create environment and add tool with skipped args
+        async def env_response(self, messages: list, state: dict, **kwargs):
+            """Process environment response after tool execution.
+
+            Detects successful navigate calls and updates state["html"] accordingly.
+            """
+            # Call parent implementation first
+            response, state = await super().env_response(messages, state, **kwargs)
+
+            # Check for navigate success in recent messages
+            pages = state.get("pages", {})
+            if pages:
+                for msg in reversed(messages):
+                    if not isinstance(msg, dict):
+                        continue
+
+                    # Look for tool results (role: "tool" messages contain tool output)
+                    if msg.get("role") == "tool":
+                        content = msg.get("content", "")
+                        if isinstance(content, str) and content.startswith("Successfully navigated to '"):
+                            # Extract the normalized href from success message
+                            # Format: "Successfully navigated to 'href'. ..."
+                            try:
+                                start = content.index("'") + 1
+                                end = content.index("'", start)
+                                normalized_href = content[start:end]
+                                if normalized_href in pages:
+                                    state["html"] = pages[normalized_href]
+                                    state["navigation_history"].append(normalized_href)
+                            except (ValueError, IndexError):
+                                pass
+                            # Only process the most recent navigate
+                            break
+
+            return response, state
+
+    # Create environment and add tools
     env = BeautifulSoupEnv(
         dataset=dataset,
         tools=[],  # Add tools after construction
         max_turns=10,
         rubric=rubric,
     )
+
     # Add the run_python tool, skipping state-injected args from schema
     env.add_tool(run_python, args_to_skip=["html", "query", "constraints_json"])
+
+    # Add navigate tool, skipping state-injected args from schema
+    # Note: navigate is always available, but only works if pages exist in the task
+    env.add_tool(navigate, args_to_skip=["pages_json"])
 
     return env
 
