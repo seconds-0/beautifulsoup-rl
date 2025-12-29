@@ -7,7 +7,7 @@ Track evaluation progress and results. Update this file after each benchmark run
 Focus on **small/weak models** - they benefit most from RL training on this environment.
 
 ### Priority (Small Models)
-- [ ] `qwen/qwen3-8b` - Free tier available
+- [x] `qwen/qwen3-8b` - Free tier available (**52.5% pass rate** - see below)
 - [ ] `deepseek/deepseek-r1-0528-qwen3-8b` - Cheap
 - [ ] `meta-llama/llama-3.1-8b-instruct` - Standard baseline
 - [ ] `mistralai/mistral-7b-instruct` - Another baseline
@@ -23,6 +23,37 @@ Focus on **small/weak models** - they benefit most from RL training on this envi
 ---
 
 ## Benchmark Runs
+
+### 2024-12-28: Qwen3-8B (Full - 200/200)
+
+**Model:** `qwen/qwen3-8b`
+**Config:** split=bench, mode=mvp, 200 examples
+**Status:** Complete
+
+| Archetype | Avg Reward | Perfect | Pass Rate |
+|-----------|------------|---------|-----------|
+| `mvp.table_list_of_dicts` | 1.000 | 20/20 | 100% |
+| `mvp.table_list_of_lists` | 1.000 | 20/20 | 100% |
+| `mvp.none_attribute_error` | 0.840 | 16/20 | 80% |
+| `mvp.multivalue_class` | 0.650 | 13/20 | 65% |
+| `mvp.extract_text_by_class` | 0.590 | 10/20 | 50% |
+| `mvp.extract_text_by_id` | 0.435 | 7/20 | 35% |
+| `mvp.class_reserved_word` | 0.430 | 7/20 | 35% |
+| `mvp.string_returns_none` | 0.245 | 4/20 | 20% |
+| `mvp.limit_js_required` | 0.070 | 0/20 | 0% |
+| `mvp.limit_image_text` | 0.000 | 0/20 | 0% |
+| **Total** | **0.526** | **97/200** | **52.5%** |
+
+**Observations:**
+- Tables are trivially easy (100%) - model excels at structured extraction
+- Limitation tasks are VERY hard (0-7%) - model doesn't recognize when to abstain
+- Text extraction moderate (35-50%) - confused by decoys
+- Gotcha archetypes (`string_returns_none` 20%) show where RL would help most
+- ~50% of failures had 0 tool calls (model did chain-of-thought but no action)
+
+**Token Usage:** 518K input, 564K output (~1M total)
+
+---
 
 ### 2024-12-28: Grok 4.1 Fast (Partial - 70/200)
 
@@ -60,9 +91,9 @@ Focus on **small/weak models** - they benefit most from RL training on this envi
 - **Why:** Models confused `{"type": "string"}` schema with answer format
 - **Files:** `prompt.py`
 
-### 2024-12-28: Structured JSON Output
-- **Change:** Added `response_format={"type": "json_object"}` to API calls
-- **Why:** Ensure valid JSON output from models
+### 2024-12-28: Removed response_format (conflict with tools)
+- **Change:** Removed `response_format={"type": "json_object"}` from API calls
+- **Why:** Conflicts with `tools` parameter on some providers (Fireworks/Qwen)
 - **Files:** `eval_with_llm.py`
 
 ---
