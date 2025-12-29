@@ -114,3 +114,4 @@ print(f'Checkpoint: {data.get(\"checkpoint\", False)}')
           else
             echo "No results file found." >> $GITHUB_STEP_SUMMARY
           fi
+# Trigger workflow refresh
