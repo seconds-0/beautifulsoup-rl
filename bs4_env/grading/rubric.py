@@ -26,6 +26,9 @@ MAX_TOOL_CALLS = 10  # Hard cutoff - more than this is considered failure
 EFFICIENCY_PENALTY_PER_CALL = 0.1  # -10% per additional call after first
 EFFICIENCY_FLOOR = 0.2  # Minimum multiplier before hard cutoff
 
+# BS4 usage settings - creates gradient toward BS4 usage without rejecting alternatives
+BS4_USAGE_PENALTY = 0.15  # Penalty for not using BeautifulSoup
+
 
 def compute_efficiency_multiplier(tool_call_count: int) -> float:
     """Compute efficiency multiplier based on tool call count.
@@ -52,11 +55,97 @@ def compute_efficiency_multiplier(tool_call_count: int) -> float:
     return max(EFFICIENCY_FLOOR, 1.0 - EFFICIENCY_PENALTY_PER_CALL * (tool_call_count - 1))
 
 
+def check_bs4_usage(code_samples: list[str]) -> bool:
+    """Check if any code sample uses BeautifulSoup.
+
+    This creates a gradient toward BS4 usage without rejecting alternatives.
+    Regex and string solutions still work but receive a penalty.
+
+    The detection requires either:
+    1. Explicit BS4 import/instantiation (BeautifulSoup, make_soup, from bs4), OR
+    2. Use of BS4-specific types (NavigableString, Tag)
+
+    We don't count generic method names like .find() since those could be
+    string methods. This avoids false positives on pure string solutions.
+
+    Args:
+        code_samples: List of code strings executed during the episode.
+
+    Returns:
+        True if BS4 appears to be used in any sample.
+    """
+    if not code_samples:
+        return True  # No code = no penalty (e.g., format errors)
+
+    # Primary indicators - these definitively show BS4 usage
+    # These are specific enough to not have false positives
+    primary_indicators = [
+        "BeautifulSoup",      # Constructor call
+        "make_soup",          # Our helper function
+        "from bs4",           # Import statement
+        "import bs4",         # Import statement
+        "NavigableString",    # BS4-specific type
+        "Tag(",               # BS4-specific type
+    ]
+
+    # Secondary indicators - only count if we find a primary indicator
+    # These are methods that exist on BS4 objects but also on strings
+    secondary_indicators = [
+        ".find_all(",         # BS4-specific (strings don't have find_all)
+        ".select(",           # BS4 CSS selector
+        ".select_one(",       # BS4 CSS selector
+        ".get_text(",         # BS4-specific
+        ".children",          # BS4 navigation
+        ".parent",            # BS4 navigation (but also pathlib...)
+        ".next_sibling",      # BS4 navigation
+        ".previous_sibling",  # BS4 navigation
+        ".descendants",       # BS4-specific
+        ".contents",          # BS4-specific
+        ".attrs",             # BS4-specific
+    ]
+
+    for code in code_samples:
+        code_lower = code.lower()
+
+        # Check primary indicators - these are definitive
+        for indicator in primary_indicators:
+            if indicator.lower() in code_lower:
+                return True
+
+        # Check secondary indicators - these suggest BS4 usage
+        for indicator in secondary_indicators:
+            if indicator.lower() in code_lower:
+                return True
+
+    return False
+
+
+def compute_bs4_penalty(code_samples: list[str] | None) -> tuple[float, bool]:
+    """Compute BS4 usage penalty.
+
+    Args:
+        code_samples: List of code strings, or None if not available.
+
+    Returns:
+        Tuple of (penalty_amount, bs4_used).
+        penalty_amount is 0.0 if BS4 was used, BS4_USAGE_PENALTY otherwise.
+    """
+    if code_samples is None:
+        return 0.0, True  # Unknown - no penalty
+
+    bs4_used = check_bs4_usage(code_samples)
+    if bs4_used:
+        return 0.0, True
+    else:
+        return BS4_USAGE_PENALTY, False
+
+
 def compute_reward(
     raw_output: str,
     task_info: dict,
     html: str | None = None,
     tool_call_count: int | None = None,
+    code_samples: list[str] | None = None,
 ) -> tuple[float, dict[str, Any]]:
     """Compute reward for a model output.
 
@@ -65,6 +154,7 @@ def compute_reward(
     2. Checks for safety violations
     3. Computes correctness based on task type
     4. Applies efficiency multiplier based on tool call count
+    5. Applies BS4 usage penalty if solution doesn't use BeautifulSoup
 
     Args:
         raw_output: The raw string output from the model.
@@ -72,6 +162,8 @@ def compute_reward(
         html: The original HTML (for safety checking and evidence verification).
         tool_call_count: Number of tool calls made. If provided, applies efficiency
             multiplier to reward (fewer calls = higher reward).
+        code_samples: List of code strings executed during the episode. If provided,
+            applies BS4 usage penalty for solutions that don't use BeautifulSoup.
 
     Returns:
         Tuple of (reward, metrics). Metrics include detailed breakdown of
@@ -87,6 +179,8 @@ def compute_reward(
         "warnings": [],
         "tool_calls": tool_call_count,
         "efficiency_multiplier": None,
+        "bs4_used": None,
+        "bs4_penalty": None,
     }
 
     # Step 1: Validate output format
@@ -136,6 +230,7 @@ def compute_reward(
         return REWARD_FORMAT_ERROR, metrics
 
     # Step 4: Apply efficiency multiplier (only for positive rewards)
+    final_reward = base_reward
     if tool_call_count is not None and base_reward > 0:
         efficiency = compute_efficiency_multiplier(tool_call_count)
         metrics["efficiency_multiplier"] = efficiency
@@ -148,9 +243,21 @@ def compute_reward(
             )
             metrics["correct"] = False
 
-        return final_reward, metrics
+    # Step 5: Apply BS4 usage penalty (only for positive rewards on solvable tasks)
+    # This creates a gradient toward BS4 usage without rejecting alternatives
+    solvable = task_info.get("solvable", True)
+    if code_samples is not None and final_reward > 0 and solvable:
+        bs4_penalty, bs4_used = compute_bs4_penalty(code_samples)
+        metrics["bs4_used"] = bs4_used
+        metrics["bs4_penalty"] = bs4_penalty
 
-    return base_reward, metrics
+        if not bs4_used:
+            final_reward = max(0.0, final_reward - bs4_penalty)
+            metrics["warnings"].append(
+                f"BS4 not detected in solution - penalty of {bs4_penalty} applied"
+            )
+
+    return final_reward, metrics
 
 
 def _grade_ok_response(

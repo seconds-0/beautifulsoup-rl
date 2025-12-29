@@ -112,14 +112,28 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
         task_info = info or state.get("info", {}) or state.get("task_info", {})
         html = state.get("html", "")
 
-        # Count tool calls from completion history for efficiency penalty
+        # Count tool calls and extract code samples from completion history
         tool_call_count = 0
+        code_samples = []
         if isinstance(completion, list):
             for msg in completion:
                 if isinstance(msg, dict) and msg.get("role") == "assistant":
                     tool_calls = msg.get("tool_calls", [])
                     if tool_calls:
                         tool_call_count += len(tool_calls)
+                        # Extract code from run_python tool calls
+                        for tc in tool_calls:
+                            if isinstance(tc, dict):
+                                func = tc.get("function", {})
+                                if func.get("name") == "run_python":
+                                    args = func.get("arguments", "{}")
+                                    try:
+                                        args_dict = json.loads(args) if isinstance(args, str) else args
+                                        code = args_dict.get("code", "")
+                                        if code:
+                                            code_samples.append(code)
+                                    except json.JSONDecodeError:
+                                        pass
 
         # Extract string content from completion
         if isinstance(completion, list):
@@ -146,6 +160,7 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
             task_info=task_info,
             html=html,
             tool_call_count=tool_call_count if tool_call_count > 0 else None,
+            code_samples=code_samples if code_samples else None,
         )
         return reward
 
@@ -325,6 +340,7 @@ class MinimalEnv:
         output: str,
         example: dict,
         tool_call_count: int | None = None,
+        code_samples: list[str] | None = None,
     ) -> tuple[float, dict]:
         """Grade a model output.
 
@@ -332,6 +348,7 @@ class MinimalEnv:
             output: The raw model output string.
             example: The example dictionary.
             tool_call_count: Number of tool calls made (for efficiency penalty).
+            code_samples: List of code strings executed (for BS4 usage penalty).
 
         Returns:
             Tuple of (reward, metrics).
@@ -341,6 +358,7 @@ class MinimalEnv:
             task_info=example["info"],
             html=example["html"],
             tool_call_count=tool_call_count,
+            code_samples=code_samples,
         )
 
     def run_episode(
