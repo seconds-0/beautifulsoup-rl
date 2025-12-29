@@ -2,16 +2,25 @@
 
 These tasks test common BS4 gotchas and pitfalls that trip up developers.
 They are SOLVABLE but require awareness of BS4's quirks.
+
+Anti-shortcut measures:
+- No semantic prefixes (IDs/classes use random bases)
+- Randomized element positions
+- Variable content lengths
 """
 
 from bs4_env.config import STRING_SCHEMA
 from bs4_env.generators.base import (
     Generator,
+    HtmlStyle,
     TaskInstance,
     make_rng,
     random_paragraph,
+    generate_variable_content,
     random_id,
+    random_class_name,
     add_noise_comments,
+    wrap_with_realistic_chrome,
 )
 from bs4_env.registry import register
 
@@ -38,28 +47,41 @@ class StringReturnsNoneGenerator(Generator):
     def generate(self, seed: int) -> TaskInstance:
         rng = make_rng(self.archetype_id, seed)
 
+        # Select random HTML style for realistic variation
+        style = rng.choice(list(HtmlStyle))
+
         # Generate content that will be split across multiple child elements
-        text_part1 = random_paragraph(rng, sentences=1)
-        text_part2 = random_paragraph(rng, sentences=1)
-        text_part3 = random_paragraph(rng, sentences=1)
+        # Use variable-length content
+        text_part1 = generate_variable_content(rng, min_sentences=1, max_sentences=2)
+        text_part2 = generate_variable_content(rng, min_sentences=1, max_sentences=2)
+        text_part3 = generate_variable_content(rng, min_sentences=1, max_sentences=2)
 
         # Full expected text (what get_text() returns)
         full_text = f"{text_part1} {text_part2} {text_part3}"
 
-        target_id = random_id(rng, prefix="content")
+        # NO semantic prefixes - use random IDs
+        target_id = random_id(rng)  # No prefix!
 
-        # Build HTML with nested structure that breaks .string
-        html = f"""<!DOCTYPE html>
-<html>
-<head><title>Article</title></head>
-<body>
-<article id="{target_id}">
-    <span class="intro">{text_part1}</span>
-    <em class="highlight">{text_part2}</em>
-    <span class="conclusion">{text_part3}</span>
-</article>
-</body>
-</html>"""
+        # Random classes for child elements
+        child_classes = [random_class_name(rng) for _ in range(3)]
+
+        # Build body content with nested structure that breaks .string
+        body_content = f"""<article id="{target_id}">
+    <span class="{child_classes[0]}">{text_part1}</span>
+    <em class="{child_classes[1]}">{text_part2}</em>
+    <span class="{child_classes[2]}">{text_part3}</span>
+</article>"""
+
+        # Wrap with realistic chrome for real-world difficulty
+        html = wrap_with_realistic_chrome(
+            body_content,
+            style,
+            rng,
+            title="Article Page",
+            complexity="realistic",
+            include_nav=True,
+            include_footer=True,
+        )
 
         html = add_noise_comments(html, rng, count=1)
 
@@ -107,28 +129,44 @@ class NoneAttributeErrorGenerator(Generator):
     def generate(self, seed: int) -> TaskInstance:
         rng = make_rng(self.archetype_id, seed)
 
-        # Target element that DOES exist
-        target_text = random_paragraph(rng, sentences=1)
-        target_class = "target-content"
+        # Select random HTML style for realistic variation
+        style = rng.choice(list(HtmlStyle))
+
+        # Target element that DOES exist - variable-length content
+        target_text = generate_variable_content(rng, min_sentences=1, max_sentences=3)
+
+        # NO semantic prefixes - use random class names
+        target_class = random_class_name(rng)
 
         # Element that looks similar but with different class
-        decoy_text = random_paragraph(rng, sentences=1)
-        decoy_class = "similar-content"
+        decoy_text = generate_variable_content(rng, min_sentences=1, max_sentences=2)
+        decoy_class = random_class_name(rng)
 
-        html = f"""<!DOCTYPE html>
-<html>
-<body>
-<div class="{decoy_class}">
-    <p>{decoy_text}</p>
-</div>
-<div class="{target_class}">
-    <p>{target_text}</p>
-</div>
-<div class="other-content">
-    <p>Some other text</p>
-</div>
-</body>
-</html>"""
+        # Another distractor
+        other_text = generate_variable_content(rng, min_sentences=1, max_sentences=2)
+        other_class = random_class_name(rng)
+
+        # Build elements for shuffling (randomize positions)
+        elements = [
+            (decoy_class, decoy_text),
+            (target_class, target_text),
+            (other_class, other_text),
+        ]
+        rng.shuffle(elements)
+
+        body_parts = [f'<div class="{cls}"><p>{text}</p></div>' for cls, text in elements]
+        body_content = "\n".join(body_parts)
+
+        # Wrap with realistic chrome for real-world difficulty
+        html = wrap_with_realistic_chrome(
+            body_content,
+            style,
+            rng,
+            title="Content Page",
+            complexity="realistic",
+            include_nav=True,
+            include_footer=True,
+        )
 
         query = f'Extract the text from the paragraph inside the div with class="{target_class}".'
 
@@ -172,18 +210,43 @@ class ClassReservedWordGenerator(Generator):
     def generate(self, seed: int) -> TaskInstance:
         rng = make_rng(self.archetype_id, seed)
 
-        target_text = random_paragraph(rng, sentences=1)
-        target_class = f"highlight-{rng.randint(1, 100)}"
+        # Select random HTML style for realistic variation
+        style = rng.choice(list(HtmlStyle))
 
-        # Mix of classes to make it non-trivial
-        html = f"""<!DOCTYPE html>
-<html>
-<body>
-<p class="intro">Introduction paragraph.</p>
-<p class="{target_class}">{target_text}</p>
-<p class="outro">Conclusion paragraph.</p>
-</body>
-</html>"""
+        # Variable-length content
+        target_text = generate_variable_content(rng, min_sentences=1, max_sentences=3)
+
+        # NO semantic prefixes - use random class name
+        target_class = random_class_name(rng)
+
+        # Generate distractor paragraphs with random classes
+        distractor_texts = [
+            generate_variable_content(rng, min_sentences=1, max_sentences=2)
+            for _ in range(2)
+        ]
+        distractor_classes = [random_class_name(rng) for _ in range(2)]
+
+        # Build elements for shuffling (randomize positions)
+        elements = [
+            (distractor_classes[0], distractor_texts[0]),
+            (target_class, target_text),
+            (distractor_classes[1], distractor_texts[1]),
+        ]
+        rng.shuffle(elements)
+
+        body_parts = [f'<p class="{cls}">{text}</p>' for cls, text in elements]
+        body_content = "\n".join(body_parts)
+
+        # Wrap with realistic chrome for real-world difficulty
+        html = wrap_with_realistic_chrome(
+            body_content,
+            style,
+            rng,
+            title="Content Page",
+            complexity="realistic",
+            include_nav=True,
+            include_footer=True,
+        )
 
         query = f'Extract the text from the <p> element with class="{target_class}".'
 

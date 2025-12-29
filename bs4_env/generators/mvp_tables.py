@@ -7,6 +7,7 @@ a common and important scraping scenario.
 from bs4_env.config import DICT_LIST_SCHEMA, TABLE_SCHEMA
 from bs4_env.generators.base import (
     Generator,
+    HtmlStyle,
     TaskInstance,
     make_rng,
     random_person_name,
@@ -14,6 +15,7 @@ from bs4_env.generators.base import (
     random_price,
     random_email,
     add_noise_comments,
+    wrap_with_realistic_chrome,
 )
 from bs4_env.registry import register
 
@@ -41,6 +43,9 @@ class TableListOfDictsGenerator(Generator):
     def generate(self, seed: int) -> TaskInstance:
         rng = make_rng(self.archetype_id, seed)
 
+        # Select random HTML style for realistic variation
+        style = rng.choice(list(HtmlStyle))
+
         # Generate table data (ground truth FIRST)
         num_rows = rng.randint(3, 6)
 
@@ -58,11 +63,8 @@ class TableListOfDictsGenerator(Generator):
             }
             data.append(row)
 
-        # Build HTML table
-        html_parts = [
-            "<!DOCTYPE html>",
-            "<html>",
-            "<body>",
+        # Build HTML table body content
+        table_parts = [
             "<h1>Customer Data</h1>",
             '<table id="data-table" class="customers">',
             "<thead>",
@@ -71,28 +73,34 @@ class TableListOfDictsGenerator(Generator):
 
         # Header row
         for col in columns:
-            html_parts.append(f"<th>{col}</th>")
-        html_parts.append("</tr>")
-        html_parts.append("</thead>")
+            table_parts.append(f"<th>{col}</th>")
+        table_parts.append("</tr>")
+        table_parts.append("</thead>")
 
         # Data rows
-        html_parts.append("<tbody>")
+        table_parts.append("<tbody>")
         for row in data:
-            html_parts.append("<tr>")
+            table_parts.append("<tr>")
             for col in columns:
                 # Add some whitespace variation
                 padding = " " * rng.randint(0, 2)
-                html_parts.append(f"<td>{padding}{row[col]}{padding}</td>")
-            html_parts.append("</tr>")
-        html_parts.append("</tbody>")
+                table_parts.append(f"<td>{padding}{row[col]}{padding}</td>")
+            table_parts.append("</tr>")
+        table_parts.append("</tbody>")
+        table_parts.append("</table>")
 
-        html_parts.extend([
-            "</table>",
-            "</body>",
-            "</html>",
-        ])
+        body_content = "\n".join(table_parts)
 
-        html = "\n".join(html_parts)
+        # Wrap with realistic chrome for real-world difficulty
+        html = wrap_with_realistic_chrome(
+            body_content,
+            style,
+            rng,
+            title="Customer Data",
+            complexity="realistic",
+            include_nav=True,
+            include_footer=True,
+        )
         html = add_noise_comments(html, rng, count=2)
 
         query = (
@@ -141,6 +149,9 @@ class TableListOfListsGenerator(Generator):
     def generate(self, seed: int) -> TaskInstance:
         rng = make_rng(self.archetype_id, seed)
 
+        # Select random HTML style for realistic variation
+        style = rng.choice(list(HtmlStyle))
+
         # Generate simple numeric/text data
         num_rows = rng.randint(3, 5)
         num_cols = rng.randint(2, 4)
@@ -156,27 +167,27 @@ class TableListOfListsGenerator(Generator):
                     row.append(str(rng.randint(10, 999)))
             data.append(row)
 
-        # Build HTML
-        html_parts = [
-            "<!DOCTYPE html>",
-            "<html>",
-            "<body>",
-            "<table>",
-        ]
-
+        # Build table content
+        table_parts = ["<table>"]
         for row in data:
-            html_parts.append("<tr>")
+            table_parts.append("<tr>")
             for cell in row:
-                html_parts.append(f"<td>{cell}</td>")
-            html_parts.append("</tr>")
+                table_parts.append(f"<td>{cell}</td>")
+            table_parts.append("</tr>")
+        table_parts.append("</table>")
 
-        html_parts.extend([
-            "</table>",
-            "</body>",
-            "</html>",
-        ])
+        body_content = "\n".join(table_parts)
 
-        html = "\n".join(html_parts)
+        # Wrap with realistic chrome for real-world difficulty
+        html = wrap_with_realistic_chrome(
+            body_content,
+            style,
+            rng,
+            title="Data Table",
+            complexity="realistic",
+            include_nav=True,
+            include_footer=True,
+        )
 
         query = "Extract all table rows as a list of lists."
 
