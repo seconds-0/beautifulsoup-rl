@@ -316,6 +316,7 @@ class MinimalEnv:
 
         Returns:
             ToolRegistry with run_python and optional tools configured.
+            For multi-step tasks, includes navigate tool.
         """
         from bs4_env.tools.tool_defs import create_tool_registry
 
@@ -326,6 +327,9 @@ class MinimalEnv:
             ),
         )
 
+        # Get pages for multi-step tasks
+        pages = example["info"].get("pages", {})
+
         return create_tool_registry(
             executor=self.executor,
             html=example["html"],
@@ -333,6 +337,7 @@ class MinimalEnv:
             constraints=constraints.__dict__,
             task_info=example["info"],
             timeout_s=self.config.timeout_s,
+            pages=pages if pages else None,
         )
 
     def grade(

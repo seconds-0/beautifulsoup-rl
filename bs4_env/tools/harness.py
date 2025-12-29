@@ -252,3 +252,24 @@ LINT_JSON_TOOL_SCHEMA = {
         "required": ["json_string"],
     },
 }
+
+NAVIGATE_TOOL_SCHEMA = {
+    "name": "navigate",
+    "description": (
+        "Navigate to a linked page by its href. For multi-step tasks, "
+        "use this tool to follow links and load new HTML content. "
+        "After navigation, use run_python with the new HTML available "
+        "in the HTML global. Returns the new page's HTML content or "
+        "an error if the href is not found."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "href": {
+                "type": "string",
+                "description": "The href attribute of the link to navigate to",
+            }
+        },
+        "required": ["href"],
+    },
+}
