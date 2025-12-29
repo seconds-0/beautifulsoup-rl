@@ -34,6 +34,11 @@ CLASS_MODIFIERS = ["primary", "secondary", "active", "disabled", "hidden", "larg
 CLASS_STATES = ["hover", "focus", "selected", "expanded", "collapsed", "open", "closed"]
 CLASS_SIZES = ["sm", "md", "lg", "xl", "xs", "xxl"]
 
+# Safe modifiers for query classes - these won't collide with chrome templates
+# Avoids: "hidden" (used in Tailwind nav), "active" (common in Bootstrap),
+# "disabled" (common in forms), "primary"/"secondary" (Bootstrap buttons)
+SAFE_QUERY_MODIFIERS = ["featured", "highlighted", "promoted", "pinned", "starred", "verified", "premium", "urgent"]
+
 
 def generate_multiclass_name(rng, num_classes: int = 3) -> list[str]:
     """Generate a realistic multi-class attribute.
@@ -116,10 +121,16 @@ class MultivalueClassGenerator(Generator):
         # Generate multi-class names for target
         # Target has 3-4 classes
         target_classes = generate_multiclass_name(rng, num_classes=rng.randint(3, 4))
-        target_class_str = " ".join(target_classes)
 
-        # Pick one of the classes to ask about (not the first one - too easy)
-        query_class = rng.choice(target_classes[1:])
+        # Pick query_class from SAFE_QUERY_MODIFIERS to avoid chrome collisions
+        # (e.g., "hidden" appears in Tailwind nav templates)
+        query_class = rng.choice(SAFE_QUERY_MODIFIERS)
+
+        # Replace a non-first class with the safe query_class
+        replace_idx = rng.randint(1, len(target_classes) - 1)
+        target_classes[replace_idx] = query_class
+
+        target_class_str = " ".join(target_classes)
 
         # Generate distractors - some share SOME classes but not the query class
         distractors = []

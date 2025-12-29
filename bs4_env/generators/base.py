@@ -712,7 +712,12 @@ def generate_similar_id(
                 'v': 'u', 'b': 'd', 'd': 'b', 's': '5', '5': 's',
             }
             old_char = char_list[idx]
-            char_list[idx] = similar.get(old_char, rng.choice(string.ascii_lowercase))
+            if old_char in similar:
+                char_list[idx] = similar[old_char]
+            else:
+                # Exclude the original char to guarantee a different ID
+                alternatives = [c for c in string.ascii_lowercase if c != old_char]
+                char_list[idx] = rng.choice(alternatives)
             return "".join(char_list)
         return target_id + "x"
 
