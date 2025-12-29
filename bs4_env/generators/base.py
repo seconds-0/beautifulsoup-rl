@@ -81,6 +81,8 @@ class TaskInstance:
         "forbidden_fields": [],
     })
     metadata: dict = field(default_factory=dict)
+    # For multi-step tasks: maps href -> HTML content of linked pages
+    pages: dict = field(default_factory=dict)
 
     def to_info_dict(self) -> dict[str, Any]:
         """Convert to the info dict format used in dataset rows.
@@ -101,6 +103,8 @@ class TaskInstance:
             # HTML and query stored here since not in prompt
             "html": self.html,
             "query": self.query,
+            # For multi-step tasks
+            "pages": self.pages,
         }
 
 
