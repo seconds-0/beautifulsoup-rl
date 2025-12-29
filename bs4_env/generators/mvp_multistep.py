@@ -61,15 +61,22 @@ class SearchThenDetailGenerator(Generator):
         rng = make_rng(self.archetype_id, seed)
         style = rng.choice(list(HtmlStyle))
 
-        # Generate products for search results
+        # Generate products for search results with unique names
         num_products = rng.randint(5, 10)
         products = []
+        used_names = set()
 
         for i in range(num_products):
             product_id = rng.randint(1000, 9999)
+            # Ensure unique product name
+            name = random_product_name(rng)
+            while name in used_names:
+                name = random_product_name(rng)
+            used_names.add(name)
+
             products.append({
                 "id": product_id,
-                "name": random_product_name(rng),
+                "name": name,
                 "price": random_price(rng, min_val=20, max_val=200),
                 "sku": f"SKU-{rng.randint(10000, 99999)}",
                 "description": f"High-quality {random_product_name(rng).lower()} with premium features.",
@@ -594,12 +601,19 @@ class CompareProductsGenerator(Generator):
         rng = make_rng(self.archetype_id, seed)
         style = rng.choice(list(HtmlStyle))
 
-        # Generate two products to compare
+        # Generate two products to compare with unique names
         products = []
+        used_names = set()
         for i in range(2):
             price_val = round(rng.uniform(50, 300), 2)
+            # Ensure unique product name
+            name = random_product_name(rng)
+            while name in used_names:
+                name = random_product_name(rng)
+            used_names.add(name)
+
             products.append({
-                "name": random_product_name(rng),
+                "name": name,
                 "price_val": price_val,
                 "price": f"${price_val:.2f}",
                 "href": f"/products/{rng.randint(1000, 9999)}",
