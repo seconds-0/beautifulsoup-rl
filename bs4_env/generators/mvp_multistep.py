@@ -61,13 +61,19 @@ class SearchThenDetailGenerator(Generator):
         rng = make_rng(self.archetype_id, seed)
         style = rng.choice(list(HtmlStyle))
 
-        # Generate products for search results with unique names
+        # Generate products for search results with unique names and IDs
         num_products = rng.randint(5, 10)
         products = []
         used_names = set()
+        used_ids = set()
 
         for i in range(num_products):
+            # Ensure unique product ID to avoid href collisions
             product_id = rng.randint(1000, 9999)
+            while product_id in used_ids:
+                product_id = rng.randint(1000, 9999)
+            used_ids.add(product_id)
+
             # Ensure unique product name
             name = random_product_name(rng)
             while name in used_names:
@@ -601,25 +607,39 @@ class CompareProductsGenerator(Generator):
         rng = make_rng(self.archetype_id, seed)
         style = rng.choice(list(HtmlStyle))
 
-        # Generate two products to compare with unique names
+        # Generate two products to compare with unique names, prices, and hrefs
         products = []
         used_names = set()
+        used_prices = set()
+        used_ids = set()
+
         for i in range(2):
+            # Ensure unique price to avoid ambiguity in "cheaper" comparison
             price_val = round(rng.uniform(50, 300), 2)
+            while price_val in used_prices:
+                price_val = round(rng.uniform(50, 300), 2)
+            used_prices.add(price_val)
+
             # Ensure unique product name
             name = random_product_name(rng)
             while name in used_names:
                 name = random_product_name(rng)
             used_names.add(name)
 
+            # Ensure unique href
+            product_id = rng.randint(1000, 9999)
+            while product_id in used_ids:
+                product_id = rng.randint(1000, 9999)
+            used_ids.add(product_id)
+
             products.append({
                 "name": name,
                 "price_val": price_val,
                 "price": f"${price_val:.2f}",
-                "href": f"/products/{rng.randint(1000, 9999)}",
+                "href": f"/products/{product_id}",
             })
 
-        # Determine which is cheaper
+        # Determine which is cheaper (prices are guaranteed unique)
         if products[0]["price_val"] < products[1]["price_val"]:
             cheaper = products[0]
             more_expensive = products[1]
