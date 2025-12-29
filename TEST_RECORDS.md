@@ -7,22 +7,84 @@ Track evaluation progress and results. Update this file after each benchmark run
 Focus on **small/weak models** - they benefit most from RL training on this environment.
 
 ### Priority (Small Models)
-- [x] `qwen/qwen3-8b` - Free tier available (**52.5% pass rate** - see below)
-- [ ] `deepseek/deepseek-r1-0528-qwen3-8b` - Cheap
-- [ ] `meta-llama/llama-3.1-8b-instruct` - Standard baseline
-- [ ] `mistralai/mistral-7b-instruct` - Another baseline
+- [x] `mistralai/ministral-8b-2512` - **BEST: 71% pass rate** (Ministral 3, Dec 2025)
+- [x] `qwen/qwen3-8b` - Free tier available (**52.5% pass rate**)
+- [x] `mistralai/ministral-8b` - Old version (**27.5% pass rate** - loopy, expensive)
 
 ### Blocked
+- ~~`deepseek/deepseek-r1-0528-qwen3-8b`~~ - No function calling support on OpenRouter
+- ~~`google/gemma-3-*`~~ - No function calling support on OpenRouter
 - ~~`prime-intellect/intellect-3`~~ - OpenRouter function calling broken (Qwen parsing bug)
 - ~~`x-ai/grok-4.1-fast`~~ - Rate limits too aggressive
 
 ### For Comparison Only (Strong Models)
+- [x] `openai/gpt-5.2` - **77.5% pass rate** (frontier baseline)
 - `anthropic/claude-3-5-haiku-latest` - Fast, capable
-- `openai/gpt-4o` - Strong baseline
 
 ---
 
 ## Benchmark Runs
+
+### 2025-12-29: GPT-5.2 (Full - 200/200) - Frontier Baseline
+
+**Model:** `openai/gpt-5.2`
+**Config:** split=bench, mode=mvp, 200 examples
+**Status:** Complete
+
+| Archetype | Avg Reward | Perfect | Pass Rate |
+|-----------|------------|---------|-----------|
+| `mvp.table_list_of_lists` | 1.000 | 20/20 | 100% |
+| `mvp.class_reserved_word` | 1.000 | 20/20 | 100% |
+| `mvp.string_returns_none` | 1.000 | 20/20 | 100% |
+| `mvp.table_list_of_dicts` | 0.985 | 18/20 | 100% |
+| `mvp.extract_text_by_id` | 0.950 | 19/20 | 95% |
+| `mvp.none_attribute_error` | 0.950 | 19/20 | 95% |
+| `mvp.extract_text_by_class` | 0.850 | 17/20 | 85% |
+| `mvp.multivalue_class` | 0.850 | 17/20 | 85% |
+| `mvp.limit_js_required` | 0.273 | 0/20 | 15% |
+| `mvp.limit_image_text` | 0.017 | 0/20 | 0% |
+| **Total** | **0.787** | **150/200** | **77.5%** |
+
+**Observations:**
+- **string_returns_none: 100%** - GPT-5.2 fully understands the `.string` vs `get_text()` gotcha
+- Extraction tasks excellent (85-100%)
+- Limitations still challenging (0-15%) - even frontier models struggle here
+- 288 tool calls (~1.4/example), efficient
+
+**Token Usage:** 657K input, 127K output (~784K total)
+
+---
+
+### 2025-12-28: Ministral 3 8B (Full - 200/200) ⭐ BEST 8B
+
+**Model:** `mistralai/ministral-8b-2512` (Ministral 3, December 2025)
+**Config:** split=bench, mode=mvp, 200 examples
+**Status:** Complete
+
+| Archetype | Avg Reward | Perfect | Pass Rate |
+|-----------|------------|---------|-----------|
+| `mvp.table_list_of_dicts` | 1.000 | 20/20 | 100% |
+| `mvp.table_list_of_lists` | 1.000 | 20/20 | 100% |
+| `mvp.class_reserved_word` | 1.000 | 20/20 | 100% |
+| `mvp.extract_text_by_id` | 0.950 | 19/20 | 95% |
+| `mvp.none_attribute_error` | 0.950 | 19/20 | 95% |
+| `mvp.extract_text_by_class` | 0.850 | 17/20 | 85% |
+| `mvp.multivalue_class` | 0.850 | 17/20 | 85% |
+| `mvp.string_returns_none` | 0.500 | 10/20 | 50% |
+| `mvp.limit_js_required` | 0.127 | 0/20 | 13% |
+| `mvp.limit_image_text` | 0.000 | 0/20 | 0% |
+| **Total** | **0.723** | **142/200** | **71%** |
+
+**Observations:**
+- BEST 8B model tested: 71% vs Qwen3's 52.5% vs old Ministral's 27.5%
+- Perfect on tables AND class_reserved_word (Ministral 3 knows BS4 well)
+- Very efficient: 258 tool calls (1.3/example), ~587K tokens total
+- Still struggles with limitations (0-13%) like all models
+- string_returns_none still challenging (50%) - RL opportunity
+
+**Token Usage:** 497K input, 91K output (~588K total) - cheap and efficient
+
+---
 
 ### 2025-12-28: Ministral 8B (Full - 200/200)
 
