@@ -36,8 +36,8 @@ run-name: "Benchmark: ${{ inputs.model }} (${{ inputs.num_examples }} examples)"
 
 jobs:
   benchmark:
-    runs-on: ${{ inputs.runner_size == '8-core' && 'nscloud-ubuntu-22.04-amd64-8x16' || 'nscloud-ubuntu-22.04-amd64-4x8' }}
-    timeout-minutes: 480  # 8 hours max
+    runs-on: ubuntu-latest
+    timeout-minutes: 360  # 6 hours max (GHA limit)
 
     steps:
       - name: Checkout
