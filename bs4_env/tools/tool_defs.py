@@ -14,6 +14,7 @@ from bs4_env.tools.harness import (
     GET_TASK_METADATA_TOOL_SCHEMA,
     LINT_JSON_TOOL_SCHEMA,
     NAVIGATE_TOOL_SCHEMA,
+    NAVIGATE_SUCCESS_MARKER,
     build_tool_response,
 )
 from bs4_env.grading.schema import validate_output
@@ -207,8 +208,10 @@ def create_navigate_handler(
         if success:
             # Return structured marker + user message for consistency with verifiers
             # Note: In local path, NavigationState.navigate() already updated state
+            # Use normalized href from navigation_history for parity with verifiers
+            normalized = nav_state.navigation_history[-1]
             return (
-                f"NAVIGATE_OK:{href}\n\n"
+                f"{NAVIGATE_SUCCESS_MARKER}{normalized}\n\n"
                 f"Successfully navigated. Use run_python to extract data from the new page."
             )
         else:

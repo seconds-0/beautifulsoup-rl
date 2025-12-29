@@ -295,7 +295,8 @@ class TestVerifiersEnvResponse:
         from bs4_env.adapters.verifiers_adapter import _build_real_verifiers_env
         from bs4_env.config import EnvConfig
 
-        config = EnvConfig(split="train", mode="mvp")
+        # Use minimal dataset for faster tests
+        config = EnvConfig(split="train", mode="mvp", num_examples=1)
 
         # Build the actual verifiers environment
         env = _build_real_verifiers_env(config, vf)
@@ -347,7 +348,8 @@ class TestVerifiersEnvResponse:
         from bs4_env.adapters.verifiers_adapter import _build_real_verifiers_env
         from bs4_env.config import EnvConfig
 
-        config = EnvConfig(split="train", mode="mvp")
+        # Use minimal dataset for faster tests
+        config = EnvConfig(split="train", mode="mvp", num_examples=1)
         env = _build_real_verifiers_env(config, vf)
 
         original_html = "<html>Initial Page</html>"
