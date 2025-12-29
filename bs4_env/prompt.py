@@ -77,10 +77,8 @@ def format_user_message(
 
     if constraints.output_schema:
         parts.append("### Answer Schema")
-        parts.append("The `answer` field must match this schema:")
-        parts.append("```json")
-        parts.append(json.dumps(constraints.output_schema, indent=2))
-        parts.append("```")
+        schema_explanation = explain_schema(constraints.output_schema)
+        parts.append(schema_explanation)
         parts.append("")
 
     if constraints.allowed_limit_reasons:
@@ -99,11 +97,10 @@ def format_user_message(
             parts.append(f"- {note}")
         parts.append("")
 
-    # HTML content
-    parts.append("## HTML")
-    parts.append("```html")
-    parts.append(html)
-    parts.append("```")
+    # Note: HTML is NOT included in prompt - must use run_python tool to access it
+    parts.append("## Accessing the HTML")
+    parts.append("The HTML content is available via the `HTML` variable in the Python sandbox.")
+    parts.append("Use the `run_python` tool to write BeautifulSoup code that extracts the answer.")
 
     return "\n".join(parts)
 
@@ -111,6 +108,10 @@ def format_user_message(
 DEFAULT_SYSTEM_MESSAGE = """You are an expert web scraping assistant using BeautifulSoup (bs4) in Python.
 
 Your task is to extract specific information from HTML content using BeautifulSoup.
+
+## IMPORTANT: You MUST use the tool
+
+The HTML content is NOT visible in this conversation. You MUST call the `run_python` tool to access and parse the HTML.
 
 ## Available Tools
 
@@ -124,8 +125,8 @@ BeautifulSoup and common parsers (html.parser, lxml, html5lib) are pre-installed
 
 ## Workflow
 
-1. Use `run_python` to write and test your extraction code
-2. Iterate until you have the correct result
+1. Call `run_python` to write BeautifulSoup code that accesses `HTML` and extracts the answer
+2. Iterate if needed until you have the correct result
 3. Provide your final answer as a JSON object (no tool calls)
 
 ## Output Format
@@ -154,6 +155,45 @@ OUTPUT_FORMAT_EXAMPLE = {
     "status": "ok",
     "answer": "<your extracted data matching the schema>"
 }
+
+
+def explain_schema(schema: dict) -> str:
+    """Convert a JSON schema to a plain English explanation with example.
+
+    This prevents models from confusing the schema structure with the answer format.
+    """
+    schema_type = schema.get("type")
+
+    if schema_type == "string":
+        return 'The `answer` field must be a **string**. Example: `"answer": "the extracted text"`'
+
+    elif schema_type == "array":
+        items = schema.get("items", {})
+        items_type = items.get("type", "any")
+        if items_type == "string":
+            return 'The `answer` field must be an **array of strings**. Example: `"answer": ["item1", "item2", "item3"]`'
+        elif items_type == "object":
+            return 'The `answer` field must be an **array of objects**. Example: `"answer": [{"key": "value"}, {"key": "value2"}]`'
+        elif items_type == "array":
+            return 'The `answer` field must be an **array of arrays** (table rows). Example: `"answer": [["col1", "col2"], ["val1", "val2"]]`'
+        else:
+            return f'The `answer` field must be an **array** of {items_type} values.'
+
+    elif schema_type == "object":
+        return 'The `answer` field must be an **object** (dictionary). Example: `"answer": {"key1": "value1", "key2": "value2"}`'
+
+    elif schema_type == "number":
+        return 'The `answer` field must be a **number**. Example: `"answer": 42.5`'
+
+    elif schema_type == "integer":
+        return 'The `answer` field must be an **integer**. Example: `"answer": 42`'
+
+    elif schema_type == "boolean":
+        return 'The `answer` field must be a **boolean**. Example: `"answer": true`'
+
+    else:
+        # Fallback: show schema but with explicit instruction
+        return f"The `answer` field must match this JSON schema (NOT the schema itself, but a value that conforms to it):\n```json\n{json.dumps(schema, indent=2)}\n```"
 
 
 def format_few_shot_examples(
