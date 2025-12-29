@@ -240,24 +240,65 @@ class TestBS4PenaltyInReward:
 class TestBS4EdgeCases:
     """Edge case tests for BS4 detection."""
 
-    def test_case_insensitive_detection(self):
-        """Detection is case-insensitive for class names."""
-        code = 'beautifulsoup(html, "html.parser")'  # lowercase
+    def test_case_sensitive_detection(self):
+        """Detection requires exact case for function names (AST-based)."""
+        # AST-based detection is case-sensitive for identifiers
+        code = 'BeautifulSoup(html, "html.parser")'  # correct case
         assert check_bs4_usage([code]) is True
 
-    def test_partial_match_find_all(self):
-        """Partial match on .find_all( works (BS4-specific)."""
+        # Lowercase won't parse as valid Python call
+        code = 'beautifulsoup(html, "html.parser")'  # lowercase - different function
+        # This is technically valid Python (a different function), but won't
+        # match our detector since Python is case-sensitive
+        assert check_bs4_usage([code]) is False
+
+    def test_find_all_method_detected(self):
+        """.find_all() method call detected via AST."""
         code = 'element.find_all("div")'
         assert check_bs4_usage([code]) is True
 
-    def test_comment_containing_bs4(self):
-        """Comments containing BS4 keywords count (conservative)."""
-        # This is intentional - we're being conservative
+    def test_comment_containing_bs4_not_detected(self):
+        """Comments mentioning BS4 do NOT count as usage (anti-bypass)."""
+        # This is the key security fix - comments shouldn't bypass the penalty
         code = '# Use BeautifulSoup here\nHTML.find("div")'
+        assert check_bs4_usage([code]) is False
+
+    def test_string_containing_bs4_not_detected(self):
+        """Strings mentioning BS4 do NOT count as usage (anti-bypass)."""
+        # This is the key security fix - strings shouldn't bypass the penalty
+        code = 'print("Use BeautifulSoup for parsing")'
+        assert check_bs4_usage([code]) is False
+
+    def test_import_bs4_detected(self):
+        """Import statements are detected."""
+        code = "import bs4"
         assert check_bs4_usage([code]) is True
 
-    def test_string_containing_bs4(self):
-        """Strings containing BS4 keywords count (conservative)."""
-        # This is intentional - we're being conservative
-        code = 'print("Use BeautifulSoup for parsing")'
+        code = "from bs4 import BeautifulSoup"
+        assert check_bs4_usage([code]) is True
+
+    def test_actual_beautifulsoup_call_detected(self):
+        """Actual BeautifulSoup() call is detected."""
+        code = 'soup = BeautifulSoup(HTML, "html.parser")'
+        assert check_bs4_usage([code]) is True
+
+    def test_syntax_error_not_detected(self):
+        """Code with syntax errors returns False (safe default)."""
+        code = "this is not valid python {"
+        assert check_bs4_usage([code]) is False
+
+    def test_sibling_navigation_detected(self):
+        """Sibling navigation attributes are detected."""
+        code = "element.next_sibling"
+        assert check_bs4_usage([code]) is True
+
+        code = "element.previous_sibling"
+        assert check_bs4_usage([code]) is True
+
+    def test_contents_descendants_detected(self):
+        """BS4-specific container attributes detected."""
+        code = "element.contents"
+        assert check_bs4_usage([code]) is True
+
+        code = "for child in element.descendants: pass"
         assert check_bs4_usage([code]) is True

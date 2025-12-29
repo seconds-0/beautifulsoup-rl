@@ -6,6 +6,7 @@ This module implements the rubric that converts model outputs into rewards.
 The reward function must be deterministic and follow the anti-hacking rules.
 """
 
+import ast
 import re
 from typing import Any
 
@@ -55,18 +56,118 @@ def compute_efficiency_multiplier(tool_call_count: int) -> float:
     return max(EFFICIENCY_FLOOR, 1.0 - EFFICIENCY_PENALTY_PER_CALL * (tool_call_count - 1))
 
 
+def _check_bs4_usage_ast(code: str) -> bool:
+    """Check if code uses BeautifulSoup using AST analysis.
+
+    Uses AST parsing to detect actual BS4 usage, ignoring comments and strings.
+    This prevents bypassing the penalty by mentioning "BeautifulSoup" in comments.
+
+    Args:
+        code: A single code string to analyze.
+
+    Returns:
+        True if BS4 usage is detected in actual code (not comments/strings).
+    """
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        # If code doesn't parse, fall back to string heuristic
+        # but only for unambiguous patterns
+        return False
+
+    # BS4-specific method names that don't appear in standard library
+    bs4_methods = {
+        "find_all",
+        "select",
+        "select_one",
+        "get_text",
+        "prettify",
+        "decode_contents",
+        "encode_contents",
+        "new_tag",
+        "new_string",
+    }
+
+    # BS4-specific attribute names
+    bs4_attrs = {
+        "next_sibling",
+        "previous_sibling",
+        "next_siblings",
+        "previous_siblings",
+        "next_element",
+        "previous_element",
+        "children",
+        "descendants",
+        "contents",
+        "attrs",
+        "name",  # Tag.name
+        "string",  # Tag.string
+    }
+
+    class BS4Visitor(ast.NodeVisitor):
+        """AST visitor to detect BS4 usage."""
+
+        def __init__(self):
+            self.found_bs4 = False
+
+        def visit_Import(self, node):
+            """Check for 'import bs4'."""
+            for alias in node.names:
+                if alias.name == "bs4" or alias.name.startswith("bs4."):
+                    self.found_bs4 = True
+            self.generic_visit(node)
+
+        def visit_ImportFrom(self, node):
+            """Check for 'from bs4 import ...'."""
+            if node.module and (node.module == "bs4" or node.module.startswith("bs4.")):
+                self.found_bs4 = True
+            self.generic_visit(node)
+
+        def visit_Call(self, node):
+            """Check for BeautifulSoup() or make_soup() calls."""
+            # Check direct call: BeautifulSoup(...)
+            if isinstance(node.func, ast.Name):
+                if node.func.id in ("BeautifulSoup", "make_soup", "NavigableString"):
+                    self.found_bs4 = True
+
+            # Check attribute call: bs4.BeautifulSoup(...)
+            elif isinstance(node.func, ast.Attribute):
+                if node.func.attr in ("BeautifulSoup", "make_soup", "NavigableString"):
+                    self.found_bs4 = True
+                # Check for BS4-specific method calls
+                if node.func.attr in bs4_methods:
+                    self.found_bs4 = True
+
+            self.generic_visit(node)
+
+        def visit_Attribute(self, node):
+            """Check for BS4-specific attribute access."""
+            if node.attr in bs4_attrs:
+                # These attributes are fairly BS4-specific
+                # (contents, descendants, next_sibling, etc.)
+                self.found_bs4 = True
+            self.generic_visit(node)
+
+    visitor = BS4Visitor()
+    visitor.visit(tree)
+    return visitor.found_bs4
+
+
 def check_bs4_usage(code_samples: list[str]) -> bool:
     """Check if any code sample uses BeautifulSoup.
 
     This creates a gradient toward BS4 usage without rejecting alternatives.
     Regex and string solutions still work but receive a penalty.
 
-    The detection requires either:
-    1. Explicit BS4 import/instantiation (BeautifulSoup, make_soup, from bs4), OR
-    2. Use of BS4-specific types (NavigableString, Tag)
+    Uses AST-based detection to identify actual BS4 API usage, ignoring
+    mentions of "BeautifulSoup" in comments or strings. This prevents
+    trivial bypasses like adding a comment mentioning BS4.
 
-    We don't count generic method names like .find() since those could be
-    string methods. This avoids false positives on pure string solutions.
+    The detection looks for:
+    1. Import statements (import bs4, from bs4 import ...)
+    2. Constructor calls (BeautifulSoup(), make_soup(), NavigableString())
+    3. BS4-specific method calls (.find_all(), .select(), .get_text(), etc.)
+    4. BS4-specific attribute access (.next_sibling, .contents, etc.)
 
     Args:
         code_samples: List of code strings executed during the episode.
@@ -77,45 +178,9 @@ def check_bs4_usage(code_samples: list[str]) -> bool:
     if not code_samples:
         return True  # No code = no penalty (e.g., format errors)
 
-    # Primary indicators - these definitively show BS4 usage
-    # These are specific enough to not have false positives
-    primary_indicators = [
-        "BeautifulSoup",      # Constructor call
-        "make_soup",          # Our helper function
-        "from bs4",           # Import statement
-        "import bs4",         # Import statement
-        "NavigableString",    # BS4-specific type
-        "Tag(",               # BS4-specific type
-    ]
-
-    # Secondary indicators - only count if we find a primary indicator
-    # These are methods that exist on BS4 objects but also on strings
-    secondary_indicators = [
-        ".find_all(",         # BS4-specific (strings don't have find_all)
-        ".select(",           # BS4 CSS selector
-        ".select_one(",       # BS4 CSS selector
-        ".get_text(",         # BS4-specific
-        ".children",          # BS4 navigation
-        ".parent",            # BS4 navigation (but also pathlib...)
-        ".next_sibling",      # BS4 navigation
-        ".previous_sibling",  # BS4 navigation
-        ".descendants",       # BS4-specific
-        ".contents",          # BS4-specific
-        ".attrs",             # BS4-specific
-    ]
-
     for code in code_samples:
-        code_lower = code.lower()
-
-        # Check primary indicators - these are definitive
-        for indicator in primary_indicators:
-            if indicator.lower() in code_lower:
-                return True
-
-        # Check secondary indicators - these suggest BS4 usage
-        for indicator in secondary_indicators:
-            if indicator.lower() in code_lower:
-                return True
+        if _check_bs4_usage_ast(code):
+            return True
 
     return False
 
