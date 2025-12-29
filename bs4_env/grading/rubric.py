@@ -89,6 +89,7 @@ def _check_bs4_usage_ast(code: str) -> bool:
     }
 
     # BS4-specific attribute names
+    # Note: Excludes .name and .string as they're too common (file.name, path.name, etc.)
     bs4_attrs = {
         "next_sibling",
         "previous_sibling",
@@ -100,8 +101,6 @@ def _check_bs4_usage_ast(code: str) -> bool:
         "descendants",
         "contents",
         "attrs",
-        "name",  # Tag.name
-        "string",  # Tag.string
     }
 
     class BS4Visitor(ast.NodeVisitor):

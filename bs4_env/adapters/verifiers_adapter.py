@@ -94,6 +94,10 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
         result = executor.run(code, globals_dict, timeout_s=config.timeout_s)
         return build_tool_response(result.to_dict())
 
+    # Structured marker for navigate success - used by env_response to detect navigation
+    # This is more robust than parsing user-facing message text
+    NAVIGATE_SUCCESS_MARKER = "NAVIGATE_OK:"
+
     # Define the navigate tool for multi-step tasks
     # Note: pages_json is injected via update_tool_args and skipped from schema
     def navigate(
@@ -116,17 +120,20 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
         if not href:
             return "Error: No href provided"
 
+        if not pages:
+            return "Error: This task does not support navigation. Use run_python to parse the current page."
+
         # Normalize href for lookup
         normalized = _normalize_href(href, pages)
 
         if normalized not in pages:
             return f"Error: Page '{href}' not found. Check the HTML for valid links."
 
-        # Return success message - env_response will detect this and update state
+        # Return structured marker + user message
+        # env_response parses the marker to update state["html"]
         return (
-            f"Successfully navigated to '{normalized}'. "
-            f"The HTML global has been updated with the new page content. "
-            f"Use run_python to extract data from the new page."
+            f"{NAVIGATE_SUCCESS_MARKER}{normalized}\n\n"
+            f"Successfully navigated. Use run_python to extract data from the new page."
         )
 
     def _normalize_href(href: str, pages: dict) -> str:
@@ -307,18 +314,14 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
                     # Look for tool results (role: "tool" messages contain tool output)
                     if msg.get("role") == "tool":
                         content = msg.get("content", "")
-                        if isinstance(content, str) and content.startswith("Successfully navigated to '"):
-                            # Extract the normalized href from success message
-                            # Format: "Successfully navigated to 'href'. ..."
-                            try:
-                                start = content.index("'") + 1
-                                end = content.index("'", start)
-                                normalized_href = content[start:end]
-                                if normalized_href in pages:
-                                    state["html"] = pages[normalized_href]
-                                    state["navigation_history"].append(normalized_href)
-                            except (ValueError, IndexError):
-                                pass
+                        # Use structured marker for robust detection
+                        if isinstance(content, str) and content.startswith(NAVIGATE_SUCCESS_MARKER):
+                            # Extract href from marker: "NAVIGATE_OK:href\n..."
+                            marker_content = content[len(NAVIGATE_SUCCESS_MARKER):]
+                            normalized_href = marker_content.split("\n")[0].strip()
+                            if normalized_href in pages:
+                                state["html"] = pages[normalized_href]
+                                state["navigation_history"].append(normalized_href)
                             # Only process the most recent navigate
                             break
 
