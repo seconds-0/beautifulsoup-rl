@@ -61,6 +61,9 @@ def generate_dataset_rows(config: EnvConfig) -> Iterator[dict[str, Any]]:
 
     Yields dictionaries with 'prompt' (list of messages) and 'info' (dict).
 
+    For tiered mode, applies difficulty-weighted sampling to produce more
+    hard tasks and fewer easy tasks, optimizing for RL training signal.
+
     Args:
         config: Environment configuration.
 
@@ -84,34 +87,91 @@ def generate_dataset_rows(config: EnvConfig) -> Iterator[dict[str, Any]]:
     import random
     rng = random.Random(config.seed)
 
-    for archetype_id in archetype_ids:
-        spec = get_archetype(archetype_id)
+    # For tiered mode, compute weighted examples per archetype
+    if config.mode == "tiered":
+        # Group archetypes by difficulty
+        archetypes_by_difficulty: dict[str, list[str]] = {"easy": [], "medium": [], "hard": []}
+        for archetype_id in archetype_ids:
+            spec = get_archetype(archetype_id)
+            archetypes_by_difficulty[spec.difficulty].append(archetype_id)
 
-        # Filter by difficulty if specified
-        if config.difficulty != "mixed" and spec.difficulty != config.difficulty:
-            continue
+        # Compute examples per difficulty level based on weights
+        total_weight = sum(config.difficulty_weights.values())
+        total_examples = examples_per_archetype * len(archetype_ids)
 
-        # Get the generator
-        generator = spec.generator_class()
-
-        # Generate seeds for this archetype
-        available_seeds = list(range(seed_start, seed_end))
-        if config.split == "bench":
-            # Bench uses fixed seeds, don't shuffle
-            seeds = available_seeds[:examples_per_archetype]
-        else:
-            rng.shuffle(available_seeds)
-            seeds = available_seeds[:examples_per_archetype]
-
-        for seed in seeds:
-            try:
-                task = generator.generate(seed)
-                row = _task_to_row(task, spec)
-                yield row
-            except Exception as e:
-                # Log error but continue
-                print(f"Error generating {archetype_id} seed {seed}: {e}")
+        for difficulty, weight in config.difficulty_weights.items():
+            difficulty_archetypes = archetypes_by_difficulty[difficulty]
+            if not difficulty_archetypes:
                 continue
+
+            # Calculate examples for this difficulty tier
+            tier_examples = int(total_examples * weight / total_weight)
+            examples_per_archetype_in_tier = max(1, tier_examples // len(difficulty_archetypes))
+
+            for archetype_id in difficulty_archetypes:
+                yield from _generate_for_archetype(
+                    archetype_id, seed_start, seed_end,
+                    examples_per_archetype_in_tier, rng, config
+                )
+    else:
+        # Standard mode: uniform sampling
+        for archetype_id in archetype_ids:
+            spec = get_archetype(archetype_id)
+
+            # Filter by difficulty if specified
+            if config.difficulty != "mixed" and spec.difficulty != config.difficulty:
+                continue
+
+            yield from _generate_for_archetype(
+                archetype_id, seed_start, seed_end,
+                examples_per_archetype, rng, config
+            )
+
+
+def _generate_for_archetype(
+    archetype_id: str,
+    seed_start: int,
+    seed_end: int,
+    num_examples: int,
+    rng: "random.Random",
+    config: EnvConfig,
+) -> Iterator[dict[str, Any]]:
+    """Generate examples for a single archetype.
+
+    Args:
+        archetype_id: The archetype to generate for.
+        seed_start: Start of seed range.
+        seed_end: End of seed range.
+        num_examples: Number of examples to generate.
+        rng: Random number generator for shuffling.
+        config: Environment configuration.
+
+    Yields:
+        Dictionary with 'prompt' and 'info' for each task instance.
+    """
+    import random
+
+    spec = get_archetype(archetype_id)
+    generator = spec.generator_class()
+
+    # Generate seeds for this archetype
+    available_seeds = list(range(seed_start, seed_end))
+    if config.split == "bench":
+        # Bench uses fixed seeds, don't shuffle
+        seeds = available_seeds[:num_examples]
+    else:
+        rng.shuffle(available_seeds)
+        seeds = available_seeds[:num_examples]
+
+    for seed in seeds:
+        try:
+            task = generator.generate(seed)
+            row = _task_to_row(task, spec)
+            yield row
+        except Exception as e:
+            # Log error but continue
+            print(f"Error generating {archetype_id} seed {seed}: {e}")
+            continue
 
 
 def _get_archetype_ids_for_config(config: EnvConfig) -> list[str]:
@@ -127,11 +187,17 @@ def _get_archetype_ids_for_config(config: EnvConfig) -> list[str]:
     if config.archetypes:
         return config.archetypes
 
-    # Otherwise filter by mode
+    # Filter by mode
     if config.mode == "mvp":
         specs = list_archetypes(phase=1)
     elif config.mode == "phase2":
         specs = list_archetypes(phase=2)
+    elif config.mode == "hard_only":
+        # Only hard difficulty archetypes from all phases
+        specs = list_archetypes(difficulty="hard")
+    elif config.mode == "tiered":
+        # All archetypes (weighted sampling is handled in generate_dataset_rows)
+        specs = list_archetypes()
     else:  # "all"
         specs = list_archetypes()
 

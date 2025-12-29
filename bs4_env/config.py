@@ -13,9 +13,15 @@ class EnvConfig:
     Attributes:
         split: Dataset split to use. "train" for training, "eval" for evaluation
             with disjoint seeds, "bench" for fixed benchmark comparison.
-        mode: Which archetypes to include. "mvp" for top-50, "phase2" for expansion,
-            "all" for everything.
+        mode: Which archetypes to include:
+            - "mvp": Phase 1 archetypes only
+            - "phase2": Phase 2 archetypes only
+            - "all": All archetypes
+            - "hard_only": Only hard difficulty archetypes (for challenging benchmarks)
+            - "tiered": All archetypes with difficulty-weighted sampling
         difficulty: Task difficulty filter. "easy", "medium", "hard", or "mixed".
+        difficulty_weights: For tiered mode, relative weights for each difficulty.
+            Default gives more weight to harder tasks for RL training signal.
         num_examples: Number of examples to generate. None for unlimited/default.
         seed: Base random seed for reproducibility.
         executor_backend: Which executor to use. "local" for subprocess-based local
@@ -29,8 +35,13 @@ class EnvConfig:
     """
 
     split: Literal["train", "eval", "bench"] = "train"
-    mode: Literal["mvp", "phase2", "all"] = "mvp"
+    mode: Literal["mvp", "phase2", "all", "hard_only", "tiered"] = "mvp"
     difficulty: Literal["easy", "medium", "hard", "mixed"] = "mixed"
+    difficulty_weights: dict[str, float] = field(default_factory=lambda: {
+        "easy": 0.2,    # 20% easy tasks
+        "medium": 0.4,  # 40% medium tasks
+        "hard": 0.4,    # 40% hard tasks (overweight for RL signal)
+    })
     num_examples: int | None = None
     seed: int = 42
     executor_backend: Literal["local", "prime"] = "local"
