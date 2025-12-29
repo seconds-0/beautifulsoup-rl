@@ -507,8 +507,31 @@ class MinimalEnv:
         # Run agent
         final_output, tool_history = agent_fn(example["prompt"], tool_registry)
 
-        # Grade output
-        reward, metrics = self.grade(final_output, example)
+        # Extract code samples from tool history for BS4 penalty
+        code_samples = []
+        for call in tool_history:
+            if isinstance(call, dict):
+                # Direct code key (our format)
+                if "code" in call:
+                    code_samples.append(call["code"])
+                # OpenAI-style tool call format
+                elif "arguments" in call:
+                    args = call.get("arguments", {})
+                    if isinstance(args, str):
+                        try:
+                            args = json.loads(args)
+                        except (json.JSONDecodeError, TypeError):
+                            pass
+                    if isinstance(args, dict) and "code" in args:
+                        code_samples.append(args["code"])
+
+        # Grade output with tool call metrics for efficiency and BS4 penalties
+        reward, metrics = self.grade(
+            final_output,
+            example,
+            tool_call_count=len(tool_history),
+            code_samples=code_samples if code_samples else None,
+        )
 
         return {
             "idx": idx,
