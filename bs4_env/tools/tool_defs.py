@@ -181,12 +181,13 @@ class NavigationState:
 
 
 def create_navigate_handler(
-    nav_state: NavigationState,
+    nav_state: NavigationState | None,
 ) -> Callable[[dict], str]:
     """Create a handler for the navigate tool.
 
     Args:
         nav_state: Navigation state containing pages and current HTML.
+                   If None, navigate will return an error (single-step task).
 
     Returns:
         A function that handles navigate tool calls.
@@ -197,14 +198,18 @@ def create_navigate_handler(
         if not href:
             return "Error: No href provided"
 
+        # Handle single-step tasks (no nav_state)
+        if nav_state is None:
+            return "Error: This task does not support navigation. Use run_python to parse the current page."
+
         success, result = nav_state.navigate(href)
 
         if success:
-            # Don't preview HTML - model should use run_python to parse it
+            # Return structured marker + user message for consistency with verifiers
+            # Note: In local path, NavigationState.navigate() already updated state
             return (
-                f"Successfully navigated to '{href}'. "
-                f"The HTML global has been updated with the new page content. "
-                f"Use run_python to extract data from the new page."
+                f"NAVIGATE_OK:{href}\n\n"
+                f"Successfully navigated. Use run_python to extract data from the new page."
             )
         else:
             return result
@@ -348,7 +353,7 @@ def create_tool_registry(
             ),
         )
 
-        # Add navigate tool
+        # Add navigate tool with navigation state
         registry.register(
             "navigate",
             NAVIGATE_TOOL_SCHEMA,
@@ -360,6 +365,14 @@ def create_tool_registry(
             "run_python",
             RUN_PYTHON_TOOL_SCHEMA,
             create_run_python_handler(executor, html, query, constraints, timeout_s),
+        )
+
+        # Add navigate tool (returns helpful error for single-step tasks)
+        # This aligns with verifiers which always registers navigate
+        registry.register(
+            "navigate",
+            NAVIGATE_TOOL_SCHEMA,
+            create_navigate_handler(None),
         )
 
     # Optional tools

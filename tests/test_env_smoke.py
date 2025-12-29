@@ -244,8 +244,8 @@ class TestNavigateVerifiersIntegration:
         result = registry.call("navigate", {"href": "/page2"})
         assert "Successfully navigated" in result
 
-    def test_minimal_env_no_navigate_for_single_step(self):
-        """MinimalEnv should not include navigate for single-step tasks."""
+    def test_minimal_env_navigate_returns_error_for_single_step(self):
+        """MinimalEnv should have navigate for single-step tasks, but it returns error."""
         from bs4_env.adapters.verifiers_adapter import MinimalEnv
         from bs4_env.config import EnvConfig
 
@@ -265,6 +265,145 @@ class TestNavigateVerifiersIntegration:
 
         registry = env.create_tool_registry(example)
 
-        # Should have run_python but not navigate
+        # Should have both tools (aligned with verifiers which always registers navigate)
         assert registry.has_tool("run_python")
-        assert not registry.has_tool("navigate")
+        assert registry.has_tool("navigate")
+
+        # Navigate should return helpful error for single-step tasks
+        result = registry.call("navigate", {"href": "/some-page"})
+        assert "Error" in result
+        assert "does not support navigation" in result
+
+
+class TestVerifiersEnvResponse:
+    """Integration tests for verifiers env_response behavior.
+
+    These tests exercise the actual BeautifulSoupEnv.env_response code path
+    by mocking the parent class's env_response to isolate our navigation logic.
+    """
+
+    @pytest.mark.asyncio
+    async def test_env_response_updates_html_on_navigate(self):
+        """Test that env_response actually updates state['html'] on navigate success."""
+        # Skip if verifiers not installed
+        try:
+            import verifiers as vf
+        except ImportError:
+            pytest.skip("verifiers not installed")
+
+        from unittest.mock import AsyncMock, patch
+        from bs4_env.adapters.verifiers_adapter import _build_real_verifiers_env
+        from bs4_env.config import EnvConfig
+
+        config = EnvConfig(split="train", mode="mvp")
+
+        # Build the actual verifiers environment
+        env = _build_real_verifiers_env(config, vf)
+
+        # Create state with pages for multi-step task
+        state = {
+            "html": "<html>Initial Page</html>",
+            "query": "Find something",
+            "constraints": {},
+            "task_info": {},
+            "pages": {
+                "/page2": "<html>Page 2 Content</html>",
+                "/page3": "<html>Page 3 Content</html>",
+            },
+            "navigation_history": [],
+        }
+
+        # Simulate tool result message with NAVIGATE_SUCCESS_MARKER
+        messages = [
+            {
+                "role": "tool",
+                "content": "NAVIGATE_OK:/page2\n\nSuccessfully navigated. Use run_python to extract data from the new page.",
+            },
+        ]
+
+        # Mock parent's env_response to return unchanged (we test our override logic)
+        with patch.object(
+            vf.StatefulToolEnv, "env_response", new_callable=AsyncMock
+        ) as mock_parent:
+            mock_parent.return_value = (None, state.copy())
+
+            # Call env_response
+            _, updated_state = await env.env_response(messages, state)
+
+        # Verify state was updated by our override logic
+        assert updated_state["html"] == "<html>Page 2 Content</html>"
+        assert "/page2" in updated_state["navigation_history"]
+
+    @pytest.mark.asyncio
+    async def test_env_response_no_update_on_navigate_error(self):
+        """Test that env_response doesn't update state on navigate error."""
+        # Skip if verifiers not installed
+        try:
+            import verifiers as vf
+        except ImportError:
+            pytest.skip("verifiers not installed")
+
+        from unittest.mock import AsyncMock, patch
+        from bs4_env.adapters.verifiers_adapter import _build_real_verifiers_env
+        from bs4_env.config import EnvConfig
+
+        config = EnvConfig(split="train", mode="mvp")
+        env = _build_real_verifiers_env(config, vf)
+
+        original_html = "<html>Initial Page</html>"
+        state = {
+            "html": original_html,
+            "query": "Find something",
+            "constraints": {},
+            "task_info": {},
+            "pages": {"/page2": "<html>Page 2</html>"},
+            "navigation_history": [],
+        }
+
+        # Simulate navigate error (no NAVIGATE_SUCCESS_MARKER)
+        messages = [
+            {
+                "role": "tool",
+                "content": "Error: Page '/nonexistent' not found. Check the HTML for valid links.",
+            },
+        ]
+
+        # Mock parent's env_response to return unchanged
+        with patch.object(
+            vf.StatefulToolEnv, "env_response", new_callable=AsyncMock
+        ) as mock_parent:
+            mock_parent.return_value = (None, state.copy())
+
+            _, updated_state = await env.env_response(messages, state)
+
+        # State should be unchanged
+        assert updated_state["html"] == original_html
+        assert len(updated_state["navigation_history"]) == 0
+
+    def test_navigate_marker_parsing(self):
+        """Test that NAVIGATE_SUCCESS_MARKER is correctly parsed."""
+        # This tests the marker format without needing verifiers
+        marker = "NAVIGATE_OK:"
+        content = f"{marker}/page2\n\nSuccessfully navigated. Use run_python to extract data from the new page."
+
+        assert content.startswith(marker)
+        marker_content = content[len(marker):]
+        normalized_href = marker_content.split("\n")[0].strip()
+        assert normalized_href == "/page2"
+
+    def test_navigate_marker_with_complex_href(self):
+        """Test marker parsing with complex href paths."""
+        marker = "NAVIGATE_OK:"
+
+        # Test various href formats
+        test_cases = [
+            ("/products/123", "/products/123"),
+            ("products/category/item", "products/category/item"),
+            ("/api/v1/data", "/api/v1/data"),
+        ]
+
+        for href, expected in test_cases:
+            content = f"{marker}{href}\n\nSuccessfully navigated."
+            marker_content = content[len(marker):]
+            normalized_href = marker_content.split("\n")[0].strip()
+            assert normalized_href == expected, f"Failed for href: {href}"
