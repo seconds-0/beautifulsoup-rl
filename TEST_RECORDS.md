@@ -7,8 +7,8 @@ Track evaluation progress and results. Update this file after each benchmark run
 Focus on **small/weak models** - they benefit most from RL training on this environment.
 
 ### Priority (Small Models)
-- [x] `mistralai/ministral-8b-2512` - **BEST: 71% pass rate** (Ministral 3, Dec 2025)
-- [x] `qwen/qwen3-8b` - Free tier available (**52.5% pass rate**)
+- [x] `mistralai/ministral-8b-2512` - **BEST: 63.2% pass rate** (Ministral 3, Dec 2025, 680 examples)
+- [x] `qwen/qwen3-8b` - Free tier available (**39.6% pass rate**, 680 examples)
 - [x] `mistralai/ministral-8b` - Old version (**27.5% pass rate** - loopy, expensive)
 
 ### Blocked
@@ -18,12 +18,72 @@ Focus on **small/weak models** - they benefit most from RL training on this envi
 - ~~`x-ai/grok-4.1-fast`~~ - Rate limits too aggressive
 
 ### For Comparison Only (Strong Models)
-- [x] `openai/gpt-5.2` - **77.5% pass rate** (frontier baseline)
+- [ ] `openai/gpt-5.2` - **In Progress** (running on Namespace cloud)
 - `anthropic/claude-3-5-haiku-latest` - Fast, capable
 
 ---
 
-## Benchmark Runs
+## Benchmark Runs (Expanded - 34 Archetypes, 680 Examples)
+
+### 2025-12-29: Ministral 3 8B (Full - 680/680) ⭐ BEST 8B
+
+**Model:** `mistralai/ministral-8b-2512` (Ministral 3, December 2025)
+**Config:** split=bench, mode=all, 680 examples (34 archetypes)
+**Status:** Complete
+
+| Category | Archetypes | Avg Reward | Pass Rate |
+|----------|------------|------------|-----------|
+| **Perfect (100%)** | deep_nesting, extract_text_by_id, class_reserved_word, extract_multilingual, extract_rtl, table_list_of_dicts | 1.000 | 100% |
+| **Excellent (90%+)** | attribute_selector, parser_required, multivalue_class, json_ld_array, none_attribute_error, css_combinator, parser_differences, extract_emoji, navigablestring_parent | 0.95 | 95%+ |
+| **Good (80%+)** | extract_text_by_class, sibling_navigation | 0.80 | 83% |
+| **Moderate (50-80%)** | relational_query, multi_hop_filter, json_ld_extraction, string_returns_none | 0.67 | 71% |
+| **Challenging (20-50%)** | count_elements, structured_output, semantic_decoy, semantic_ambiguity, aggregation_min_max | 0.41 | 44% |
+| **Hard Multi-Step (0-20%)** | limit_js_required, pagination_aggregate, partial_data, list_extraction, limit_image_text, search_then_detail, link_chain, compare_products | 0.04 | 0.4% |
+| **Total** | 34 | **0.624** | **63.2%** |
+
+**Observations:**
+- Still BEST 8B: 63.2% on hard test (was 71% on easy test)
+- **Perfect on 6 archetypes** including i18n tasks (multilingual, RTL)
+- Multi-step navigation tasks are very hard (0-3% pass rate)
+- Semantic challenges moderate difficulty (semantic_ambiguity: 45%, semantic_decoy: 50%)
+- string_returns_none improved: 65% pass (was 50% on smaller test)
+
+---
+
+### 2025-12-29: Qwen3-8B (Full - 680/680)
+
+**Model:** `qwen/qwen3-8b`
+**Config:** split=bench, mode=all, 680 examples (34 archetypes)
+**Status:** Complete
+
+| Category | Archetypes | Avg Reward | Pass Rate |
+|----------|------------|------------|-----------|
+| **Excellent (90%+)** | table_list_of_lists | 0.99 | 100% |
+| **Good (70-90%)** | json_ld_extraction, attribute_selector, none_attribute_error, class_reserved_word, parser_differences, whitespace_sibling | 0.76 | 80% |
+| **Moderate (50-70%)** | extract_multilingual, table_list_of_dicts, navigablestring_parent, extract_rtl, deep_nesting, css_combinator, multivalue_class, extract_text_by_id, extract_text_by_class, extract_emoji | 0.52 | 56% |
+| **Challenging (20-50%)** | string_returns_none, count_elements, semantic_ambiguity, aggregation_min_max, relational_query | 0.29 | 31% |
+| **Very Hard (<20%)** | limit_js_required, partial_data, multi_hop_filter, semantic_decoy, structured_output, sibling_navigation, list_extraction, limit_image_text, search_then_detail, pagination_aggregate, link_chain, compare_products | 0.03 | 1.3% |
+| **Total** | 34 | **0.376** | **39.6%** |
+
+**Observations:**
+- Significant drop from 52.5% (10 archetypes) to 39.6% (34 archetypes)
+- Tables still strong (99-100%), but many new hard archetypes
+- Multi-step tasks nearly impossible (0% on link_chain, compare_products, etc.)
+- string_returns_none: 40% pass (was 20% - improvement with more data?)
+- semantic_decoy_extreme is hardest semantic task (10% pass)
+
+---
+
+### 2025-12-29: GPT-5.2 (In Progress - Cloud)
+
+**Model:** `openai/gpt-5.2`
+**Config:** split=bench, mode=all, 680 examples
+**Status:** Running on Namespace cloud (8-core runner)
+**Run ID:** 20583328485
+
+---
+
+## Legacy Benchmark Runs (10 Archetypes, 200 Examples)
 
 ### 2025-12-29: GPT-5.2 (Full - 200/200) - Frontier Baseline
 
@@ -193,6 +253,14 @@ Focus on **small/weak models** - they benefit most from RL training on this envi
 
 ## Notes
 
-- Environment has 24 archetypes total (13 phase 1, 8 phase 2, 3 i18n)
+- Environment has **34 archetypes** total (680 bench examples)
+  - Core extraction: 10 archetypes
+  - Advanced/gotcha: 8 archetypes
+  - Multi-step navigation: 5 archetypes (link_chain, search_then_detail, etc.)
+  - Semantic challenges: 4 archetypes
+  - i18n: 3 archetypes
+  - Limitations: 2 archetypes
+  - Aggregation/counting: 2 archetypes
 - Bench split uses seeds 110000-111000 (20 per archetype)
 - Efficiency penalty: -10% per extra tool call, floor at 0.2, cutoff at 11+
+- Run benchmarks on cloud via `.github/workflows/bench.yml` (Namespace runners)
