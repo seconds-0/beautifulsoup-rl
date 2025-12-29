@@ -137,9 +137,7 @@ class NavigationState:
         normalized = self._normalize_href(href)
 
         if normalized not in self.pages:
-            available = list(self.pages.keys())[:5]
-            hint = f" Available pages: {available}" if available else ""
-            return False, f"Error: Page '{href}' not found.{hint}"
+            return False, f"Error: Page '{href}' not found. Check the HTML for valid links."
 
         self.current_html = self.pages[normalized]
         self.navigation_history.append(normalized)
@@ -202,13 +200,11 @@ def create_navigate_handler(
         success, result = nav_state.navigate(href)
 
         if success:
-            # Return a summary, not the full HTML (model will access via run_python)
-            html_preview = result[:500] + "..." if len(result) > 500 else result
+            # Don't preview HTML - model should use run_python to parse it
             return (
                 f"Successfully navigated to '{href}'. "
                 f"The HTML global has been updated with the new page content. "
-                f"Use run_python to extract data from the new page.\n\n"
-                f"Preview of new page:\n{html_preview}"
+                f"Use run_python to extract data from the new page."
             )
         else:
             return result
