@@ -257,10 +257,9 @@ NAVIGATE_TOOL_SCHEMA = {
     "name": "navigate",
     "description": (
         "Navigate to a linked page by its href. For multi-step tasks, "
-        "use this tool to follow links and load new HTML content. "
-        "After navigation, use run_python with the new HTML available "
-        "in the HTML global. Returns the new page's HTML content or "
-        "an error if the href is not found."
+        "use this tool to follow links. After successful navigation, "
+        "the HTML global in run_python will be updated with the new page. "
+        "Returns a success message or error if the href is not found."
     ),
     "parameters": {
         "type": "object",
@@ -273,3 +272,7 @@ NAVIGATE_TOOL_SCHEMA = {
         "required": ["href"],
     },
 }
+
+# Structured marker for navigate success - used by env_response to detect navigation
+# This is more robust than parsing user-facing message text
+NAVIGATE_SUCCESS_MARKER = "NAVIGATE_OK:"

@@ -50,7 +50,11 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
         A vf.StatefulToolEnv instance.
     """
     from bs4_env.tools.executor import get_executor
-    from bs4_env.tools.harness import build_runner_script, build_tool_response
+    from bs4_env.tools.harness import (
+        build_runner_script,
+        build_tool_response,
+        NAVIGATE_SUCCESS_MARKER,
+    )
 
     # Build the HuggingFace dataset
     dataset = build_dataset(config)
@@ -93,10 +97,6 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
 
         result = executor.run(code, globals_dict, timeout_s=config.timeout_s)
         return build_tool_response(result.to_dict())
-
-    # Structured marker for navigate success - used by env_response to detect navigation
-    # This is more robust than parsing user-facing message text
-    NAVIGATE_SUCCESS_MARKER = "NAVIGATE_OK:"
 
     # Define the navigate tool for multi-step tasks
     # Note: pages_json is injected via update_tool_args and skipped from schema
