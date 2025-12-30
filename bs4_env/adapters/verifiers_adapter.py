@@ -333,6 +333,85 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
             """Return number of examples in dataset."""
             return len(self.dataset)
 
+        def get_example(self, idx: int = 0) -> dict:
+            """Get a specific example for eval scripts.
+
+            Args:
+                idx: Example index.
+
+            Returns:
+                Dictionary with 'prompt', 'info', 'html', 'query'.
+            """
+            row = self.dataset[idx]
+            info = json.loads(row["info"]) if isinstance(row["info"], str) else row["info"]
+
+            return {
+                "prompt": row["prompt"],
+                "info": info,
+                "html": info.get("html", ""),
+                "query": info.get("query", ""),
+                "idx": idx,
+            }
+
+        def create_tool_registry(self, example: dict) -> Any:
+            """Create a tool registry for an example (for eval scripts).
+
+            Args:
+                example: Example from get_example().
+
+            Returns:
+                ToolRegistry with run_python and optional tools configured.
+            """
+            from bs4_env.tools.harness import TaskConstraints, create_tool_registry
+
+            constraints = TaskConstraints(
+                output_schema=example["info"].get("answer_schema", {}),
+                allowed_limit_reasons=example["info"].get("limit_info", {}).get("allowed_reasons", []),
+            )
+
+            pages = example["info"].get("pages", {})
+
+            return create_tool_registry(
+                executor=get_executor(
+                    backend="local",
+                    max_output_chars=10000,
+                ),
+                html=example["html"],
+                query=example["query"],
+                constraints=constraints.__dict__,
+                task_info=example["info"],
+                timeout_s=30.0,
+                pages=pages if pages else None,
+            )
+
+        def grade(
+            self,
+            output: str,
+            example: dict,
+            tool_call_count: int | None = None,
+            code_samples: list[str] | None = None,
+        ) -> tuple[float, dict]:
+            """Grade a model output (for eval scripts).
+
+            Args:
+                output: The raw model output string.
+                example: The example dictionary.
+                tool_call_count: Number of tool calls made.
+                code_samples: List of code strings executed.
+
+            Returns:
+                Tuple of (reward, metrics).
+            """
+            from bs4_env.grading.rubric import compute_reward
+
+            return compute_reward(
+                raw_output=output,
+                task_info=example["info"],
+                html=example["html"],
+                tool_call_count=tool_call_count,
+                code_samples=code_samples,
+            )
+
     # Create environment and add tools
     env = BeautifulSoupEnv(
         dataset=dataset,
