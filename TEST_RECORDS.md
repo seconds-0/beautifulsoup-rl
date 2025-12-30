@@ -18,7 +18,7 @@ Focus on **small/weak models** - they benefit most from RL training on this envi
 - ~~`x-ai/grok-4.1-fast`~~ - Rate limits too aggressive
 
 ### For Comparison Only (Strong Models)
-- [ ] `openai/gpt-5.2` - **In Progress** (running on Namespace cloud)
+- [x] `openai/gpt-5.2` - **70.9% pass rate** (680 examples, frontier baseline)
 - `anthropic/claude-3-5-haiku-latest` - Fast, capable
 
 ---
@@ -74,12 +74,31 @@ Focus on **small/weak models** - they benefit most from RL training on this envi
 
 ---
 
-### 2025-12-29: GPT-5.2 (In Progress - Cloud)
+### 2025-12-30: GPT-5.2 (Full - 680/680) ⭐ FRONTIER BASELINE
 
 **Model:** `openai/gpt-5.2`
-**Config:** split=bench, mode=all, 680 examples
-**Status:** Running on Namespace cloud (8-core runner)
-**Run ID:** 20583328485
+**Config:** split=bench, mode=all, 680 examples (34 archetypes)
+**Status:** Complete
+
+| Category | Archetypes | Avg Reward | Pass Rate |
+|----------|------------|------------|-----------|
+| **Perfect (100%)** | deep_nesting, sibling_navigation, extract_text_by_id, string_returns_none, class_reserved_word, extract_multilingual, extract_rtl, extract_emoji, multivalue_class, table_list_of_dicts, whitespace_sibling | 1.000 | 100% |
+| **Excellent (95%+)** | json_ld_extraction, table_list_of_lists, relational_query, attribute_selector, none_attribute_error, semantic_ambiguity | 0.97 | 97% |
+| **Good (80-95%)** | parser_differences, semantic_decoy_extreme, extract_text_by_class | 0.88 | 88% |
+| **Moderate (50-80%)** | css_combinator, navigablestring_parent, count_elements, multi_hop_filter, structured_output | 0.65 | 65% |
+| **Challenging (20-50%)** | aggregation_min_max, limit_js_required | 0.27 | 27% |
+| **Hard Multi-Step (0-20%)** | partial_data_extraction, pagination_aggregate, limit_image_text, list_extraction, search_then_detail, link_chain, compare_products | 0.03 | 3% |
+| **Total** | 34 | **0.692** | **70.9%** |
+
+**Observations:**
+- **Frontier baseline**: 70.9% pass rate vs Ministral 3's 63.2% (+7.7%)
+- **Perfect on 11 archetypes** (vs 6 for Ministral 3)
+- **string_returns_none: 100%** - fully understands the `.string` vs `get_text()` gotcha
+- **Semantic tasks excellent**: ambiguity 94.5%, decoy 89.5% (vs ~45-50% for 8B models)
+- Multi-step navigation still very hard (0% on 4 archetypes)
+- Efficient: 1,448 tool calls (~2.1/example)
+
+**Token Usage:** 3.96M input, 851K output (~4.8M total)
 
 ---
 
