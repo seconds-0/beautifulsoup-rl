@@ -362,7 +362,8 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
             Returns:
                 ToolRegistry with run_python and optional tools configured.
             """
-            from bs4_env.tools.harness import TaskConstraints, create_tool_registry
+            from bs4_env.config import TaskConstraints
+            from bs4_env.tools.tool_defs import create_tool_registry
 
             constraints = TaskConstraints(
                 output_schema=example["info"].get("answer_schema", {}),
