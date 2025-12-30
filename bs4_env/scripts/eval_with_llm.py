@@ -39,7 +39,7 @@ from typing import Any
 from openai import OpenAI
 
 from beautiful_soup_env import load_environment
-from bs4_env.tools.harness import RUN_PYTHON_TOOL_SCHEMA
+from bs4_env.tools.harness import RUN_PYTHON_TOOL_SCHEMA, NAVIGATE_TOOL_SCHEMA
 
 # OpenRouter base URL
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
@@ -68,9 +68,14 @@ def create_openrouter_client() -> OpenAI:
 def get_tools() -> list[dict]:
     """Get tool definitions in OpenAI format.
 
-    Uses the same schema defined in harness.py for consistency with Prime.
+    Uses the same schemas defined in harness.py for consistency with Prime.
+    Both run_python and navigate are always available (navigate returns
+    an error for single-step tasks, matching Prime's behavior).
     """
-    return [{"type": "function", "function": RUN_PYTHON_TOOL_SCHEMA}]
+    return [
+        {"type": "function", "function": RUN_PYTHON_TOOL_SCHEMA},
+        {"type": "function", "function": NAVIGATE_TOOL_SCHEMA},
+    ]
 
 
 def run_llm_agent(
@@ -183,8 +188,8 @@ def run_llm_agent(
                     continue
 
                 # Execute the tool
-                if func_name == "run_python":
-                    result = tool_registry.call("run_python", func_args)
+                if func_name in ("run_python", "navigate"):
+                    result = tool_registry.call(func_name, func_args)
                 else:
                     result = json.dumps({"error": f"Unknown tool: {func_name}"})
 
@@ -192,7 +197,7 @@ def run_llm_agent(
                     {
                         "tool": func_name,
                         "args": func_args,
-                        "result": result[:1000],  # Truncate for history
+                        "result": result,  # Full result for debugging
                     }
                 )
 
@@ -309,8 +314,11 @@ def run_evaluation(
                 "input_tokens": stats["input_tokens"],
                 "output_tokens": stats["output_tokens"],
                 "elapsed_s": elapsed,
-                "final_output": final_output[:500] if verbose else None,
-                "ground_truth": info.get("ground_truth") if verbose else None,
+                # Always store full logs for debugging/analysis
+                "final_output": final_output,
+                "ground_truth": info.get("ground_truth"),
+                "tool_history": tool_history,  # All code executed and results
+                "query": info.get("query"),  # The task query
             }
         )
 
