@@ -121,7 +121,7 @@ You have access to:
 - `HTML`: The HTML content to parse (as a string)
 - `QUERY`: The extraction task description
 - `CONSTRAINTS`: A dictionary with output requirements
-- `make_soup(parser)`: Helper function to create a BeautifulSoup object
+- `make_soup()`: Helper that creates BeautifulSoup from the `HTML` variable. Just call `soup = make_soup()` - do NOT pass HTML as argument.
 
 **`navigate`** - For multi-step tasks, follows links to load new HTML content. After navigating, the `HTML` variable in `run_python` will contain the new page.
 
