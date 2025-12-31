@@ -25,6 +25,32 @@ Focus on **small/weak models** - they benefit most from RL training on this envi
 
 ## Benchmark Runs (Expanded - 34 Archetypes, 680 Examples)
 
+### 2025-12-31: Chinese Models Benchmarked (Kimi K2, GLM-4.7)
+
+Tested cheaper alternatives to GPT-5.2 from Chinese providers.
+
+| Model | Pass Rate | Perfect Rate | Avg Reward | Cost | Runtime |
+|-------|-----------|--------------|------------|------|---------|
+| **GPT-5.2** | **75.6%** | **57.5%** | **0.726** | ~$1.20 | 2h49m |
+| **GLM-4.7** | **74.7%** | 45.1% | 0.684 | ~$0.51 | 3h58m |
+| **Kimi K2** | 72.8% | 45.0% | 0.666 | ~$0.28 | 5h45m |
+| Ministral 3 8B | 63.2% | 56.2% | 0.621 | ~$0.07 | 1h19m |
+| Qwen3-8B | 43.1% | 26.6% | 0.401 | ~$0.16 | 4h30m |
+
+**Key Findings:**
+1. **GLM-4.7 is best value**: Nearly GPT-5.2's pass rate at 43% of the cost
+2. **Kimi K2** cheaper but slower, slightly worse pass rate
+3. Both Chinese models have significantly lower **perfect rate** (45% vs 57.5%)
+
+**Model-Specific Weaknesses:**
+
+| Model | Strength | Weakness |
+|-------|----------|----------|
+| GLM-4.7 | Reliable, balanced | Multi-step nav (0-6% perfect) |
+| Kimi K2 | Better multi-step nav (+15-18%) | `string_returns_none` 0% (BS4 gotcha blind) |
+
+---
+
 ### 2025-12-31: All Models Re-benchmarked (Navigate Tool Fix)
 
 **Critical Bug Fixed:** Previous benchmarks had the `navigate` tool missing - multi-step tasks were impossible to solve. See TODO.md for details.
