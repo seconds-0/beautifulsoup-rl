@@ -1,0 +1,184 @@
+# BeautifulSoup RL Environment - TODO
+
+Master list of bugs, improvements, and next steps.
+
+---
+
+## Bugs & Problems
+
+### CRITICAL: Navigate Tool Was Missing (FIXED 2025-12-30)
+
+**Status:** Fixed in commit `925d7cc`
+
+The `navigate` tool was never exposed to models in `eval_with_llm.py`. This meant:
+- All multi-step archetypes were **impossible to solve**
+- Models scored 0% on: `link_chain`, `search_then_detail`, `compare_products`, `pagination_aggregate`, `list_extraction`
+- Previous benchmark results for these 5 archetypes (100 examples, ~15% of test) are **invalid**
+
+**Fix:** Added `NAVIGATE_TOOL_SCHEMA` to `get_tools()` and handle navigate calls in execution loop.
+
+**Impact:** Re-running all benchmarks with fix. Expect significant score improvements.
+
+---
+
+### parser_required Archetype Doesn't Test Parser Differences
+
+**Status:** Open - needs redesign
+
+**Problem:** The `ParserRequiredGenerator` in `mvp_hard.py` claims to test parser-dependent HTML, but testing shows all three parsers (`html.parser`, `lxml`, `html5lib`) handle the "malformed" cases identically:
+
+```
+=== unclosed_tag ===
+  html.parser : $99.99   (finds value)
+  lxml        : $99.99   (finds value)
+  html5lib    : $99.99   (finds value)
+
+=== nested_misorder ===
+  html.parser : $149.99  (finds value)
+  lxml        : $149.99  (finds value)
+  html5lib    : $149.99  (finds value)
+
+=== optional_end_tag ===
+  html.parser : Special: $25.00Premium: $50.00  (includes extra!)
+  lxml        : Special: $25.00  (correct)
+  html5lib    : Special: $25.00  (correct)
+```
+
+**Issues:**
+1. `unclosed_tag`: All parsers handle `<p>` followed by `<p>` correctly (implicit close)
+2. `nested_misorder`: Misnested `<b><i>text</b></i>` is recovered by all parsers
+3. `optional_end_tag`: Unclosed `<li>` is **valid HTML5**, not malformed. `html.parser` is worse here, not "different"
+
+**Root Cause:** Modern HTML parsers are very lenient. The "malformed" examples chosen are common patterns that parsers handle gracefully.
+
+**Options:**
+1. Find genuinely parser-dependent HTML (rare edge cases)
+2. Rename to test something else (e.g., "lenient parsing")
+3. Remove archetype entirely
+4. Test parser *selection* rather than parser *requirement*
+
+**Research Needed:**
+- [ ] Find real-world HTML that produces different parse trees across parsers
+- [ ] Check BS4 documentation for known parser differences
+- [ ] Consider testing parser performance/features rather than correctness
+
+---
+
+### Log Storage Was Insufficient (FIXED 2025-12-30)
+
+**Status:** Fixed in commit `925d7cc`
+
+**Problem:** Results files were missing critical debugging data:
+- `tool_history` not saved at all
+- `final_output` truncated to 500 chars (only in verbose mode)
+- `ground_truth` only saved in verbose mode
+- `result` in tool_history truncated to 1000 chars
+
+**Fix:** Now always stores:
+- Full `tool_history` (all code executed and results)
+- Full `final_output`
+- `ground_truth`
+- `query`
+
+**Impact:** Future benchmarks will have full logs for debugging and analysis.
+
+---
+
+## Improvements
+
+### High Priority
+
+- [ ] **Add --compact flag for eval_with_llm.py** - Full logs can be large (HTML in tool results). Add option to reduce storage for production runs.
+
+- [ ] **Validate multi-step tasks work end-to-end** - Run a few examples manually to verify navigate tool integration is correct.
+
+- [ ] **Add test for navigate tool** - Unit test that verifies navigate tool is exposed and works correctly.
+
+- [ ] **Fix parser_required archetype** - Either find genuinely parser-dependent HTML or redesign the archetype.
+
+### Medium Priority
+
+- [ ] **Add solvability verification tests** - For each archetype, verify at least one parser can solve the generated task.
+
+- [ ] **Improve efficiency penalty** - Current -10% per extra tool call may be too aggressive for multi-step tasks that legitimately need many calls.
+
+- [ ] **Add cost tracking** - Track $ cost per model for budgeting.
+
+- [ ] **Parallel benchmark runs** - Run multiple models simultaneously on different runners.
+
+### Low Priority
+
+- [ ] **Add Claude/Anthropic model support** - Currently only OpenRouter, add direct Anthropic API option.
+
+- [ ] **Web UI for results** - Dashboard to visualize benchmark results over time.
+
+- [ ] **Streaming progress** - Show real-time benchmark progress in GitHub Actions logs.
+
+---
+
+## Research Questions
+
+### Why is GPT-5.2 only ~8% better than Ministral 3 8B?
+
+**Hypothesis:** The gap may widen significantly now that multi-step tasks work. Previous results had both models at 0% on 5 archetypes, hiding the real difference.
+
+**To verify:** Compare new benchmark results when complete.
+
+### What makes multi-step tasks hard?
+
+**Observations from tool_history analysis needed:**
+- Are models failing to use navigate?
+- Are they navigating but not aggregating data?
+- Is the output format wrong?
+- Are they getting lost in the HTML?
+
+**Action:** Analyze full logs from new benchmark runs.
+
+### Is the efficiency penalty calibrated correctly?
+
+**Current:** -10% per extra tool call beyond optimal, floor at 0.2x
+
+**Questions:**
+- Multi-step tasks legitimately need 5-10+ tool calls. Are we penalizing correct behavior?
+- Should penalty be archetype-specific?
+
+---
+
+## Completed
+
+- [x] Fix navigate tool exposure (2025-12-30)
+- [x] Add full log storage (2025-12-30)
+- [x] Re-trigger all benchmarks with fix (2025-12-30)
+- [x] Document parser_required bug (2025-12-30)
+
+---
+
+## Benchmark Status
+
+### Current Runs (2025-12-30, with navigate fix)
+
+| Model | Run ID | Status |
+|-------|--------|--------|
+| GPT-5.2 | 20606980726 | in_progress |
+| Ministral 3 8B | 20607042451 | in_progress |
+| Qwen3-8B | 20607043246 | in_progress |
+
+### Previous Results (PARTIALLY INVALID - no navigate tool)
+
+| Model | Pass Rate | Note |
+|-------|-----------|------|
+| GPT-5.2 | 70.9% | Multi-step archetypes were 0% |
+| Ministral 3 8B | 63.2% | Multi-step archetypes were 0% |
+| Qwen3-8B | 39.6% | Multi-step archetypes were 0% |
+
+---
+
+## File Reference
+
+| File | Purpose |
+|------|---------|
+| `bs4_env/scripts/eval_with_llm.py` | LLM evaluation script |
+| `bs4_env/generators/mvp_hard.py` | Contains parser_required (buggy) |
+| `bs4_env/generators/mvp_multistep.py` | Multi-step archetypes |
+| `bs4_env/tools/tool_defs.py` | Tool definitions including navigate |
+| `TEST_RECORDS.md` | Benchmark results history |
