@@ -9,7 +9,7 @@ import json
 import pytest
 from bs4 import BeautifulSoup
 
-from bs4_env.generators.mvp_json_ld import JsonLdExtractionGenerator
+from bs4_env.generators.mvp_json_ld import JsonLdArrayGenerator, JsonLdExtractionGenerator
 from bs4_env.generators.mvp_multivalue_class import MultivalueClassGenerator
 from bs4_env.generators.mvp_navigablestring import NavigableStringParentGenerator
 from bs4_env.generators.mvp_whitespace_sibling import WhitespaceSiblingGenerator
@@ -164,6 +164,72 @@ class TestJsonLdExtraction:
         assert str(current) == task.ground_truth
 
 
+class TestJsonLdArray:
+    """Tests for the JSON-LD array selection archetype."""
+
+    def test_multiple_json_ld_scripts_exist(self):
+        """Verify multiple JSON-LD script tags exist in HTML."""
+        gen = JsonLdArrayGenerator()
+        task = gen.generate(seed=42)
+
+        soup = BeautifulSoup(task.html, "html.parser")
+
+        # Find all JSON-LD scripts
+        scripts = soup.find_all("script", type="application/ld+json")
+        assert len(scripts) >= 3, f"Expected 3+ JSON-LD scripts, found {len(scripts)}"
+
+        # Verify each is valid JSON with @type
+        types_found = set()
+        for script in scripts:
+            data = json.loads(script.string)
+            assert "@type" in data, "Each JSON-LD block should have @type"
+            types_found.add(data["@type"])
+
+        # Should have different types
+        assert len(types_found) >= 3, "Should have multiple different @types"
+
+    def test_target_type_extraction_works(self):
+        """Verify the target @type can be found and data extracted."""
+        gen = JsonLdArrayGenerator()
+        task = gen.generate(seed=42)
+
+        soup = BeautifulSoup(task.html, "html.parser")
+        target_type = task.metadata["target_type"]
+
+        # Find all JSON-LD scripts
+        scripts = soup.find_all("script", type="application/ld+json")
+
+        # Find the one with the target type
+        target_data = None
+        for script in scripts:
+            data = json.loads(script.string)
+            if data.get("@type") == target_type:
+                target_data = data
+                break
+
+        assert target_data is not None, f"Could not find JSON-LD with @type={target_type}"
+
+        # Navigate to the extraction path
+        path = task.metadata["extraction_path"]
+        current = target_data
+        for part in path.split("."):
+            if isinstance(current, dict):
+                current = current.get(part)
+
+        assert str(current) == task.ground_truth
+
+    def test_determinism(self):
+        """Same seed produces identical output."""
+        gen = JsonLdArrayGenerator()
+
+        task1 = gen.generate(seed=12345)
+        task2 = gen.generate(seed=12345)
+
+        assert task1.html == task2.html
+        assert task1.query == task2.query
+        assert task1.ground_truth == task2.ground_truth
+
+
 class TestNavigableStringParent:
     """Tests for the NavigableString parent navigation gotcha archetype."""
 
@@ -228,6 +294,7 @@ class TestGotchaArchetypeDeterminism:
             MultivalueClassGenerator,
             WhitespaceSiblingGenerator,
             JsonLdExtractionGenerator,
+            JsonLdArrayGenerator,
             NavigableStringParentGenerator,
         ],
     )
@@ -248,6 +315,7 @@ class TestGotchaArchetypeDeterminism:
             MultivalueClassGenerator,
             WhitespaceSiblingGenerator,
             JsonLdExtractionGenerator,
+            JsonLdArrayGenerator,
             NavigableStringParentGenerator,
         ],
     )

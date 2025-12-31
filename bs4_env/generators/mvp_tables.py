@@ -4,7 +4,7 @@ This module implements tasks for extracting data from HTML tables,
 a common and important scraping scenario.
 """
 
-from bs4_env.config import DICT_LIST_SCHEMA, TABLE_SCHEMA
+from bs4_env.config import DICT_LIST_SCHEMA, STRING_SCHEMA, TABLE_SCHEMA
 from bs4_env.generators.base import (
     Generator,
     HtmlStyle,
@@ -207,5 +207,119 @@ class TableListOfListsGenerator(Generator):
             metadata={
                 "row_count": num_rows,
                 "col_count": num_cols,
+            },
+        )
+
+
+@register(
+    archetype_id="mvp.table_rowspan",
+    category="table_parsing",
+    difficulty="hard",
+    solvable=True,
+    description="Extract data from complex tables with rowspan and colspan attributes",
+    tags=["table", "rowspan", "colspan", "complex"],
+    phase=2,
+    answer_schema=STRING_SCHEMA,
+)
+class TableRowspanGenerator(Generator):
+    """Generate tasks with complex tables using rowspan/colspan.
+
+    This tests the model's ability to understand cell spanning in tables:
+    1. Cells with rowspan span multiple rows vertically
+    2. Cells with colspan span multiple columns horizontally
+    3. The model must track which cell belongs to which logical row/column
+
+    Example difficulty: Given a table where "Category A" spans 3 rows,
+    extract the value in the "Price" column for the row labeled "Item 2".
+    """
+
+    def generate(self, seed: int) -> TaskInstance:
+        rng = make_rng(self.archetype_id, seed)
+        style = rng.choice(list(HtmlStyle))
+
+        # Generate categories and items
+        categories = ["Electronics", "Clothing", "Home & Garden", "Sports", "Books"]
+        category = rng.choice(categories)
+
+        # Generate 3-5 items in this category
+        num_items = rng.randint(3, 5)
+        items = []
+        for i in range(num_items):
+            items.append(
+                {
+                    "name": f"Item {i + 1}",
+                    "price": f"${rng.randint(10, 200)}.{rng.randint(0, 99):02d}",
+                    "stock": str(rng.randint(0, 500)),
+                }
+            )
+
+        # Pick which item's price to ask for
+        target_idx = rng.randint(0, num_items - 1)
+        target_item = items[target_idx]
+        ground_truth = target_item["price"]
+
+        # Build table with rowspan for category
+        table_parts = [
+            '<table class="product-table" border="1">',
+            "<thead>",
+            "<tr><th>Category</th><th>Product</th><th>Price</th><th>Stock</th></tr>",
+            "</thead>",
+            "<tbody>",
+        ]
+
+        # First row has rowspan for category
+        table_parts.append("<tr>")
+        table_parts.append(f'<td rowspan="{num_items}">{category}</td>')
+        table_parts.append(f"<td>{items[0]['name']}</td>")
+        table_parts.append(f"<td>{items[0]['price']}</td>")
+        table_parts.append(f"<td>{items[0]['stock']}</td>")
+        table_parts.append("</tr>")
+
+        # Remaining rows don't have category column (spanned)
+        for item in items[1:]:
+            table_parts.append("<tr>")
+            table_parts.append(f"<td>{item['name']}</td>")
+            table_parts.append(f"<td>{item['price']}</td>")
+            table_parts.append(f"<td>{item['stock']}</td>")
+            table_parts.append("</tr>")
+
+        table_parts.append("</tbody>")
+        table_parts.append("</table>")
+
+        body_content = "\n".join(table_parts)
+
+        html = wrap_with_realistic_chrome(
+            body_content,
+            style,
+            rng,
+            title="Product Inventory",
+            complexity="realistic",
+            include_nav=True,
+            include_footer=True,
+        )
+        html = add_noise_comments(html, rng, count=2)
+
+        query = (
+            f'In the table, find the row for "{target_item["name"]}" '
+            f'in the "{category}" category and extract its Price value.'
+        )
+
+        return TaskInstance(
+            html=html,
+            query=query,
+            ground_truth=ground_truth,
+            archetype_id=self.archetype_id,
+            seed=seed,
+            solvable=True,
+            answer_schema=STRING_SCHEMA,
+            normalization={
+                "strip_whitespace": True,
+            },
+            metadata={
+                "category": category,
+                "target_item": target_item["name"],
+                "target_idx": target_idx,
+                "num_items": num_items,
+                "has_rowspan": True,
             },
         )

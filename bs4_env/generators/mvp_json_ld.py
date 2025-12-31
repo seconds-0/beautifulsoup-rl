@@ -352,3 +352,133 @@ class JsonLdExtractionGenerator(Generator):
                 "json_ld_keys": list(json_ld_data.keys()),
             },
         )
+
+
+@register(
+    archetype_id="mvp.json_ld_array",
+    category="structured_data",
+    difficulty="hard",
+    solvable=True,
+    description="Extract data from multiple JSON-LD blocks, selecting by @type",
+    tags=["extraction", "json-ld", "structured-data", "array", "selection"],
+    phase=2,
+    answer_schema=STRING_SCHEMA,
+)
+class JsonLdArrayGenerator(Generator):
+    """Generate tasks with multiple JSON-LD blocks requiring type-based selection.
+
+    This tests the model's ability to:
+    1. Find ALL script tags with type="application/ld+json"
+    2. Parse each one and identify the @type
+    3. Select the correct block based on @type
+    4. Extract the requested field from that specific block
+
+    Real websites like Redfin can have 60+ JSON-LD blocks. The model must
+    iterate through them to find the right one.
+    """
+
+    def generate(
+        self,
+        seed: int,
+        style: HtmlStyle | None = None,
+    ) -> TaskInstance:
+        rng = make_rng(self.archetype_id, seed)
+
+        if style is None:
+            style = rng.choice(list(HtmlStyle))
+
+        # Generate multiple JSON-LD blocks with different types
+        # We'll have 3-5 blocks, and ask for a specific one
+        all_types = list(SCHEMA_TYPES.keys())
+        rng.shuffle(all_types)
+        num_blocks = rng.randint(3, 5)
+        selected_types = all_types[:num_blocks]
+
+        # Generate data for each type
+        json_ld_blocks = []
+        for schema_type in selected_types:
+            data = generate_json_ld_data(rng, schema_type)
+            json_ld_blocks.append((schema_type, data))
+
+        # Pick which type to ask about
+        target_idx = rng.randint(0, len(json_ld_blocks) - 1)
+        target_type, target_data = json_ld_blocks[target_idx]
+
+        # Choose what to extract from that type
+        path, query_template = rng.choice(EXTRACTION_PATHS[target_type])
+        ground_truth = get_nested_value(target_data, path)
+
+        # Build HTML with multiple JSON-LD scripts
+        scripts = []
+        for _type, data in json_ld_blocks:
+            scripts.append(
+                f'<script type="application/ld+json">\n{json.dumps(data, indent=2)}\n</script>'
+            )
+
+        # Shuffle the order of scripts to make it harder
+        rng.shuffle(scripts)
+
+        # Generate visible content
+        visible_content = generate_variable_content(rng, min_sentences=2, max_sentences=4)
+
+        body_content = f"""
+<div class="page-content">
+    <h1>Multi-Data Page</h1>
+    <p>{visible_content}</p>
+</div>
+"""
+
+        html = wrap_with_realistic_chrome(
+            body_content,
+            style,
+            rng,
+            title="Multi-Data Page",
+            complexity="realistic",
+            include_nav=True,
+            include_footer=True,
+        )
+
+        # Insert all JSON-LD scripts in head
+        head_end = html.find("</head>")
+        if head_end == -1:
+            # Fallback: try to find </body> and insert before it
+            body_end = html.find("</body>")
+            if body_end != -1:
+                head_end = body_end
+            else:
+                # Last resort: append to end
+                head_end = len(html)
+
+        all_scripts = "\n".join(scripts)
+        html = html[:head_end] + all_scripts + "\n" + html[head_end:]
+
+        html = add_noise_comments(html, rng, count=2)
+
+        # Build query that specifies the @type
+        query = (
+            f'{query_template} from the JSON-LD block with @type="{target_type}". '
+            f"There are multiple JSON-LD scripts - find the one with the correct @type."
+        )
+
+        return TaskInstance(
+            html=html,
+            query=query,
+            ground_truth=ground_truth,
+            archetype_id=self.archetype_id,
+            seed=seed,
+            solvable=True,
+            answer_schema=STRING_SCHEMA,
+            normalization={
+                "strip_whitespace": True,
+                "collapse_whitespace": True,
+                "unicode_nfc": True,
+            },
+            metadata={
+                "target_type": target_type,
+                "extraction_path": path,
+                "num_json_ld_blocks": num_blocks,
+                "all_types": selected_types,
+                "target_position": target_idx,
+                "html_style": style.value,
+            },
+        )
