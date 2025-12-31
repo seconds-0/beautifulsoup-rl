@@ -159,6 +159,34 @@ Tested cheaper alternatives to GPT-5.2 from Chinese providers.
 
 ## Phase 1 MVP Benchmark (13 Archetypes, 260 Examples)
 
+### 2025-12-31: Ministral 3B v3 (Limit Prompt Guidance)
+
+**Model:** `mistralai/ministral-3b`
+**Config:** split=bench, mode=mvp, 260 examples (13 archetypes)
+**Changes:** Added detailed limitation detection guidance to prompt
+
+| Model | Pass Rate | Perfect Rate | Avg Reward | Change |
+|-------|-----------|--------------|------------|--------|
+| Ministral 3B v3 | **65.4%** | 51.5% | 0.630 | +3.1% |
+| Ministral 3B v2 | 62.3% | 59.2% | 0.620 | baseline |
+
+**Per-Archetype Changes:**
+
+| Archetype | v2 | v3 | Change | Notes |
+|-----------|-----|-----|--------|-------|
+| table_list_of_lists | 15% | **96.5%** | +81.5% | 🎉 MASSIVE improvement |
+| table_list_of_dicts | 75% | **81%** | +6% | Better |
+| json_ld_extraction | 55% | **29.5%** | -25.5% | Regression? |
+| navigablestring_parent | 32% | **29%** | -3% | Still hard |
+| limit_js_required | 0% | **0%** | 0% | No improvement |
+| limit_image_text | 0% | **0%** | 0% | No improvement |
+
+**Key Finding:** Prompt guidance alone **does NOT help** small models recognize limitations. The limit archetypes remained at 0% despite detailed instructions. This confirms these tasks are a **core RL training opportunity** - models must learn through rewards, not prompting.
+
+**File:** `results_ministral3_v3_limit_guidance.json`
+
+---
+
 ### 2025-12-31: Full Model Comparison (Prompt & Efficiency Fix)
 
 **Changes Made:**
