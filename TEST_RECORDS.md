@@ -23,7 +23,35 @@ Focus on **small/weak models** - they benefit most from RL training on this envi
 
 ---
 
-## Benchmark Runs (Expanded - 34 Archetypes, 680 Examples)
+## Benchmark Runs (Expanded - Now 50 Archetypes)
+
+### 2025-12-31: New Archetypes Added (7 Core Extraction + Traversal)
+
+**Completed PRD target of 50 archetypes.** Added 7 new archetypes to fill remaining gaps.
+
+**Quick Test Results** (Ministral 3B 2512, 5 instances per archetype):
+
+| Archetype | Pass Rate | Notes |
+|-----------|-----------|-------|
+| mvp.extract_attribute | 60% | 2 no-output loops |
+| mvp.extract_links | 80% | Good |
+| mvp.extract_images | **100%** | Perfect |
+| mvp.direct_children | 60% | 2 no-output loops |
+| mvp.descendants_filter | 60% | 1 order mismatch, 2 no-output |
+| mvp.table_column_by_header | **100%** | Perfect |
+| mvp.remove_scripts_styles | **100%** | Perfect |
+| **Overall** | **80%** (28/35) | Solid performance |
+
+**Failure Analysis:**
+- **No-output loops** (7 cases): Model made 10 tool calls without final answer - needs investigation
+- **Order mismatch** (1 case): `descendants_filter` found correct items in wrong order - consider order-agnostic grading
+- **Wrong data** (1 case): Model extracted text instead of `title` attribute - genuine skill gap
+
+**Codex Review Findings (Fixed):**
+- `direct_children`: Simplified HTML structure to avoid `get_text()` including nested text
+- `table_column_by_header`: Added dynamic data generation to prevent reward hacking via memorization
+
+---
 
 ### 2025-12-31: Chinese Models Benchmarked (Kimi K2, GLM-4.7)
 
