@@ -157,6 +157,52 @@ Tested cheaper alternatives to GPT-5.2 from Chinese providers.
 
 ---
 
+## Phase 1 MVP Benchmark (13 Archetypes, 260 Examples)
+
+### 2025-12-31: Full Model Comparison (Prompt & Efficiency Fix)
+
+**Changes Made:**
+1. Fixed efficiency penalty not applying to limit tasks (limit responses now get full 0.5)
+2. Added limitation detection guidance to prompt (JS-rendered, image text)
+3. Fixed `make_soup(HTML)` confusion in prompt
+
+| Model | Pass Rate | Perfect Rate | Avg Reward | Notes |
+|-------|-----------|--------------|------------|-------|
+| **GLM-4.7** | **81.2%** | 78.8% | 0.832 | Frontier baseline |
+| Ministral 3B | 62.3% | 59.2% | 0.620 | Best small model |
+| Qwen3-8B | 55.0% | 35.4% | 0.515 | Struggles on basics |
+
+**Per-Archetype Breakdown:**
+
+| Archetype | GLM-4.7 | Ministral 3B | Qwen3-8B | Notes |
+|-----------|---------|--------------|----------|-------|
+| mvp.extract_text_by_id | **1.00** | 1.00 | 0.40 | Qwen struggles |
+| mvp.extract_text_by_class | 0.85 | 0.80 | 0.46 | Decoy confusion |
+| mvp.string_returns_none | 0.75 | 0.90 | 0.45 | BS4 gotcha |
+| mvp.none_attribute_error | **0.95** | 0.95 | 0.61 | Good coverage |
+| mvp.class_reserved_word | **1.00** | 1.00 | 0.55 | Qwen weaker |
+| mvp.json_ld_extraction | **1.00** | 0.55 | 0.82 | Ministral struggles |
+| mvp.limit_js_required | 0.28 | 0.00 | 0.13 | **Hard for all** |
+| mvp.limit_image_text | 0.02 | 0.00 | 0.00 | **Very hard** |
+| mvp.multivalue_class | **1.00** | 0.95 | 0.64 | Good |
+| mvp.navigablestring_parent | **0.97** | 0.32 | 0.40 | Ministral weak |
+| mvp.whitespace_sibling | **1.00** | 0.69 | 0.54 | Sibling gotcha |
+| mvp.table_list_of_dicts | **0.99** | 0.75 | 0.80 | Tables OK |
+| mvp.table_list_of_lists | **1.00** | 0.15 | 0.91 | Ministral parsing bug |
+
+**Key Findings:**
+1. **Limit archetypes fail on ALL models** (0-28%) - even GLM-4.7 only gets 28% on JS detection
+2. **Ministral 3B beats Qwen3-8B** despite being 3B vs 8B - better at following instructions
+3. **table_list_of_lists**: Ministral at 15% due to `get_text().split()` bug, Qwen at 91% - different parsing strategies
+4. **navigablestring_parent**: GLM-4.7 at 97% vs Ministral at 32% - frontier models understand NavigableString
+
+**Files:**
+- `results_glm47_post_fix.json` - GLM-4.7 results
+- `results_ministral3_v2.json` - Ministral 3B results
+- `results_qwen3_post_fix.json` - Qwen3-8B results
+
+---
+
 ## Legacy Benchmark Runs (10 Archetypes, 200 Examples)
 
 ### 2025-12-29: GPT-5.2 (Full - 200/200) - Frontier Baseline
