@@ -156,7 +156,30 @@ If extraction is impossible with static HTML parsing:
 - Use `class_` not `class` (reserved word)
 - `.string` returns None if element has multiple children - use `.get_text()` instead
 - Always check if `find()` returns None before accessing attributes
-- Different parsers produce different results for malformed HTML"""
+- Different parsers produce different results for malformed HTML
+
+## Recognizing Limitations
+
+Some tasks CANNOT be solved with static HTML parsing. When you encounter these, use `status: "limit"`:
+
+**JavaScript-rendered content** (`reason: "js_required"`):
+- The expected elements (e.g., `.product-name`, `.price`) don't exist in the HTML
+- But you see `<script>` tags with React (`ReactDOM`), Vue (`createApp`), or vanilla JS (`innerHTML`, `getElementById`)
+- The HTML has placeholders like "Loading..." where content should be
+- The actual data is inside JavaScript code, not DOM elements
+
+**Text in images** (`reason: "image_text"`):
+- The content you need is only available as an image (`.png`, `.jpg`)
+- The text is in a `data-content` attribute on an `<img>` tag
+- BeautifulSoup can't read text from images - that requires OCR
+
+**When to claim limit:**
+- If `.find()` returns None for expected elements AND you see JS rendering patterns
+- If the content is inside an image file reference
+- After examining the HTML structure (not after 10 failed attempts at the same code)
+
+**Evidence:** Must be a literal substring from the HTML that proves the limitation (e.g., `"ReactDOM.render"`, `"<img src="`).
+"""
 
 
 OUTPUT_FORMAT_EXAMPLE = {"status": "ok", "answer": "<your extracted data matching the schema>"}
