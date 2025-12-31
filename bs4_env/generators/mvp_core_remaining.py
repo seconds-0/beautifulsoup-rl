@@ -457,29 +457,31 @@ class DirectChildrenGenerator(Generator):
         num_children = rng.randint(3, 5)
         child_texts = [f"Child {i+1}" for i in range(num_children)]
 
-        # Generate nested descendants (what we DON'T want)
-        nested_texts = ["Nested A", "Nested B", "Deeply Nested"]
+        # Generate nested content that looks like children but isn't direct
+        nested_item_texts = ["Nested A", "Nested B", "Deep Item"]
 
         # Build HTML with nested structure
+        # Direct children have simple text, but there's a nested wrapper
+        # with its own items that should NOT be included
         children_html = []
-        for i, text in enumerate(child_texts):
-            if i == 1:
-                # This child has nested elements
-                children_html.append(f"""
-<div class="child">
-  {text}
-  <div class="nested">
-    <span>{nested_texts[0]}</span>
-    <span>{nested_texts[1]}</span>
+        for text in child_texts:
+            children_html.append(f'<div class="item">{text}</div>')
+
+        # Add a nested container with items that look similar but are NOT direct
+        nested_wrapper = f"""
+<div class="nested-wrapper">
+  <div class="item">{nested_item_texts[0]}</div>
+  <div class="item">{nested_item_texts[1]}</div>
+  <div class="deep">
+    <div class="item">{nested_item_texts[2]}</div>
   </div>
 </div>
-""")
-            else:
-                children_html.append(f'<div class="child">{text}</div>')
+"""
 
         container_html = f"""
 <div id="{container_id}" class="parent">
   {"".join(children_html)}
+  {nested_wrapper}
 </div>
 """
 
@@ -501,7 +503,7 @@ class DirectChildrenGenerator(Generator):
         # Ground truth is ONLY the direct child texts
         ground_truth = child_texts
 
-        query = f'Extract the text content of only the DIRECT children (div.child elements) of the container with id="{container_id}". Do not include nested descendants. Return as a list of strings.'
+        query = f'Extract the text content of only the DIRECT children (div.item elements) of the container with id="{container_id}". Do not include items from nested wrappers. Return as a list of strings.'
 
         return TaskInstance(
             html=html,
@@ -650,29 +652,68 @@ class TableColumnByHeaderGenerator(Generator):
     Tests the ability to:
     - Parse table headers to find column index
     - Extract all cells in that column
-    - Handle whitespace in headers
+    - Handle dynamic/randomized data (prevents reward hacking)
     """
 
-    TABLE_DATA = {
+    # Templates for dynamic data generation
+    TABLE_TEMPLATES = {
         "employees": {
             "headers": ["Name", "Department", "Salary", "Start Date"],
-            "rows": [
-                ["Alice", "Engineering", "$85,000", "2020-01-15"],
-                ["Bob", "Marketing", "$72,000", "2019-06-01"],
-                ["Carol", "Engineering", "$92,000", "2018-03-10"],
-                ["Dave", "Sales", "$68,000", "2021-09-20"],
-            ],
+            "name_pool": ["Alice", "Bob", "Carol", "Dave", "Eve", "Frank", "Grace", "Henry"],
+            "dept_pool": ["Engineering", "Marketing", "Sales", "HR", "Finance", "Legal"],
         },
         "products": {
             "headers": ["Product", "Category", "Price", "Stock"],
-            "rows": [
-                ["Widget A", "Electronics", "$29.99", "150"],
-                ["Gadget B", "Electronics", "$49.99", "75"],
-                ["Tool C", "Hardware", "$19.99", "200"],
-                ["Device D", "Electronics", "$99.99", "50"],
-            ],
+            "product_pool": ["Widget", "Gadget", "Tool", "Device", "Module", "Unit"],
+            "category_pool": ["Electronics", "Hardware", "Software", "Accessories"],
+        },
+        "inventory": {
+            "headers": ["Item", "Location", "Quantity", "Last Updated"],
+            "item_pool": ["Part A", "Part B", "Component X", "Supply Y", "Material Z"],
+            "location_pool": ["Warehouse A", "Warehouse B", "Store 1", "Store 2", "Factory"],
         },
     }
+
+    def _generate_dynamic_rows(self, rng, table_type: str, num_rows: int) -> list[list[str]]:
+        """Generate dynamic table rows using rng to prevent memorization."""
+        template = self.TABLE_TEMPLATES[table_type]
+        rows = []
+
+        if table_type == "employees":
+            names = rng.sample(template["name_pool"], min(num_rows, len(template["name_pool"])))
+            for i in range(num_rows):
+                name = names[i % len(names)] if i < len(names) else f"Person{i}"
+                dept = rng.choice(template["dept_pool"])
+                salary = f"${rng.randint(45, 120) * 1000:,}"
+                year = rng.randint(2015, 2023)
+                month = rng.randint(1, 12)
+                day = rng.randint(1, 28)
+                date = f"{year}-{month:02d}-{day:02d}"
+                rows.append([name, dept, salary, date])
+
+        elif table_type == "products":
+            products = rng.sample(template["product_pool"], min(num_rows, len(template["product_pool"])))
+            for i in range(num_rows):
+                prod = products[i % len(products)] if i < len(products) else f"Item{i}"
+                prod_name = f"{prod} {rng.choice(['Pro', 'Plus', 'Lite', 'Max'])}"
+                cat = rng.choice(template["category_pool"])
+                price = f"${rng.randint(10, 200)}.{rng.randint(0, 99):02d}"
+                stock = str(rng.randint(10, 500))
+                rows.append([prod_name, cat, price, stock])
+
+        elif table_type == "inventory":
+            items = rng.sample(template["item_pool"], min(num_rows, len(template["item_pool"])))
+            for i in range(num_rows):
+                item = items[i % len(items)] if i < len(items) else f"Item{i}"
+                loc = rng.choice(template["location_pool"])
+                qty = str(rng.randint(1, 1000))
+                year = rng.randint(2023, 2024)
+                month = rng.randint(1, 12)
+                day = rng.randint(1, 28)
+                date = f"{year}-{month:02d}-{day:02d}"
+                rows.append([item, loc, qty, date])
+
+        return rows
 
     def generate(
         self,
@@ -684,11 +725,12 @@ class TableColumnByHeaderGenerator(Generator):
         if style is None:
             style = rng.choice(list(HtmlStyle))
 
-        # Pick table data
-        table_type = rng.choice(list(self.TABLE_DATA.keys()))
-        table_info = self.TABLE_DATA[table_type]
-        headers = table_info["headers"]
-        rows = table_info["rows"]
+        # Pick table type and generate dynamic data
+        table_type = rng.choice(list(self.TABLE_TEMPLATES.keys()))
+        template = self.TABLE_TEMPLATES[table_type]
+        headers = template["headers"]
+        num_rows = rng.randint(3, 5)
+        rows = self._generate_dynamic_rows(rng, table_type, num_rows)
 
         # Pick target column (not the first one, as that's too easy)
         target_col_idx = rng.randint(1, len(headers) - 1)
