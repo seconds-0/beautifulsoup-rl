@@ -8,6 +8,8 @@ This module handles validation of model outputs against expected schemas.
 import json
 from typing import Any
 
+import re
+
 from jsonschema import Draft7Validator
 
 # The top-level output schema that all model responses must follow
@@ -111,8 +113,40 @@ def validate_output_schema(output: dict) -> list[str]:
     return errors
 
 
+def _is_coercible_to_schema(answer: Any, answer_schema: dict) -> bool:
+    """Check if answer can be coerced to match the schema type.
+
+    This enables format tolerance: string "4" can become int 4,
+    float 185.40 can become string "$185.40", etc.
+
+    Args:
+        answer: The answer value.
+        answer_schema: The JSON schema.
+
+    Returns:
+        True if the answer is coercible to the schema type.
+    """
+    schema_type = answer_schema.get("type")
+
+    # String integer -> integer (e.g., "4" -> 4)
+    if schema_type == "integer" and isinstance(answer, str):
+        return bool(re.fullmatch(r"[+-]?\d+", answer.strip()))
+
+    # Numeric value -> string (for prices, e.g., 185.40 -> "$185.40")
+    if schema_type == "string" and isinstance(answer, (int, float)) and not isinstance(answer, bool):
+        return True
+
+    return False
+
+
 def validate_answer_schema(answer: Any, answer_schema: dict) -> list[str]:
     """Validate the answer field against task-specific schema.
+
+    This validation is lenient about types that can be coerced:
+    - String "4" is accepted when schema expects integer
+    - Numeric values are accepted when schema expects string (for prices)
+
+    The actual coercion and comparison happens in rubric.py.
 
     Args:
         answer: The answer value from the output.
@@ -123,6 +157,10 @@ def validate_answer_schema(answer: Any, answer_schema: dict) -> list[str]:
     """
     if not answer_schema:
         # No schema specified, accept anything
+        return []
+
+    # Check if answer is coercible to expected type - skip strict validation
+    if _is_coercible_to_schema(answer, answer_schema):
         return []
 
     validator = Draft7Validator(answer_schema)

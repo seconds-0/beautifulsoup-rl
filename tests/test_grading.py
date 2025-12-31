@@ -243,3 +243,246 @@ class TestRewardComputation:
         reward, metrics = compute_reward(raw, task_info)
         assert reward < 0  # Safety penalty
         assert not metrics["safety_ok"]
+
+
+class TestIntegerCoercion:
+    """Tests for integer type coercion in grading."""
+
+    def test_string_integer_accepts(self):
+        """String '4' should be accepted when schema expects integer."""
+        raw = '{"status": "ok", "answer": "4"}'
+        task_info = {
+            "solvable": True,
+            "ground_truth": 4,
+            "answer_schema": {"type": "integer"},
+        }
+        reward, metrics = compute_reward(raw, task_info)
+        assert reward == REWARD_CORRECT
+        assert metrics["correct"]
+        assert metrics.get("coercion_applied")
+
+    def test_integer_matches_integer(self):
+        """Integer 4 should match ground truth 4."""
+        raw = '{"status": "ok", "answer": 4}'
+        task_info = {
+            "solvable": True,
+            "ground_truth": 4,
+            "answer_schema": {"type": "integer"},
+        }
+        reward, metrics = compute_reward(raw, task_info)
+        assert reward == REWARD_CORRECT
+        assert metrics["correct"]
+
+    def test_wrong_integer_fails(self):
+        """Wrong integer value should fail."""
+        raw = '{"status": "ok", "answer": "5"}'
+        task_info = {
+            "solvable": True,
+            "ground_truth": 4,
+            "answer_schema": {"type": "integer"},
+        }
+        reward, metrics = compute_reward(raw, task_info)
+        assert reward == REWARD_WRONG
+        assert not metrics["correct"]
+
+    def test_non_integer_string_fails(self):
+        """Non-integer string like '4.5' should fail."""
+        raw = '{"status": "ok", "answer": "4.5"}'
+        task_info = {
+            "solvable": True,
+            "ground_truth": 4,
+            "answer_schema": {"type": "integer"},
+        }
+        reward, metrics = compute_reward(raw, task_info)
+        assert reward == REWARD_WRONG
+
+
+class TestKeyAliasing:
+    """Tests for object key aliasing in grading."""
+
+    def test_aliased_key_accepted(self):
+        """'cheaper_product' should be accepted when ground truth uses 'cheaper'."""
+        raw = '{"status": "ok", "answer": {"cheaper_product": "ProductA", "price_difference": "$10.00"}}'
+        task_info = {
+            "solvable": True,
+            "ground_truth": {"cheaper": "ProductA", "price_difference": "$10.00"},
+            "answer_schema": {
+                "type": "object",
+                "properties": {
+                    "cheaper": {"type": "string"},
+                    "price_difference": {"type": "string"},
+                },
+            },
+        }
+        reward, metrics = compute_reward(raw, task_info)
+        assert reward == REWARD_CORRECT
+        assert metrics["correct"]
+
+    def test_camel_case_key_accepted(self):
+        """'priceDifference' should alias to 'price_difference'."""
+        raw = '{"status": "ok", "answer": {"cheaper": "ProductA", "priceDifference": "$10.00"}}'
+        task_info = {
+            "solvable": True,
+            "ground_truth": {"cheaper": "ProductA", "price_difference": "$10.00"},
+            "answer_schema": {
+                "type": "object",
+                "properties": {
+                    "cheaper": {"type": "string"},
+                    "price_difference": {"type": "string"},
+                },
+            },
+        }
+        reward, metrics = compute_reward(raw, task_info)
+        assert reward == REWARD_CORRECT
+        assert metrics["correct"]
+
+    def test_wrong_value_still_fails(self):
+        """Aliased key with wrong value should still fail."""
+        raw = '{"status": "ok", "answer": {"cheaper_product": "WRONG", "price_difference": "$10.00"}}'
+        task_info = {
+            "solvable": True,
+            "ground_truth": {"cheaper": "ProductA", "price_difference": "$10.00"},
+            "answer_schema": {"type": "object"},
+        }
+        reward, metrics = compute_reward(raw, task_info)
+        assert reward == REWARD_WRONG
+
+
+class TestPriceNormalization:
+    """Tests for price format normalization in grading."""
+
+    def test_price_without_dollar_sign(self):
+        """Price '185.40' should match ground truth '$185.40'."""
+        raw = '{"status": "ok", "answer": "185.40"}'
+        task_info = {
+            "solvable": True,
+            "ground_truth": "$185.40",
+            "answer_schema": {"type": "string"},
+        }
+        reward, metrics = compute_reward(raw, task_info)
+        assert reward == REWARD_CORRECT
+        assert metrics["correct"]
+
+    def test_price_with_single_decimal(self):
+        """Price '$185.4' should match '$185.40' after normalization."""
+        raw = '{"status": "ok", "answer": "$185.4"}'
+        task_info = {
+            "solvable": True,
+            "ground_truth": "$185.40",
+            "answer_schema": {"type": "string"},
+        }
+        reward, metrics = compute_reward(raw, task_info)
+        assert reward == REWARD_CORRECT
+        assert metrics["correct"]
+
+    def test_numeric_price_value(self):
+        """Numeric price 185.40 should match '$185.40'."""
+        raw = '{"status": "ok", "answer": 185.40}'
+        task_info = {
+            "solvable": True,
+            "ground_truth": "$185.40",
+            "answer_schema": {"type": "string"},
+        }
+        reward, metrics = compute_reward(raw, task_info)
+        assert reward == REWARD_CORRECT
+        assert metrics["correct"]
+
+    def test_nested_price_in_object(self):
+        """Prices nested in objects should be normalized."""
+        raw = '{"status": "ok", "answer": {"min": "100.5", "max": "$200.00"}}'
+        task_info = {
+            "solvable": True,
+            "ground_truth": {"min": "$100.50", "max": "$200.00"},
+            "answer_schema": {"type": "object"},
+        }
+        reward, metrics = compute_reward(raw, task_info)
+        assert reward == REWARD_CORRECT
+        assert metrics["correct"]
+
+    def test_wrong_price_fails(self):
+        """Wrong price value should still fail."""
+        raw = '{"status": "ok", "answer": "$99.99"}'
+        task_info = {
+            "solvable": True,
+            "ground_truth": "$185.40",
+            "answer_schema": {"type": "string"},
+        }
+        reward, metrics = compute_reward(raw, task_info)
+        assert reward == REWARD_WRONG
+
+
+class TestCoercionFunctions:
+    """Direct tests for the coercion functions in normalize.py."""
+
+    def test_coerce_integer_from_string(self):
+        """Test coerce_integer with string input."""
+        from bs4_env.grading.normalize import coerce_integer
+
+        assert coerce_integer("4") == 4
+        assert coerce_integer(" 42 ") == 42
+        assert coerce_integer("-10") == -10
+        assert coerce_integer("+5") == 5
+
+    def test_coerce_integer_from_int(self):
+        """Test coerce_integer with int input."""
+        from bs4_env.grading.normalize import coerce_integer
+
+        assert coerce_integer(4) == 4
+        assert coerce_integer(0) == 0
+        assert coerce_integer(-100) == -100
+
+    def test_coerce_integer_rejects_invalid(self):
+        """Test coerce_integer rejects invalid inputs."""
+        import pytest
+
+        from bs4_env.grading.normalize import coerce_integer
+
+        with pytest.raises(ValueError):
+            coerce_integer("4.5")
+        with pytest.raises(ValueError):
+            coerce_integer(True)
+        with pytest.raises(ValueError):
+            coerce_integer(4.0)
+        with pytest.raises(ValueError):
+            coerce_integer("four")
+
+    def test_normalize_object_keys(self):
+        """Test normalize_object_keys applies aliases."""
+        from bs4_env.grading.normalize import normalize_object_keys
+
+        result = normalize_object_keys(
+            {"cheaper_product": "A", "price_diff": "$10"}
+        )
+        assert result == {"cheaper": "A", "price_difference": "$10"}
+
+    def test_normalize_object_keys_collision(self):
+        """Test normalize_object_keys rejects collisions."""
+        import pytest
+
+        from bs4_env.grading.normalize import normalize_object_keys
+
+        with pytest.raises(ValueError):
+            # Both 'cheaper' and 'cheaper_product' would become 'cheaper'
+            normalize_object_keys({"cheaper": "A", "cheaper_product": "B"})
+
+    def test_normalize_price(self):
+        """Test normalize_price canonicalizes formats."""
+        from bs4_env.grading.normalize import normalize_price
+
+        assert normalize_price("$99.99") == "$99.99"
+        assert normalize_price("99.99") == "$99.99"
+        assert normalize_price("$99.9") == "$99.90"
+        assert normalize_price(99.99) == "$99.99"
+        assert normalize_price(100) == "$100.00"
+        assert normalize_price("$1,234.56") == "$1234.56"
+
+    def test_normalize_price_rejects_invalid(self):
+        """Test normalize_price rejects invalid inputs."""
+        import pytest
+
+        from bs4_env.grading.normalize import normalize_price
+
+        with pytest.raises(ValueError):
+            normalize_price("not a price")
+        with pytest.raises(ValueError):
+            normalize_price(True)

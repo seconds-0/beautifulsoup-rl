@@ -10,7 +10,13 @@ import ast
 import re
 from typing import Any
 
-from bs4_env.grading.normalize import normalize_value, values_equal
+from bs4_env.grading.normalize import (
+    coerce_integer,
+    normalize_object_keys,
+    normalize_price,
+    normalize_value,
+    values_equal,
+)
 from bs4_env.grading.safety import check_safety
 from bs4_env.grading.schema import validate_output
 
@@ -320,12 +326,115 @@ def compute_reward(
     return final_reward, metrics
 
 
+def _is_price_string(value: Any) -> bool:
+    """Check if a value looks like a price string.
+
+    Detects patterns like "$99.99", "99.99", "$1,234.56", etc.
+    """
+    if not isinstance(value, str):
+        return False
+    # Match common price patterns: optional currency, digits with optional commas, decimal
+    return bool(re.match(r"^[$£€]?\s*[\d,]+\.?\d*$", value.strip()))
+
+
+def _apply_type_coercion(
+    answer: Any,
+    ground_truth: Any,
+    answer_schema: dict,
+) -> tuple[Any, Any]:
+    """Apply type coercion to bridge format differences.
+
+    Coerces answer to match expected types when semantically equivalent:
+    - String "4" -> int 4 when schema expects integer
+    - Aliased object keys -> canonical keys when schema has properties
+    - Price strings normalized to canonical format
+
+    Args:
+        answer: The model's answer.
+        ground_truth: The expected ground truth.
+        answer_schema: The JSON schema for the answer.
+
+    Returns:
+        Tuple of (coerced_answer, coerced_ground_truth).
+    """
+    coerced_answer = answer
+    coerced_truth = ground_truth
+
+    schema_type = answer_schema.get("type")
+
+    # Integer coercion: "4" -> 4
+    if schema_type == "integer":
+        try:
+            coerced_answer = coerce_integer(answer)
+        except ValueError:
+            pass  # Leave as-is, will fail schema validation
+        try:
+            coerced_truth = coerce_integer(ground_truth)
+        except ValueError:
+            pass
+
+    # Object key aliasing
+    elif schema_type == "object" and isinstance(answer, dict):
+        try:
+            coerced_answer = normalize_object_keys(answer)
+        except ValueError:
+            pass  # Collision - leave as-is
+        if isinstance(ground_truth, dict):
+            try:
+                coerced_truth = normalize_object_keys(ground_truth)
+            except ValueError:
+                pass
+
+    # Price normalization: "$99.9" -> "$99.90", "99.99" -> "$99.99"
+    # Apply when ground truth looks like a price
+    elif _is_price_string(ground_truth):
+        try:
+            coerced_answer = normalize_price(answer)
+            coerced_truth = normalize_price(ground_truth)
+        except ValueError:
+            pass
+
+    # Handle nested prices in objects
+    if isinstance(coerced_answer, dict) and isinstance(coerced_truth, dict):
+        coerced_answer = _normalize_object_prices(coerced_answer, coerced_truth)
+        coerced_truth = _normalize_object_prices(coerced_truth, coerced_truth)
+
+    return coerced_answer, coerced_truth
+
+
+def _normalize_object_prices(obj: dict, reference: dict) -> dict:
+    """Normalize price-like values in an object based on reference.
+
+    For each key in reference that has a price-like value, normalize
+    the corresponding value in obj.
+
+    Args:
+        obj: Object to normalize.
+        reference: Reference object to detect which keys are prices.
+
+    Returns:
+        Object with price values normalized.
+    """
+    result = dict(obj)
+    for key, ref_value in reference.items():
+        if key in result and _is_price_string(ref_value):
+            try:
+                result[key] = normalize_price(result[key])
+            except ValueError:
+                pass  # Leave as-is
+    return result
+
+
 def _grade_ok_response(
     output: dict,
     task_info: dict,
     metrics: dict,
 ) -> tuple[float, dict]:
     """Grade a response with status='ok'.
+
+    Applies format tolerance (type coercion, key aliasing, price normalization)
+    before comparing answer to ground truth. This rewards correct semantic
+    answers even when formatting differs slightly.
 
     Args:
         output: The parsed output dictionary.
@@ -343,22 +452,34 @@ def _grade_ok_response(
         metrics["correct"] = False
         return REWARD_WRONG, metrics
 
-    # Compare answer with ground truth
+    # Get answer and ground truth
     answer = output.get("answer")
     ground_truth = task_info.get("ground_truth")
+    answer_schema = task_info.get("answer_schema", {})
     normalization = task_info.get("normalization", {})
 
-    if values_equal(answer, ground_truth, normalization):
+    # Apply type coercion to bridge format differences
+    coerced_answer, coerced_truth = _apply_type_coercion(
+        answer, ground_truth, answer_schema
+    )
+
+    # Compare with normalization
+    if values_equal(coerced_answer, coerced_truth, normalization):
         metrics["correct"] = True
+        # Note if coercion was applied
+        if coerced_answer != answer or coerced_truth != ground_truth:
+            metrics["coercion_applied"] = True
         return REWARD_CORRECT, metrics
     else:
         metrics["correct"] = False
         # Add helpful debug info
-        normalized_answer = normalize_value(answer, normalization)
-        normalized_truth = normalize_value(ground_truth, normalization)
+        normalized_answer = normalize_value(coerced_answer, normalization)
+        normalized_truth = normalize_value(coerced_truth, normalization)
         metrics["debug"] = {
             "answer_normalized": str(normalized_answer)[:200],
             "truth_normalized": str(normalized_truth)[:200],
+            "answer_raw": str(answer)[:100],
+            "truth_raw": str(ground_truth)[:100],
         }
         return REWARD_WRONG, metrics
 

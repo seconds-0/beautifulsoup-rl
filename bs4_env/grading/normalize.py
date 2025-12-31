@@ -249,3 +249,195 @@ def normalize_url(url: str) -> str:
         url = url[:path_start].lower() + url[path_start:] if path_start > 0 else url.lower()
 
     return url
+
+
+# =============================================================================
+# Type Coercion Functions
+# =============================================================================
+# These functions help bridge formatting differences between model outputs
+# and ground truth without enabling reward hacking.
+
+
+def coerce_integer(value: Any) -> int:
+    """Coerce a value to integer if it's an unambiguous integer representation.
+
+    Only accepts:
+    - Actual integers (not bools)
+    - Strings that are pure decimal integers (e.g., "4", "-123", "+5")
+
+    Rejects:
+    - Floats (even 4.0) to avoid ambiguity
+    - Scientific notation ("4e0")
+    - Strings with decimals ("4.0")
+    - Booleans (True/False are technically ints in Python)
+
+    Args:
+        value: The value to coerce.
+
+    Returns:
+        Integer value.
+
+    Raises:
+        ValueError: If value cannot be unambiguously converted to int.
+    """
+    # Reject booleans explicitly (isinstance(True, int) is True in Python!)
+    if isinstance(value, bool):
+        raise ValueError(f"Cannot coerce boolean to integer: {value!r}")
+
+    # Accept actual integers
+    if isinstance(value, int):
+        return value
+
+    # Accept string representations of integers
+    if isinstance(value, str):
+        stripped = value.strip()
+        # Match optional sign followed by digits only
+        if re.fullmatch(r"[+-]?\d+", stripped):
+            return int(stripped)
+        raise ValueError(f"String is not a pure integer: {value!r}")
+
+    # Reject floats to avoid ambiguity (is 4.9 meant to be 4 or 5?)
+    if isinstance(value, float):
+        raise ValueError(f"Cannot coerce float to integer: {value!r}")
+
+    raise ValueError(f"Cannot coerce {type(value).__name__} to integer: {value!r}")
+
+
+# =============================================================================
+# Key Aliasing for Object Schemas
+# =============================================================================
+# Fixed alias table - no fuzzy matching to prevent gaming.
+# Only add aliases that are clearly the same semantic concept.
+
+KEY_ALIASES: dict[str, str] = {
+    # compare_products archetype
+    "cheaper_product": "cheaper",
+    "cheaperProduct": "cheaper",
+    "cheaper_item": "cheaper",
+    "cheapest": "cheaper",
+    "cheapest_product": "cheaper",
+    "price_diff": "price_difference",
+    "priceDifference": "price_difference",
+    "difference": "price_difference",
+    "diff": "price_difference",
+    # structured_output archetype
+    "product_name": "name",
+    "productName": "name",
+    "item_name": "name",
+    "title": "name",
+    "item_price": "price",
+    "product_price": "price",
+    "cost": "price",
+    "item_sku": "sku",
+    "product_sku": "sku",
+    "sku_number": "sku",
+    "skuNumber": "sku",
+    "item_url": "url",
+    "product_url": "url",
+    "link": "url",
+    "productUrl": "url",
+    # aggregation archetypes
+    "min_price": "min",
+    "minPrice": "min",
+    "minimum": "min",
+    "lowest": "min",
+    "max_price": "max",
+    "maxPrice": "max",
+    "maximum": "max",
+    "highest": "max",
+    "total_count": "count",
+    "totalCount": "count",
+    "num_items": "count",
+    "item_count": "count",
+}
+
+
+def normalize_object_keys(
+    obj: dict,
+    alias_table: dict[str, str] | None = None,
+) -> dict:
+    """Normalize object keys using an alias table.
+
+    This applies key aliasing to help match model outputs that use
+    different but semantically equivalent key names.
+
+    Args:
+        obj: Dictionary to normalize.
+        alias_table: Mapping from alias -> canonical key.
+                    If None, uses default KEY_ALIASES.
+
+    Returns:
+        Dictionary with normalized keys.
+
+    Raises:
+        ValueError: If aliasing would cause key collision.
+    """
+    if alias_table is None:
+        alias_table = KEY_ALIASES
+
+    result = {}
+    for key, value in obj.items():
+        # Normalize key: apply alias if exists
+        canonical_key = alias_table.get(key, key)
+
+        # Check for collision (two different keys aliasing to same canonical)
+        if canonical_key in result:
+            raise ValueError(
+                f"Key collision: both '{key}' and another key resolve to '{canonical_key}'"
+            )
+
+        result[canonical_key] = value
+
+    return result
+
+
+# =============================================================================
+# Price Normalization
+# =============================================================================
+
+
+def normalize_price(value: Any) -> str:
+    """Normalize a price value to canonical format $X.XX.
+
+    Handles:
+    - Numeric values (int, float)
+    - String values with various currency symbols ($, £, €)
+    - Strings with or without currency symbols
+    - Comma-separated thousands
+
+    Args:
+        value: Price value to normalize.
+
+    Returns:
+        Canonical price string in format "$X.XX".
+
+    Raises:
+        ValueError: If value cannot be parsed as a price.
+    """
+    # Handle numeric types
+    if isinstance(value, bool):
+        raise ValueError(f"Cannot normalize boolean as price: {value!r}")
+
+    if isinstance(value, (int, float)):
+        return f"${value:.2f}"
+
+    if isinstance(value, str):
+        # Remove currency symbols, whitespace, and thousand separators
+        cleaned = value.strip()
+
+        # Remove common currency symbols
+        cleaned = re.sub(r"[$£€¥₹]", "", cleaned)
+
+        # Remove thousand separators (commas)
+        cleaned = cleaned.replace(",", "")
+
+        # Remove any remaining whitespace
+        cleaned = cleaned.strip()
+
+        try:
+            num = float(cleaned)
+            return f"${num:.2f}"
+        except ValueError as e:
+            raise ValueError(f"Cannot parse price from string: {value!r}") from e
+
+    raise ValueError(f"Cannot normalize {type(value).__name__} as price: {value!r}")
