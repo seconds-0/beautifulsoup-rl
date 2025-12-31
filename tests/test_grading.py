@@ -219,6 +219,30 @@ class TestRewardComputation:
         assert reward == 0.5  # REWARD_CORRECT_LIMIT
         assert metrics["correct"]
 
+    def test_limit_no_efficiency_penalty(self):
+        """Limit responses should NOT get efficiency penalty applied.
+
+        Models legitimately need to explore before recognizing a limitation,
+        so we don't penalize them for taking 2-4 tool calls.
+        """
+        raw = (
+            '{"status": "limit", "limit": {"reason": "js_required", "evidence": "renderContent()"}}'
+        )
+        task_info = {
+            "solvable": False,
+            "limit_info": {
+                "allowed_reasons": ["js_required"],
+            },
+        }
+        html = "<script>renderContent()</script>"
+        # Even with 4 tool calls, limit reward should stay at 0.5
+        reward, metrics = compute_reward(raw, task_info, html, tool_call_count=4)
+        assert reward == 0.5  # No efficiency penalty applied
+        assert metrics["correct"]
+        # Efficiency is still recorded for analysis purposes
+        assert metrics.get("efficiency_multiplier") is not None
+        assert metrics.get("limit_efficiency_exemption") is True
+
     def test_limit_without_evidence(self):
         """Limit claim without valid evidence should fail."""
         raw = '{"status": "limit", "limit": {"reason": "js_required", "evidence": "not in html"}}'

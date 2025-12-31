@@ -295,9 +295,13 @@ def compute_reward(
         metrics["errors"].append(f"Unknown status: {status}")
         return REWARD_FORMAT_ERROR, metrics
 
-    # Step 4: Apply efficiency multiplier (only for positive rewards)
+    # Step 4: Apply efficiency multiplier (only for positive rewards on solvable tasks)
+    # NOTE: We don't apply efficiency penalty to limit responses because:
+    # 1. Models legitimately need to explore before recognizing a limitation
+    # 2. The base limit reward (0.5) is already lower than extraction reward (1.0)
     final_reward = base_reward
-    if tool_call_count is not None and base_reward > 0:
+    is_limit_response = status == "limit"
+    if tool_call_count is not None and base_reward > 0 and not is_limit_response:
         efficiency = compute_efficiency_multiplier(tool_call_count)
         metrics["efficiency_multiplier"] = efficiency
         final_reward = base_reward * efficiency
@@ -308,6 +312,12 @@ def compute_reward(
                 f"Exceeded max tool calls ({tool_call_count} > {MAX_TOOL_CALLS})"
             )
             metrics["correct"] = False
+    elif is_limit_response and tool_call_count is not None:
+        # Still record efficiency for limit responses but don't penalize
+        # (useful for analysis - did model recognize limit quickly or slowly?)
+        efficiency = compute_efficiency_multiplier(tool_call_count)
+        metrics["efficiency_multiplier"] = efficiency
+        metrics["limit_efficiency_exemption"] = True
 
     # Step 5: Apply BS4 usage penalty (only for positive rewards on solvable tasks)
     # This creates a gradient toward BS4 usage without rejecting alternatives
