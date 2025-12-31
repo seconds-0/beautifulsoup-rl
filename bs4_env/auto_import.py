@@ -18,6 +18,7 @@ archetypes are available.
 from bs4_env.generators import (
     mvp_advanced,  # noqa: F401
     mvp_core_extraction,  # noqa: F401
+    mvp_core_remaining,  # noqa: F401
     mvp_error_bait,  # noqa: F401
     mvp_forms,  # noqa: F401
     mvp_hard,  # noqa: F401
