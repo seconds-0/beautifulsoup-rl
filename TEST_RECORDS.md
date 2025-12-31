@@ -7,8 +7,8 @@ Track evaluation progress and results. Update this file after each benchmark run
 Focus on **small/weak models** - they benefit most from RL training on this environment.
 
 ### Priority (Small Models)
-- [x] `mistralai/ministral-8b-2512` - **BEST: 63.2% pass rate** (Ministral 3, Dec 2025, 680 examples)
-- [x] `qwen/qwen3-8b` - Free tier available (**39.6% pass rate**, 680 examples)
+- [x] `mistralai/ministral-8b-2512` - **BEST 8B: 63.2% pass rate** (Ministral 3, Dec 2025, 680 examples)
+- [x] `qwen/qwen3-8b` - Free tier available (**43.1% pass rate**, 680 examples)
 - [x] `mistralai/ministral-8b` - Old version (**27.5% pass rate** - loopy, expensive)
 
 ### Blocked
@@ -18,12 +18,41 @@ Focus on **small/weak models** - they benefit most from RL training on this envi
 - ~~`x-ai/grok-4.1-fast`~~ - Rate limits too aggressive
 
 ### For Comparison Only (Strong Models)
-- [x] `openai/gpt-5.2` - **70.9% pass rate** (680 examples, frontier baseline)
+- [x] `openai/gpt-5.2` - **75.6% pass rate** (680 examples, frontier baseline)
 - `anthropic/claude-3-5-haiku-latest` - Fast, capable
 
 ---
 
 ## Benchmark Runs (Expanded - 34 Archetypes, 680 Examples)
+
+### 2025-12-31: All Models Re-benchmarked (Navigate Tool Fix)
+
+**Critical Bug Fixed:** Previous benchmarks had the `navigate` tool missing - multi-step tasks were impossible to solve. See TODO.md for details.
+
+| Model | Pass Rate | Perfect Rate | Avg Reward | Multi-Step |
+|-------|-----------|--------------|------------|------------|
+| **GPT-5.2** | **75.6%** | 57.5% | 0.726 | Can navigate |
+| Ministral 3 8B | 63.2% | 56.2% | 0.621 | Struggles |
+| Qwen3-8B | 43.1% | 26.6% | 0.401 | Struggles |
+
+**Multi-Step Archetype Breakdown:**
+
+| Archetype | GPT-5.2 | Ministral 3 | Qwen3 | Notes |
+|-----------|---------|-------------|-------|-------|
+| search_then_detail | **100%** | 45% | 5% | GPT-5.2 perfect! |
+| link_chain | **40%** | 0% | 5% | Hard for 8B |
+| pagination_aggregate | **20%** | 15% | 0% | Aggregation hard |
+| compare_products | 0% | 0% | 0% | Schema bug* |
+| list_extraction | 5% | 0% | 5% | Very hard |
+
+*compare_products failed due to schema key names not shown in prompt (fixed in `prompt.py`, needs re-benchmark)
+
+**Key Findings:**
+1. GPT-5.2 clearly dominates multi-step tasks (100% on search_then_detail)
+2. 8B models can navigate but struggle with multi-step reasoning
+3. The gap between frontier and 8B models is now properly measured
+
+---
 
 ### 2025-12-29: Ministral 3 8B (Full - 680/680) ⭐ BEST 8B
 

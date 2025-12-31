@@ -21,6 +21,26 @@ The `navigate` tool was never exposed to models in `eval_with_llm.py`. This mean
 
 ---
 
+### compare_products Fails Due to Missing Schema Keys in Prompt (FIXED 2025-12-30)
+
+**Status:** Fixed in `prompt.py`
+
+**Problem:** Models solved compare_products correctly (right values, right logic) but used wrong key names:
+- Ground truth: `{"cheaper": "Elite Device", "price_difference": "$102.46"}`
+- Model output: `{"cheaper_product": "Elite Device", "price_difference": "$102.46"}`
+
+The `explain_schema()` function for object types just said "must be an object (dictionary)" without showing the required key names.
+
+**Fix:** Enhanced `explain_schema()` to show exact required keys for object schemas:
+```
+Before: "The `answer` field must be an **object** (dictionary)"
+After:  "The `answer` field must be an **object** with these exact keys: {"cheaper": string (required), "price_difference": string (required)}"
+```
+
+**Impact:** Should significantly improve compare_products scores when re-benchmarked.
+
+---
+
 ### parser_required Archetype Doesn't Test Parser Differences
 
 **Status:** Open - needs redesign
@@ -155,21 +175,33 @@ The `navigate` tool was never exposed to models in `eval_with_llm.py`. This mean
 
 ## Benchmark Status
 
-### Current Runs (2025-12-30, with navigate fix)
+### Latest Results (2025-12-30, with navigate fix)
 
-| Model | Run ID | Status |
-|-------|--------|--------|
-| GPT-5.2 | 20606980726 | in_progress |
-| Ministral 3 8B | 20607042451 | in_progress |
-| Qwen3-8B | 20607043246 | in_progress |
+| Model | Pass Rate | Perfect Rate | Avg Reward | vs Old |
+|-------|-----------|--------------|------------|--------|
+| **GPT-5.2** | **75.6%** | 57.5% | 0.726 | +4.7% |
+| Ministral 3 8B | 63.2% | 56.2% | 0.621 | +0.0% |
+| Qwen3-8B | 43.1% | 26.6% | 0.401 | +3.5% |
 
-### Previous Results (PARTIALLY INVALID - no navigate tool)
+### Multi-Step Archetype Breakdown
+
+| Archetype | GPT-5.2 | Ministral 3 | Qwen3 |
+|-----------|---------|-------------|-------|
+| search_then_detail | **100%** | 45% | 5% |
+| link_chain | **40%** | 0% | 5% |
+| pagination_aggregate | **20%** | 15% | 0% |
+| compare_products | 0%* | 0%* | 0%* |
+| list_extraction | 5% | 0% | 5% |
+
+*compare_products 0% due to schema key bug (now fixed) - needs re-benchmark
+
+### Previous Results (INVALID - no navigate tool)
 
 | Model | Pass Rate | Note |
 |-------|-----------|------|
-| GPT-5.2 | 70.9% | Multi-step archetypes were 0% |
-| Ministral 3 8B | 63.2% | Multi-step archetypes were 0% |
-| Qwen3-8B | 39.6% | Multi-step archetypes were 0% |
+| GPT-5.2 | 70.9% | Multi-step archetypes were impossible |
+| Ministral 3 8B | 63.2% | Multi-step archetypes were impossible |
+| Qwen3-8B | 39.6% | Multi-step archetypes were impossible |
 
 ---
 

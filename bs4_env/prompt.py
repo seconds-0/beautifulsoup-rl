@@ -185,6 +185,18 @@ def explain_schema(schema: dict) -> str:
             return f"The `answer` field must be an **array** of {items_type} values."
 
     elif schema_type == "object":
+        # For objects with defined properties, show the exact keys required
+        properties = schema.get("properties", {})
+        required = schema.get("required", [])
+        if properties:
+            keys_desc = []
+            for key, prop in properties.items():
+                prop_type = prop.get("type", "any")
+                req_marker = " (required)" if key in required else ""
+                keys_desc.append(f'"{key}": {prop_type}{req_marker}')
+            keys_str = ", ".join(keys_desc)
+            example_obj = {k: f"<{v.get('type', 'value')}>" for k, v in properties.items()}
+            return f'The `answer` field must be an **object** with these exact keys: {{{keys_str}}}. Example: `"answer": {json.dumps(example_obj)}`'
         return 'The `answer` field must be an **object** (dictionary). Example: `"answer": {"key1": "value1", "key2": "value2"}`'
 
     elif schema_type == "number":
