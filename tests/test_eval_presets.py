@@ -158,3 +158,115 @@ class TestDifficultyFilter:
                 info = json.loads(row["info"])
                 spec = get_archetype(info["archetype_id"])
                 assert spec.difficulty == "hard"
+
+    def test_get_archetype_ids_respects_difficulty_easy(self):
+        """_get_archetype_ids_for_config() filters by difficulty='easy'."""
+        config = EnvConfig(mode="all", split="bench", difficulty="easy", num_examples=10)
+        archetype_ids = _get_archetype_ids_for_config(config)
+
+        # All returned archetypes should be easy
+        for archetype_id in archetype_ids:
+            spec = get_archetype(archetype_id)
+            assert spec.difficulty == "easy", f"{archetype_id} is {spec.difficulty}, not easy"
+
+    def test_get_archetype_ids_respects_difficulty_medium(self):
+        """_get_archetype_ids_for_config() filters by difficulty='medium'."""
+        config = EnvConfig(mode="all", split="bench", difficulty="medium", num_examples=10)
+        archetype_ids = _get_archetype_ids_for_config(config)
+
+        # All returned archetypes should be medium
+        for archetype_id in archetype_ids:
+            spec = get_archetype(archetype_id)
+            assert spec.difficulty == "medium", f"{archetype_id} is {spec.difficulty}, not medium"
+
+    def test_get_archetype_ids_respects_difficulty_hard(self):
+        """_get_archetype_ids_for_config() filters by difficulty='hard'."""
+        config = EnvConfig(mode="all", split="bench", difficulty="hard", num_examples=10)
+        archetype_ids = _get_archetype_ids_for_config(config)
+
+        # All returned archetypes should be hard
+        for archetype_id in archetype_ids:
+            spec = get_archetype(archetype_id)
+            assert spec.difficulty == "hard", f"{archetype_id} is {spec.difficulty}, not hard"
+
+    def test_difficulty_filter_with_mvp_mode(self):
+        """difficulty filter works with mvp mode (phase 1 + difficulty)."""
+        config = EnvConfig(mode="mvp", split="bench", difficulty="easy", num_examples=10)
+        archetype_ids = _get_archetype_ids_for_config(config)
+
+        # All should be phase 1 AND easy
+        for archetype_id in archetype_ids:
+            spec = get_archetype(archetype_id)
+            assert spec.phase == 1, f"{archetype_id} is phase {spec.phase}"
+            assert spec.difficulty == "easy", f"{archetype_id} is {spec.difficulty}"
+
+    def test_mixed_difficulty_returns_all(self):
+        """difficulty='mixed' returns archetypes of all difficulties."""
+        config = EnvConfig(mode="all", split="bench", difficulty="mixed", num_examples=10)
+        archetype_ids = _get_archetype_ids_for_config(config)
+
+        # Should have multiple difficulties
+        difficulties = {get_archetype(aid).difficulty for aid in archetype_ids}
+        assert len(difficulties) > 1, f"Expected multiple difficulties, got {difficulties}"
+
+
+class TestBenchManifestStability:
+    """Tests for bench manifest stability."""
+
+    def test_bench_manifest_exists(self):
+        """Bench manifest file should exist."""
+        from pathlib import Path
+
+        manifest_path = Path(__file__).parent.parent / "bs4_env" / "data" / "bench_manifest.json"
+        assert manifest_path.exists(), "bench_manifest.json not found"
+
+    def test_bench_manifest_has_entries(self):
+        """Bench manifest should have entries."""
+        from bs4_env.dataset import load_bench_manifest
+
+        manifest = load_bench_manifest()
+        assert len(manifest) > 0, "Manifest is empty"
+
+    def test_bench_manifest_deterministic(self):
+        """Bench split should produce same tasks from manifest."""
+        import json
+
+        config = EnvConfig(split="bench", mode="mvp", num_examples=10)
+        ds1 = build_dataset(config)
+        ds2 = build_dataset(config)
+
+        # Parse info fields and compare
+        infos1 = [json.loads(row["info"]) for row in ds1]
+        infos2 = [json.loads(row["info"]) for row in ds2]
+
+        assert len(infos1) == len(infos2), "Different number of examples"
+        for i, (info1, info2) in enumerate(zip(infos1, infos2)):
+            assert info1["archetype_id"] == info2["archetype_id"], f"Archetype mismatch at {i}"
+            assert info1["seed"] == info2["seed"], f"Seed mismatch at {i}"
+
+    def test_bench_manifest_entries_valid(self):
+        """All manifest entries should reference valid archetypes."""
+        from bs4_env.dataset import load_bench_manifest
+
+        manifest = load_bench_manifest()
+        for archetype_id, seed in manifest:
+            # Should not raise
+            spec = get_archetype(archetype_id)
+            assert spec is not None, f"Invalid archetype: {archetype_id}"
+            assert isinstance(seed, int), f"Invalid seed type: {type(seed)}"
+
+    def test_bench_uses_manifest_not_rng(self):
+        """Bench split should use manifest, ignoring mode filtering."""
+        import json
+
+        # Even with mode=mvp, bench should use full manifest
+        config = EnvConfig(split="bench", mode="mvp", num_examples=50)
+        ds = build_dataset(config)
+
+        # Verify we got exactly what we asked for
+        assert len(ds) == 50, f"Expected 50 examples, got {len(ds)}"
+
+        # All examples should be from the manifest
+        infos = [json.loads(row["info"]) for row in ds]
+        archetypes = {info["archetype_id"] for info in infos}
+        assert len(archetypes) > 0, "No archetypes found"

@@ -284,9 +284,9 @@ def main():
             print(f"  ⚠️  Low reward - check metrics: {result['metrics']}")
 
     # Summary
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("Summary")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"Total examples: {num_to_test}")
     print(f"Average reward: {total_reward / num_to_test:.3f}")
 

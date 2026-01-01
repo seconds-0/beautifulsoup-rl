@@ -362,7 +362,9 @@ class TestKeyAliasing:
 
     def test_wrong_value_still_fails(self):
         """Aliased key with wrong value should still fail."""
-        raw = '{"status": "ok", "answer": {"cheaper_product": "WRONG", "price_difference": "$10.00"}}'
+        raw = (
+            '{"status": "ok", "answer": {"cheaper_product": "WRONG", "price_difference": "$10.00"}}'
+        )
         task_info = {
             "solvable": True,
             "ground_truth": {"cheaper": "ProductA", "price_difference": "$10.00"},
@@ -474,9 +476,7 @@ class TestCoercionFunctions:
         """Test normalize_object_keys applies aliases."""
         from bs4_env.grading.normalize import normalize_object_keys
 
-        result = normalize_object_keys(
-            {"cheaper_product": "A", "price_diff": "$10"}
-        )
+        result = normalize_object_keys({"cheaper_product": "A", "price_diff": "$10"})
         assert result == {"cheaper": "A", "price_difference": "$10"}
 
     def test_normalize_object_keys_collision(self):

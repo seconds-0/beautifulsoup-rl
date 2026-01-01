@@ -181,40 +181,168 @@ class LocalSubprocessExecutor(Executor):
 
 
 class PrimeSandboxExecutor(Executor):
-    """Execute code in Prime's sandbox infrastructure.
+    """Execute code in Prime's cloud sandbox infrastructure.
 
-    This executor provides proper security isolation and is required for
-    production use and bounty submission.
+    This executor provides security isolation using Prime Intellect's
+    sandbox infrastructure. Required for production use and bounty submission.
 
-    NOTE: This is a stub implementation. You must wire this to the actual
-    Prime sandbox APIs for production use.
+    Usage:
+        # As context manager (recommended)
+        with PrimeSandboxExecutor() as executor:
+            result = executor.run(code, globals_dict)
+
+        # Manual lifecycle
+        executor = PrimeSandboxExecutor()
+        try:
+            result = executor.run(code, globals_dict)
+        finally:
+            executor.close()
+
+    Dependency Installation:
+        On first run, automatically installs beautifulsoup4, lxml, and html5lib.
+
+    Security Note:
+        When using the default image (python:3.11-slim), network access is enabled
+        to allow pip install. For fully network-isolated execution, use a prebuilt
+        image with dependencies and set network_access=False:
+
+            executor = PrimeSandboxExecutor(
+                docker_image="your-registry/bs4-env:latest",
+                network_access=False,
+            )
+
+    Note:
+        - Requires `prime-sandboxes` package: pip install beautiful-soup-env[prime]
+        - API key from PRIME_API_KEY env var or passed to constructor
     """
 
     def __init__(
         self,
-        network_access: bool = False,
+        api_key: str | None = None,
+        docker_image: str = "python:3.11-slim",
+        cpu_cores: int = 1,
+        memory_gb: int = 2,
         max_output_chars: int = 10000,
+        timeout_minutes: int = 30,
+        network_access: bool = True,
     ):
         """Initialize the executor.
 
         Args:
-            network_access: Whether to allow network access. Should be False.
-            max_output_chars: Maximum characters to capture.
+            api_key: Prime API key. If None, reads from PRIME_API_KEY env var.
+            docker_image: Docker image for sandbox. Must have Python installed.
+            cpu_cores: Number of CPU cores to allocate.
+            memory_gb: Memory allocation in GB.
+            max_output_chars: Maximum characters to capture from stdout/stderr.
+            timeout_minutes: Sandbox lifecycle timeout in minutes.
+            network_access: Whether to allow network access in sandbox.
+                True (default) enables pip install of dependencies.
+                False requires a prebuilt image with dependencies installed.
         """
-        self.network_access = network_access
+        self.docker_image = docker_image
+        self.cpu_cores = cpu_cores
+        self.memory_gb = memory_gb
         self.max_output_chars = max_output_chars
+        self.timeout_minutes = timeout_minutes
+        self.network_access = network_access
+        self._sandbox_id: str | None = None
+        self._deps_installed: bool = False
 
-        # Check if we can import Prime/Verifiers
-        self._prime_available = self._check_prime_available()
+        # Lazy initialization - defer import until needed
+        self._api_key = api_key
+        self._sandbox_client = None
 
-    def _check_prime_available(self) -> bool:
-        """Check if Prime sandbox APIs are available."""
-        try:
-            # TODO: Replace with actual import check
-            # import prime.sandbox
-            return False
-        except ImportError:
-            return False
+    def _get_sandbox_client(self):
+        """Get or create the sandbox client (lazy initialization)."""
+        if self._sandbox_client is None:
+            try:
+                from prime_sandboxes import APIClient, SandboxClient
+            except ImportError:
+                raise ImportError(
+                    "prime-sandboxes package not installed. "
+                    "Install with: pip install beautiful-soup-env[prime]"
+                ) from None
+
+            api_client = APIClient(api_key=self._api_key)
+            self._sandbox_client = SandboxClient(api_client)
+        return self._sandbox_client
+
+    def __enter__(self):
+        """Enter context manager."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exit context manager, cleanup sandbox."""
+        self.close()
+        return False
+
+    def close(self):
+        """Cleanup sandbox resources.
+
+        Safe to call multiple times. Best-effort cleanup - exceptions
+        during deletion are suppressed.
+        """
+        if self._sandbox_id is not None:
+            try:
+                self._get_sandbox_client().delete(self._sandbox_id)
+            except Exception:
+                pass  # Best effort cleanup
+            self._sandbox_id = None
+            self._deps_installed = False
+
+    def _ensure_sandbox(self) -> str:
+        """Create sandbox if not exists, install dependencies, return sandbox ID.
+
+        On first call, creates the sandbox. If network_access is enabled,
+        also installs required Python packages (beautifulsoup4, lxml, html5lib).
+        Subsequent calls return the cached ID.
+
+        Returns:
+            The sandbox ID string.
+
+        Raises:
+            ImportError: If prime-sandboxes is not installed.
+            RuntimeError: If dependency installation fails.
+        """
+        import uuid
+
+        if self._sandbox_id is None:
+            try:
+                from prime_sandboxes import CreateSandboxRequest
+            except ImportError:
+                raise ImportError(
+                    "prime-sandboxes package not installed. "
+                    "Install with: pip install beautiful-soup-env[prime]"
+                ) from None
+
+            client = self._get_sandbox_client()
+
+            request = CreateSandboxRequest(
+                name=f"bs4-env-{uuid.uuid4().hex[:8]}",
+                docker_image=self.docker_image,
+                cpu_cores=self.cpu_cores,
+                memory_gb=self.memory_gb,
+                network_access=self.network_access,
+                timeout_minutes=self.timeout_minutes,
+            )
+            sandbox = client.create(request)
+            client.wait_for_creation(sandbox.id)
+            self._sandbox_id = sandbox.id
+
+        # Install dependencies if network access is enabled and not already done
+        if self.network_access and not self._deps_installed:
+            client = self._get_sandbox_client()
+            result = client.execute_command(
+                self._sandbox_id,
+                "pip install --quiet beautifulsoup4 lxml html5lib",
+                timeout=120,  # 2 minutes for pip install
+            )
+            if result.exit_code != 0:
+                stderr = result.stderr or ""
+                raise RuntimeError(f"Failed to install dependencies in sandbox: {stderr[:500]}")
+            self._deps_installed = True
+
+        return self._sandbox_id
 
     def run(
         self,
@@ -226,43 +354,264 @@ class PrimeSandboxExecutor(Executor):
 
         Args:
             code: Python code to execute.
+            globals_dict: Global variables to inject (HTML, QUERY, CONSTRAINTS).
+            timeout_s: Maximum execution time in seconds.
+
+        Returns:
+            ExecResult with execution results.
+        """
+        import uuid
+
+        start_time = time.time()
+
+        try:
+            sandbox_id = self._ensure_sandbox()
+            client = self._get_sandbox_client()
+
+            # Build the runner script
+            from bs4_env.tools.harness import build_runner_script
+
+            script = build_runner_script(code, globals_dict)
+
+            # Upload script to sandbox
+            script_path = f"/tmp/run_{uuid.uuid4().hex[:8]}.py"
+
+            # Write script to temp file then upload
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+                f.write(script)
+                local_path = f.name
+
+            try:
+                client.upload_file(sandbox_id, script_path, local_path)
+            finally:
+                with contextlib.suppress(Exception):
+                    Path(local_path).unlink()
+
+            # Execute with timeout using shell timeout command
+            # Exit code 124 means timeout killed the process
+            # Use max(1, ...) to avoid 0 timeout for sub-second values
+            timeout_int = max(1, int(timeout_s))
+            result = client.execute_command(
+                sandbox_id,
+                f"timeout {timeout_int} python {script_path}",
+                timeout=timeout_int + 5,  # Buffer for command overhead
+            )
+
+            runtime_ms = int((time.time() - start_time) * 1000)
+
+            # Exit code 124 means the timeout command killed the process
+            timed_out = result.exit_code == 124
+
+            return ExecResult(
+                stdout=(result.stdout or "")[: self.max_output_chars],
+                stderr=(result.stderr or "")[: self.max_output_chars],
+                exit_code=result.exit_code if not timed_out else -1,
+                runtime_ms=runtime_ms,
+                timed_out=timed_out,
+            )
+
+        except ImportError:
+            # Re-raise import errors for clear messaging
+            raise
+
+        except Exception as e:
+            runtime_ms = int((time.time() - start_time) * 1000)
+            return ExecResult(
+                stdout="",
+                stderr=str(e)[: self.max_output_chars],
+                exit_code=-1,
+                runtime_ms=runtime_ms,
+                timed_out=False,
+                error=f"Sandbox execution error: {e}",
+            )
+
+
+class PooledSubprocessExecutor(Executor):
+    """Persistent worker pool executor for high-throughput training.
+
+    Uses a multiprocessing pool to reduce subprocess spawn overhead during
+    training. Workers persist across calls, significantly improving throughput
+    for batch processing.
+
+    Usage:
+        with PooledSubprocessExecutor(num_workers=4) as executor:
+            for code, globals_dict in batch:
+                result = executor.run(code, globals_dict)
+
+    Security Warning:
+        This executor runs code in long-lived worker processes WITHOUT
+        security isolation. Workers share state across calls within the same
+        process. Only use this for trusted code during training where
+        throughput is critical. For untrusted code, use LocalSubprocessExecutor
+        or PrimeSandboxExecutor.
+
+    Timeout Behavior:
+        When a timeout occurs, the worker process continues running (pool
+        limitation). Infinite loops will permanently occupy workers. Consider
+        using LocalSubprocessExecutor if timeout enforcement is critical.
+
+    Note:
+        Must be used as a context manager. Workers are terminated on exit.
+    """
+
+    def __init__(
+        self,
+        num_workers: int = 4,
+        max_output_chars: int = 10000,
+    ):
+        """Initialize the pooled executor.
+
+        Args:
+            num_workers: Number of worker processes in the pool.
+            max_output_chars: Maximum characters to capture from stdout/stderr.
+        """
+        self.num_workers = num_workers
+        self.max_output_chars = max_output_chars
+        self._pool = None
+
+    def __enter__(self):
+        """Enter context manager, create worker pool."""
+        from multiprocessing import Pool
+
+        self._pool = Pool(self.num_workers)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exit context manager, terminate workers."""
+        if self._pool is not None:
+            self._pool.terminate()
+            self._pool.join()
+            self._pool = None
+        return False
+
+    def run(
+        self,
+        code: str,
+        globals_dict: dict[str, Any],
+        timeout_s: float = 30.0,
+    ) -> ExecResult:
+        """Execute code in a worker from the pool.
+
+        Args:
+            code: Python code to execute.
             globals_dict: Global variables to inject.
-            timeout_s: Maximum execution time.
+            timeout_s: Maximum execution time in seconds.
 
         Returns:
             ExecResult with execution results.
 
         Raises:
-            NotImplementedError: This is a stub. Wire to Prime APIs.
+            RuntimeError: If not used as context manager.
         """
-        if not self._prime_available:
-            raise NotImplementedError(
-                "PrimeSandboxExecutor is not yet wired to Prime's sandbox APIs. "
-                "To use this executor, you must:\n"
-                "1. Install Prime/Verifiers packages\n"
-                "2. Configure Prime credentials\n"
-                "3. Implement the sandbox integration in this method\n"
-                "\n"
-                "For local development, use LocalSubprocessExecutor instead:\n"
-                "  config = EnvConfig(executor_backend='local')"
+        from multiprocessing import TimeoutError as MPTimeoutError
+
+        if self._pool is None:
+            raise RuntimeError(
+                "PooledSubprocessExecutor must be used as a context manager. "
+                "Example: with PooledSubprocessExecutor() as executor: ..."
             )
 
-        # TODO: Implement actual Prime sandbox execution
-        # The implementation should:
-        # 1. Build runner script using harness.build_runner_script()
-        # 2. Create a Prime sandbox session
-        # 3. Execute the script with network_access disabled
-        # 4. Capture stdout, stderr, exit_code
-        # 5. Return ExecResult
+        start_time = time.time()
 
-        raise NotImplementedError("Prime sandbox integration not implemented")
+        try:
+            # Submit to pool and wait with timeout
+            async_result = self._pool.apply_async(
+                _execute_in_worker,
+                (code, globals_dict, self.max_output_chars),
+            )
+            result = async_result.get(timeout=timeout_s)
+            return result
+
+        except MPTimeoutError:
+            runtime_ms = int((time.time() - start_time) * 1000)
+            return ExecResult(
+                stdout="",
+                stderr=f"Execution timed out after {timeout_s} seconds",
+                exit_code=-1,
+                runtime_ms=runtime_ms,
+                timed_out=True,
+            )
+
+        except Exception as e:
+            runtime_ms = int((time.time() - start_time) * 1000)
+            return ExecResult(
+                stdout="",
+                stderr="",
+                exit_code=-1,
+                runtime_ms=runtime_ms,
+                error=f"Pool execution error: {e}",
+            )
+
+
+def _execute_in_worker(
+    code: str,
+    globals_dict: dict[str, Any],
+    max_output_chars: int,
+) -> ExecResult:
+    """Worker function for PooledSubprocessExecutor.
+
+    This function runs in a separate process from the pool.
+    It uses build_runner_script to ensure harness parity with other executors
+    (injecting make_soup, BS4 imports, etc.).
+
+    Args:
+        code: Python code to execute.
+        globals_dict: Global variables to inject.
+        max_output_chars: Maximum output characters to capture.
+
+    Returns:
+        ExecResult with execution results.
+    """
+    import io
+    import sys
+    import traceback
+
+    # Import here to avoid pickling issues in multiprocessing
+    from bs4_env.tools.harness import build_runner_script
+
+    start_time = time.time()
+
+    # Build the full runner script with harness (same as LocalSubprocessExecutor)
+    runner_code = build_runner_script(code, globals_dict)
+
+    # Capture stdout/stderr
+    old_stdout, old_stderr = sys.stdout, sys.stderr
+    sys.stdout = io.StringIO()
+    sys.stderr = io.StringIO()
+
+    exit_code = 0
+
+    try:
+        # Execute the runner script (includes make_soup, BS4 imports, etc.)
+        exec(runner_code, {})
+
+    except BaseException:
+        # Catch BaseException to handle SystemExit/KeyboardInterrupt from user code
+        # without killing the worker process
+        exit_code = 1
+        traceback.print_exc()
+
+    finally:
+        stdout = sys.stdout.getvalue()[:max_output_chars]
+        stderr = sys.stderr.getvalue()[:max_output_chars]
+        sys.stdout, sys.stderr = old_stdout, old_stderr
+
+    runtime_ms = int((time.time() - start_time) * 1000)
+
+    return ExecResult(
+        stdout=stdout,
+        stderr=stderr,
+        exit_code=exit_code,
+        runtime_ms=runtime_ms,
+        timed_out=False,
+    )
 
 
 def get_executor(backend: str = "local", **kwargs) -> Executor:
     """Factory function to get an executor by backend name.
 
     Args:
-        backend: Either "local" or "prime".
+        backend: Either "local", "prime", or "pooled".
         **kwargs: Additional arguments passed to executor constructor.
 
     Returns:
@@ -275,5 +624,7 @@ def get_executor(backend: str = "local", **kwargs) -> Executor:
         return LocalSubprocessExecutor(**kwargs)
     elif backend == "prime":
         return PrimeSandboxExecutor(**kwargs)
+    elif backend == "pooled":
+        return PooledSubprocessExecutor(**kwargs)
     else:
         raise ValueError(f"Unknown executor backend: {backend}")

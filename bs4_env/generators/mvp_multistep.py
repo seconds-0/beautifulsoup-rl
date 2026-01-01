@@ -132,7 +132,7 @@ class SearchThenDetailGenerator(Generator):
 
         query = (
             f'Find the product named "{target["name"]}" in the search results. '
-            f'Navigate to its detail page and extract the {extract_desc}.'
+            f"Navigate to its detail page and extract the {extract_desc}."
         )
 
         return TaskInstance(
@@ -699,8 +699,8 @@ class CompareProductsGenerator(Generator):
 
         query = (
             f'Compare the prices of "{products[0]["name"]}" and "{products[1]["name"]}". '
-            f'Navigate to each product\'s detail page to find the price. '
-            f'Return which product is cheaper and the price difference.'
+            f"Navigate to each product's detail page to find the price. "
+            f"Return which product is cheaper and the price difference."
         )
 
         return TaskInstance(

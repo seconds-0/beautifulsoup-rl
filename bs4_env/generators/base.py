@@ -1996,7 +1996,7 @@ def generate_repeated_navigation(rng: random.Random, style: HtmlStyle, count: in
         items.append(
             f'<li class="{item_class}{state}">'
             f'<a href="/{page.lower().replace(" ", "-")}" class="{link_class}">{page}</a>'
-            f'</li>'
+            f"</li>"
         )
 
     return f'<nav class="{nav_class}"><ul>\n{"".join(items)}\n</ul></nav>'
@@ -2544,7 +2544,7 @@ def generate_sidebar_content(rng: random.Random, style: HtmlStyle, items: int = 
         "December",
     ]
     archive_items = "\n".join(
-        f'<li><a href="/archive/2024/{i+1:02d}">{month} 2024</a></li>'
+        f'<li><a href="/archive/2024/{i + 1:02d}">{month} 2024</a></li>'
         for i, month in enumerate(months[: items // 3])
     )
 
@@ -2877,7 +2877,7 @@ def generate_bulk_noise(rng: random.Random, style: HtmlStyle, target_size: int =
         lambda: generate_repeated_navigation(rng, style, count=rng.randint(15, 25)),
         # Branded content sections
         lambda: f"""<section class="{random_branded_class(rng)} {random_state_class(rng)}">
-    <h2 class="{random_branded_class(rng)}">{random_paragraph(rng, 1).split('.')[0]}</h2>
+    <h2 class="{random_branded_class(rng)}">{random_paragraph(rng, 1).split(".")[0]}</h2>
     {generate_repeated_elements(rng, style, count=rng.randint(10, 20), element_type="div")}
 </section>""",
     ]

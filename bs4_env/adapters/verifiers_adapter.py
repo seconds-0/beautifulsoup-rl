@@ -367,7 +367,9 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
 
             constraints = TaskConstraints(
                 output_schema=example["info"].get("answer_schema", {}),
-                allowed_limit_reasons=example["info"].get("limit_info", {}).get("allowed_reasons", []),
+                allowed_limit_reasons=example["info"]
+                .get("limit_info", {})
+                .get("allowed_reasons", []),
             )
 
             pages = example["info"].get("pages", {})

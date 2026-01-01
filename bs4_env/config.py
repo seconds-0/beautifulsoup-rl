@@ -24,8 +24,10 @@ class EnvConfig:
             Default gives more weight to harder tasks for RL training signal.
         num_examples: Number of examples to generate. None for unlimited/default.
         seed: Base random seed for reproducibility.
-        executor_backend: Which executor to use. "local" for subprocess-based local
-            execution, "prime" for Prime's sandboxed execution.
+        executor_backend: Which executor to use:
+            - "local": subprocess-based local execution (development/testing)
+            - "prime": Prime's sandboxed execution (production/bounty submission)
+            - "pooled": persistent worker pool for high-throughput training
         network_access: Whether to allow network access in sandbox. Should be False
             for determinism and safety.
         timeout_s: Maximum execution time for code in seconds.
@@ -46,7 +48,7 @@ class EnvConfig:
     )
     num_examples: int | None = None
     seed: int = 42
-    executor_backend: Literal["local", "prime"] = "local"
+    executor_backend: Literal["local", "prime", "pooled"] = "local"
     network_access: bool = False
     timeout_s: float = 30.0
     max_output_chars: int = 10000

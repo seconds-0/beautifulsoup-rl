@@ -36,10 +36,16 @@ import sys
 import time
 from typing import Any
 
-from openai import OpenAI
+try:
+    from openai import OpenAI
+except ImportError:
+    print("Error: OpenAI package not installed.")
+    print("Install with: pip install beautiful-soup-env[eval]")
+    print("Or: pip install openai")
+    sys.exit(1)
 
 from beautiful_soup_env import load_environment
-from bs4_env.tools.harness import RUN_PYTHON_TOOL_SCHEMA, NAVIGATE_TOOL_SCHEMA
+from bs4_env.tools.harness import NAVIGATE_TOOL_SCHEMA, RUN_PYTHON_TOOL_SCHEMA
 
 # OpenRouter base URL
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
@@ -184,7 +190,9 @@ def run_llm_agent(
                 except json.JSONDecodeError as e:
                     result = json.dumps({"error": f"Invalid JSON in tool arguments: {e}"})
                     tool_history.append({"tool": func_name, "args": {}, "result": result})
-                    conversation.append({"role": "tool", "tool_call_id": tool_call.id, "content": result})
+                    conversation.append(
+                        {"role": "tool", "tool_call_id": tool_call.id, "content": result}
+                    )
                     continue
 
                 # Execute the tool
@@ -213,14 +221,18 @@ def run_llm_agent(
     return final_output, tool_history, stats
 
 
-def _save_checkpoint(output_file: str, model: str, results: list, total_tokens: dict, total_tool_calls: int) -> None:
+def _save_checkpoint(
+    output_file: str, model: str, results: list, total_tokens: dict, total_tool_calls: int
+) -> None:
     """Save incremental checkpoint to avoid losing progress."""
     checkpoint = {
         "model": model,
         "num_examples": len(results),
         "avg_reward": sum(r["reward"] for r in results) / len(results) if results else 0,
         "pass_rate": sum(1 for r in results if r["reward"] >= 0.5) / len(results) if results else 0,
-        "perfect_rate": sum(1 for r in results if r["reward"] == 1.0) / len(results) if results else 0,
+        "perfect_rate": sum(1 for r in results if r["reward"] == 1.0) / len(results)
+        if results
+        else 0,
         "total_tool_calls": total_tool_calls,
         "total_tokens": total_tokens,
         "results": results,
@@ -264,7 +276,7 @@ def run_evaluation(
     print(f"Model: {model}")
     print("Using OpenAI function calling API (production-match)")
     end_index = min(start_index + num_examples, len(env))
-    print(f"Evaluating examples {start_index+1} to {end_index}...\n")
+    print(f"Evaluating examples {start_index + 1} to {end_index}...\n")
 
     results = []
     total_reward = 0.0
@@ -278,7 +290,7 @@ def run_evaluation(
         info = example["info"]
 
         print(
-            f"[{i+1}/{end_index}] {info.get('archetype_id')} (seed={info.get('seed')})...",
+            f"[{i + 1}/{end_index}] {info.get('archetype_id')} (seed={info.get('seed')})...",
             end=" ",
             flush=True,
         )
@@ -343,9 +355,9 @@ def run_evaluation(
     # Summary
     avg_reward = total_reward / num_to_test
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("EVALUATION SUMMARY")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"Model: {model}")
     print(f"Examples: {num_to_test}")
     print(f"Average reward: {avg_reward:.3f}")

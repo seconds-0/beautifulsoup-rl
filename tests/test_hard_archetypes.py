@@ -50,7 +50,6 @@ class TestTableRowspan:
         gen = TableRowspanGenerator()
         task = gen.generate(seed=42)
 
-        soup = BeautifulSoup(task.html, "html.parser")
         # Ground truth is a price like "$XX.XX"
         assert task.ground_truth in task.html
 
