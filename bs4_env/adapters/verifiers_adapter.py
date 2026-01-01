@@ -6,12 +6,13 @@ This module provides the adapter that wires our environment to Verifiers,
 Prime's RL environment framework.
 
 Two modes:
-1. If verifiers is installed: Wire to real vf.Environment (TODO: implement)
+1. If verifiers is installed: Wire to real vf.StatefulToolEnv
 2. If verifiers is not installed: Return MinimalEnv for local testing
 """
 
 import contextlib
 import json
+import warnings
 from collections.abc import Callable
 from typing import Any
 
@@ -34,11 +35,16 @@ def build_verifiers_environment(config: EnvConfig) -> Any:
     # Try to import verifiers
     try:
         import verifiers as vf
-
-        return _build_real_verifiers_env(config, vf)
     except ImportError:
-        # Verifiers not installed, return minimal env for local testing
+        # Verifiers not installed - warn and return MinimalEnv for local testing
+        warnings.warn(
+            "verifiers package not installed. Returning MinimalEnv for local testing. "
+            "Install with: pip install -e '.[verifiers]'",
+            stacklevel=2,
+        )
         return MinimalEnv(config)
+
+    return _build_real_verifiers_env(config, vf)
 
 
 def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:

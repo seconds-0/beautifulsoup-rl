@@ -36,7 +36,7 @@ class EnvConfig:
             If None, includes all archetypes matching mode/difficulty.
     """
 
-    split: Literal["train", "eval", "bench"] = "train"
+    split: Literal["train", "eval", "bench"] = "bench"
     mode: Literal["mvp", "phase2", "all", "hard_only", "tiered"] = "mvp"
     difficulty: Literal["easy", "medium", "hard", "mixed"] = "mixed"
     difficulty_weights: dict[str, float] = field(

@@ -27,7 +27,7 @@ from bs4_env.config import EnvConfig
 
 
 def load_environment(
-    split: str = "train",
+    split: str = "bench",
     mode: str = "mvp",
     difficulty: str = "mixed",
     num_examples: int | None = None,

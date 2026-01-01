@@ -28,9 +28,12 @@ pip install -e ".[all]"
 ```python
 from beautiful_soup_env import load_environment
 
-# Load the environment
+# Load the environment (defaults to bench split for fast loading)
+env = load_environment()
+
+# Or with custom config
 env = load_environment(
-    split="train",
+    split="train",       # Use "bench" for quick testing, "train" for RL training
     mode="mvp",
     difficulty="mixed",
     executor_backend="local"
@@ -128,9 +131,14 @@ python -m bs4_env.scripts.smoke_eval_local
 
 ### Prime Evaluation
 ```bash
-prime env eval --env beautiful_soup_env \
-  --env-args '{"split":"bench","mode":"mvp"}' \
-  --model <model-name>
+# Run benchmark evaluation
+prime env eval beautiful_soup_env -m meta-llama/llama-3.1-70b-instruct -n 100
+
+# With specific environment config
+prime env eval beautiful_soup_env \
+  -a '{"split":"bench","mode":"mvp"}' \
+  -m <model-name> \
+  -n 100
 ```
 
 ## Development
