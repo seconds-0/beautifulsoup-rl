@@ -198,10 +198,15 @@ class PrimeSandboxExecutor(Executor):
         finally:
             executor.close()
 
+    Dependency Installation:
+        On first run, automatically installs beautifulsoup4, lxml, and html5lib
+        in the sandbox. Network access is enabled only during this initial setup.
+        Subsequent code execution runs without network access for security.
+
     Note:
-        - Requires `prime-sandboxes` package: pip install prime-sandboxes
+        - Requires `prime-sandboxes` package: pip install beautiful-soup-env[prime]
         - API key from PRIME_API_KEY env var or passed to constructor
-        - Network access is disabled during code execution for security
+        - Custom docker_image must have Python and pip available
     """
 
     def __init__(
@@ -274,13 +279,17 @@ class PrimeSandboxExecutor(Executor):
             self._deps_installed = False
 
     def _ensure_sandbox(self) -> str:
-        """Create sandbox if not exists, return sandbox ID.
+        """Create sandbox if not exists, install dependencies, return sandbox ID.
+
+        On first call, creates the sandbox and installs required Python packages
+        (beautifulsoup4, lxml, html5lib). Subsequent calls return the cached ID.
 
         Returns:
             The sandbox ID string.
 
         Raises:
             ImportError: If prime-sandboxes is not installed.
+            RuntimeError: If dependency installation fails.
         """
         import uuid
 
@@ -294,17 +303,32 @@ class PrimeSandboxExecutor(Executor):
                 ) from None
 
             client = self._get_sandbox_client()
+
+            # Create sandbox with network access for initial setup
             request = CreateSandboxRequest(
                 name=f"bs4-env-{uuid.uuid4().hex[:8]}",
                 docker_image=self.docker_image,
                 cpu_cores=self.cpu_cores,
                 memory_gb=self.memory_gb,
-                network_access=False,  # Security: no network during execution
+                network_access=True,  # Enabled for pip install
                 timeout_minutes=self.timeout_minutes,
             )
             sandbox = client.create(request)
             client.wait_for_creation(sandbox.id)
             self._sandbox_id = sandbox.id
+
+        # Install dependencies if not already done
+        if not self._deps_installed:
+            client = self._get_sandbox_client()
+            result = client.execute_command(
+                self._sandbox_id,
+                "pip install --quiet beautifulsoup4 lxml html5lib",
+                timeout=120,  # 2 minutes for pip install
+            )
+            if result.exit_code != 0:
+                stderr = result.stderr or ""
+                raise RuntimeError(f"Failed to install dependencies in sandbox: {stderr[:500]}")
+            self._deps_installed = True
 
         return self._sandbox_id
 
@@ -353,7 +377,8 @@ class PrimeSandboxExecutor(Executor):
 
             # Execute with timeout using shell timeout command
             # Exit code 124 means timeout killed the process
-            timeout_int = int(timeout_s)
+            # Use max(1, ...) to avoid 0 timeout for sub-second values
+            timeout_int = max(1, int(timeout_s))
             result = client.execute_command(
                 sandbox_id,
                 f"timeout {timeout_int} python {script_path}",
@@ -400,6 +425,18 @@ class PooledSubprocessExecutor(Executor):
         with PooledSubprocessExecutor(num_workers=4) as executor:
             for code, globals_dict in batch:
                 result = executor.run(code, globals_dict)
+
+    Security Warning:
+        This executor runs code in long-lived worker processes WITHOUT
+        security isolation. Workers share state across calls within the same
+        process. Only use this for trusted code during training where
+        throughput is critical. For untrusted code, use LocalSubprocessExecutor
+        or PrimeSandboxExecutor.
+
+    Timeout Behavior:
+        When a timeout occurs, the worker process continues running (pool
+        limitation). Infinite loops will permanently occupy workers. Consider
+        using LocalSubprocessExecutor if timeout enforcement is critical.
 
     Note:
         Must be used as a context manager. Workers are terminated on exit.
@@ -502,7 +539,8 @@ def _execute_in_worker(
     """Worker function for PooledSubprocessExecutor.
 
     This function runs in a separate process from the pool.
-    It uses exec() to run the code in the worker's namespace.
+    It uses build_runner_script to ensure harness parity with other executors
+    (injecting make_soup, BS4 imports, etc.).
 
     Args:
         code: Python code to execute.
@@ -516,7 +554,13 @@ def _execute_in_worker(
     import sys
     import traceback
 
+    # Import here to avoid pickling issues in multiprocessing
+    from bs4_env.tools.harness import build_runner_script
+
     start_time = time.time()
+
+    # Build the full runner script with harness (same as LocalSubprocessExecutor)
+    runner_code = build_runner_script(code, globals_dict)
 
     # Capture stdout/stderr
     old_stdout, old_stderr = sys.stdout, sys.stderr
@@ -526,11 +570,8 @@ def _execute_in_worker(
     exit_code = 0
 
     try:
-        # Build execution namespace with injected globals
-        namespace = dict(globals_dict)
-
-        # Execute the code
-        exec(code, namespace)
+        # Execute the runner script (includes make_soup, BS4 imports, etc.)
+        exec(runner_code, {})
 
     except Exception:
         exit_code = 1

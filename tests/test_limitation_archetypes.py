@@ -9,8 +9,6 @@ These tests verify that limitation archetypes:
 
 import re
 
-import pytest
-
 from bs4_env.generators.mvp_limitations import (
     CanvasTextGenerator,
     ImageTextGenerator,
@@ -284,10 +282,9 @@ class TestLimitationRegistration:
 
     def test_all_limitations_registered(self):
         """All limitation generators should be registered in the registry."""
-        from bs4_env.registry import list_archetypes
-
         # Ensure auto_import runs
         from bs4_env import auto_import  # noqa: F401
+        from bs4_env.registry import list_archetypes
 
         limitation_archetypes = list_archetypes(category="limitations")
         archetype_ids = [spec.archetype_id for spec in limitation_archetypes]
@@ -305,9 +302,8 @@ class TestLimitationRegistration:
 
     def test_all_limitations_unsolvable(self):
         """All limitation archetypes should be marked as unsolvable."""
-        from bs4_env.registry import list_archetypes
-
         from bs4_env import auto_import  # noqa: F401
+        from bs4_env.registry import list_archetypes
 
         limitation_archetypes = list_archetypes(category="limitations")
 
@@ -316,9 +312,8 @@ class TestLimitationRegistration:
 
     def test_all_limitations_have_allowed_reasons(self):
         """All limitation archetypes should have allowed_limit_reasons."""
-        from bs4_env.registry import list_archetypes
-
         from bs4_env import auto_import  # noqa: F401
+        from bs4_env.registry import list_archetypes
 
         limitation_archetypes = list_archetypes(category="limitations")
 

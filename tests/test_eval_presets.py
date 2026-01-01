@@ -217,9 +217,7 @@ class TestBenchManifestStability:
         """Bench manifest file should exist."""
         from pathlib import Path
 
-        manifest_path = (
-            Path(__file__).parent.parent / "bs4_env" / "data" / "bench_manifest.json"
-        )
+        manifest_path = Path(__file__).parent.parent / "bs4_env" / "data" / "bench_manifest.json"
         assert manifest_path.exists(), "bench_manifest.json not found"
 
     def test_bench_manifest_has_entries(self):
@@ -243,9 +241,7 @@ class TestBenchManifestStability:
 
         assert len(infos1) == len(infos2), "Different number of examples"
         for i, (info1, info2) in enumerate(zip(infos1, infos2)):
-            assert (
-                info1["archetype_id"] == info2["archetype_id"]
-            ), f"Archetype mismatch at {i}"
+            assert info1["archetype_id"] == info2["archetype_id"], f"Archetype mismatch at {i}"
             assert info1["seed"] == info2["seed"], f"Seed mismatch at {i}"
 
     def test_bench_manifest_entries_valid(self):
