@@ -75,6 +75,47 @@ Some content is intentionally unparseable (JS-rendered, image-based, etc.). The 
 | Wrong answer | 0.0 |
 | Safety violation | -0.5 |
 
+## PRIME-RL Training Configuration
+
+### Recommended Training Config
+
+```python
+from beautiful_soup_env import load_environment
+
+# Training configuration for PRIME-RL
+env = load_environment(
+    split="train",              # 1000 seeds per archetype
+    mode="mvp",                 # 52 core archetypes
+    difficulty="mixed",
+    difficulty_weights={        # Overweight harder tasks for RL signal
+        "easy": 0.2,
+        "medium": 0.4,
+        "hard": 0.4,
+    },
+    executor_backend="prime",   # Use Prime's sandboxed executor
+    network_access=False,       # Determinism + safety
+    timeout_s=30.0,
+    seed=42,                    # Reproducibility
+)
+```
+
+### Key Training Parameters
+
+| Parameter | Training | Evaluation | Benchmark |
+|-----------|----------|------------|-----------|
+| `split` | `"train"` | `"eval"` | `"bench"` |
+| Seed range | 0-100k | 100k-110k | 110k+ (fixed) |
+| Examples/archetype | 1000 | 100 | 20 |
+| Total examples | ~52k | ~5.2k | 1040 |
+
+### Difficulty Weighting
+
+The `difficulty_weights` parameter controls task sampling distribution. Default is uniform, but overweighting harder tasks provides stronger RL signal:
+
+- **Uniform**: `{"easy": 0.33, "medium": 0.33, "hard": 0.34}` (default)
+- **Hard-focused**: `{"easy": 0.2, "medium": 0.4, "hard": 0.4}` (recommended for training)
+- **Easy curriculum**: `{"easy": 0.6, "medium": 0.3, "hard": 0.1}` (for initial exploration)
+
 ## Running Evaluations
 
 ### Local Testing
