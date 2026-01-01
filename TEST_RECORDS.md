@@ -34,7 +34,41 @@ Focus on **small/weak models** - they benefit most from RL training on this envi
 
 ---
 
-## Benchmark Runs (Expanded - Now 50 Archetypes)
+## Benchmark Runs (Expanded - Now 53 Archetypes, 1060 Bench Examples)
+
+### 2026-01-01: New Limitation Archetypes Baseline (Ministral 3B)
+
+**Environment Update:** Added 5 limitation archetypes (PR #3):
+- `limit_canvas_text` - Text rendered in HTML5 canvas
+- `limit_svg_path_data` - Data only in SVG path/shape elements
+- `limit_pdf_embed` - Content in embedded PDF documents
+- `limit_js_required` - JavaScript-rendered content (existing)
+- `limit_image_text` - Text only in images (existing)
+
+**Model:** `mistralai/ministral-3b-2512`
+**Config:** split=bench, limitation archetypes only (100 examples)
+
+| Archetype | Pass Rate | Avg Reward | Notes |
+|-----------|-----------|------------|-------|
+| limit_pdf_embed | **40%** | 0.200 | Easiest to detect |
+| limit_js_required | **30%** | 0.150 | Familiar pattern |
+| limit_svg_path_data | **20%** | 0.100 | Path data opaque |
+| limit_canvas_text | **5%** | 0.025 | Canvas API hidden |
+| limit_image_text | **5%** | 0.025 | Hardest to recognize |
+
+**Key Findings:**
+1. **All limitation archetypes hard for 3B models** - 5-40% pass rates
+2. **No perfect scores possible** - Max reward is 0.50 for correct limitation detection
+3. **pdf_embed easiest** - PDF extension visible in source
+4. **canvas/image hardest** - Require understanding of rendering techniques
+
+**Solvable archetype sample (same model):**
+- `extract_attribute`: 73% avg reward, 75% pass rate
+- `extract_emoji_content`: 86.5% avg reward, 100% pass rate
+
+This confirms limitation detection is a major RL training opportunity - models that learn to recognize unsolvable tasks gain significant reward.
+
+---
 
 ### 2026-01-01: Small Model Baseline Testing (Qwen3-4B, Llama 3.2-3B)
 
@@ -647,14 +681,18 @@ Tested cheaper alternatives to GPT-5.2 from Chinese providers.
 
 ## Notes
 
-- Environment has **34 archetypes** total (680 bench examples)
+- Environment has **53 archetypes** total (1060 bench examples)
   - Core extraction: 10 archetypes
   - Advanced/gotcha: 8 archetypes
   - Multi-step navigation: 5 archetypes (link_chain, search_then_detail, etc.)
   - Semantic challenges: 4 archetypes
   - i18n: 3 archetypes
-  - Limitations: 2 archetypes
+  - **Limitations: 5 archetypes** (canvas_text, svg_path_data, pdf_embed, js_required, image_text)
   - Aggregation/counting: 2 archetypes
+  - Forms: 6 archetypes
+  - Tables: 4 archetypes
+  - Error bait: 3 archetypes
+  - Hard: 3 archetypes
 - Bench split uses seeds 110000-111000 (20 per archetype)
 - Efficiency penalty: -10% per extra tool call, floor at 0.2, cutoff at 11+
 - Run benchmarks on cloud via `.github/workflows/bench.yml` (Namespace runners)
