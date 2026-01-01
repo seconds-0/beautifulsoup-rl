@@ -183,7 +183,7 @@ class LocalSubprocessExecutor(Executor):
 class PrimeSandboxExecutor(Executor):
     """Execute code in Prime's cloud sandbox infrastructure.
 
-    This executor provides proper security isolation using Prime Intellect's
+    This executor provides security isolation using Prime Intellect's
     sandbox infrastructure. Required for production use and bounty submission.
 
     Usage:
@@ -199,14 +199,21 @@ class PrimeSandboxExecutor(Executor):
             executor.close()
 
     Dependency Installation:
-        On first run, automatically installs beautifulsoup4, lxml, and html5lib
-        in the sandbox. Network access is enabled only during this initial setup.
-        Subsequent code execution runs without network access for security.
+        On first run, automatically installs beautifulsoup4, lxml, and html5lib.
+
+    Security Note:
+        When using the default image (python:3.11-slim), network access is enabled
+        to allow pip install. For fully network-isolated execution, use a prebuilt
+        image with dependencies and set network_access=False:
+
+            executor = PrimeSandboxExecutor(
+                docker_image="your-registry/bs4-env:latest",
+                network_access=False,
+            )
 
     Note:
         - Requires `prime-sandboxes` package: pip install beautiful-soup-env[prime]
         - API key from PRIME_API_KEY env var or passed to constructor
-        - Custom docker_image must have Python and pip available
     """
 
     def __init__(
@@ -217,6 +224,7 @@ class PrimeSandboxExecutor(Executor):
         memory_gb: int = 2,
         max_output_chars: int = 10000,
         timeout_minutes: int = 30,
+        network_access: bool = True,
     ):
         """Initialize the executor.
 
@@ -227,12 +235,16 @@ class PrimeSandboxExecutor(Executor):
             memory_gb: Memory allocation in GB.
             max_output_chars: Maximum characters to capture from stdout/stderr.
             timeout_minutes: Sandbox lifecycle timeout in minutes.
+            network_access: Whether to allow network access in sandbox.
+                True (default) enables pip install of dependencies.
+                False requires a prebuilt image with dependencies installed.
         """
         self.docker_image = docker_image
         self.cpu_cores = cpu_cores
         self.memory_gb = memory_gb
         self.max_output_chars = max_output_chars
         self.timeout_minutes = timeout_minutes
+        self.network_access = network_access
         self._sandbox_id: str | None = None
         self._deps_installed: bool = False
 
@@ -281,8 +293,9 @@ class PrimeSandboxExecutor(Executor):
     def _ensure_sandbox(self) -> str:
         """Create sandbox if not exists, install dependencies, return sandbox ID.
 
-        On first call, creates the sandbox and installs required Python packages
-        (beautifulsoup4, lxml, html5lib). Subsequent calls return the cached ID.
+        On first call, creates the sandbox. If network_access is enabled,
+        also installs required Python packages (beautifulsoup4, lxml, html5lib).
+        Subsequent calls return the cached ID.
 
         Returns:
             The sandbox ID string.
@@ -304,21 +317,20 @@ class PrimeSandboxExecutor(Executor):
 
             client = self._get_sandbox_client()
 
-            # Create sandbox with network access for initial setup
             request = CreateSandboxRequest(
                 name=f"bs4-env-{uuid.uuid4().hex[:8]}",
                 docker_image=self.docker_image,
                 cpu_cores=self.cpu_cores,
                 memory_gb=self.memory_gb,
-                network_access=True,  # Enabled for pip install
+                network_access=self.network_access,
                 timeout_minutes=self.timeout_minutes,
             )
             sandbox = client.create(request)
             client.wait_for_creation(sandbox.id)
             self._sandbox_id = sandbox.id
 
-        # Install dependencies if not already done
-        if not self._deps_installed:
+        # Install dependencies if network access is enabled and not already done
+        if self.network_access and not self._deps_installed:
             client = self._get_sandbox_client()
             result = client.execute_command(
                 self._sandbox_id,
@@ -573,7 +585,9 @@ def _execute_in_worker(
         # Execute the runner script (includes make_soup, BS4 imports, etc.)
         exec(runner_code, {})
 
-    except Exception:
+    except BaseException:
+        # Catch BaseException to handle SystemExit/KeyboardInterrupt from user code
+        # without killing the worker process
         exit_code = 1
         traceback.print_exc()
 
