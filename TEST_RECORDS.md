@@ -6,25 +6,84 @@ Track evaluation progress and results. Update this file after each benchmark run
 
 Focus on **small/weak models** - they benefit most from RL training on this environment.
 
-### Priority (Small Models)
-- [x] `mistralai/ministral-8b-2512` - **BEST 8B: 68.4% pass rate** (Ministral 3, Jan 2026, 680 examples, efficiency guidelines)
+### Tier 1: Small Models (RL Training Targets)
+- [x] `qwen/qwen3-4b:free` - **0% pass rate** (20 tool calls, all fail - ideal RL target!)
+- [x] `meta-llama/llama-3.2-3b-instruct` - **0% pass rate** (24 tool calls, all fail)
+- [ ] `meta-llama/llama-3.2-1b-instruct` - ❌ No function calling support
+- [ ] `google/gemma-3-4b-it` - ❌ No function calling support
+- [ ] `google/gemma-3n-*` - ❌ No function calling support
+
+### Tier 2: Medium Models (8B Validation)
+- [x] `mistralai/ministral-8b-2512` - **BEST 8B: 68.4% pass rate** (Ministral 3, Jan 2026, 680 examples)
 - [x] `mistralai/ministral-3b-2512` - **50.6% pass rate** (Ministral 3B, Jan 2026, 680 examples, $1.10)
-- [x] `qwen/qwen3-8b` - Free tier available (**43.1% pass rate**, 680 examples)
+- [x] `qwen/qwen3-8b` - **43.1% pass rate** (680 examples)
 - [x] `mistralai/ministral-8b` - Old version (**27.5% pass rate** - loopy, expensive)
 
-### Blocked
-- ~~`deepseek/deepseek-r1-0528-qwen3-8b`~~ - No function calling support on OpenRouter
-- ~~`google/gemma-3-*`~~ - No function calling support on OpenRouter
-- ~~`prime-intellect/intellect-3`~~ - OpenRouter function calling broken (Qwen parsing bug)
-- ~~`x-ai/grok-4.1-fast`~~ - Rate limits too aggressive
+### Tier 3: Large Models (Ceiling Reference)
+- [x] `moonshotai/kimi-k2` - **72.8% pass rate** (680 examples)
+- [x] `z-ai/glm-4.7` - **74.7% pass rate** (680 examples)
+- [ ] `minimax/minimax-m2.1` - Not yet tested
 
-### For Comparison Only (Strong Models)
-- [x] `openai/gpt-5.2` - **75.6% pass rate** (680 examples, frontier baseline)
-- `anthropic/claude-3-5-haiku-latest` - Fast, capable
+### Blocked (No Function Calling)
+- ~~`meta-llama/llama-3.2-1b-instruct`~~ - No `tools` support on OpenRouter
+- ~~`google/gemma-3-4b-it`~~ - No `tools` support on OpenRouter
+- ~~`google/gemma-3n-*`~~ - No `tools` support on OpenRouter
+- ~~`deepseek/deepseek-r1-0528-qwen3-8b`~~ - No function calling support
+- ~~`prime-intellect/intellect-3`~~ - OpenRouter function calling broken
+- ~~`x-ai/grok-4.1-fast`~~ - Rate limits too aggressive
 
 ---
 
 ## Benchmark Runs (Expanded - Now 50 Archetypes)
+
+### 2026-01-01: Small Model Baseline Testing (Qwen3-4B, Llama 3.2-3B)
+
+Tested small models with function calling support to establish RL training baselines.
+
+**Key Finding:** Both small models get **0% pass rate** despite making tool calls. This is ideal for RL training - there's massive room for improvement!
+
+#### Qwen3-4B (qwen/qwen3-4b:free)
+
+| Metric | Value |
+|--------|-------|
+| **Pass rate** | 0% |
+| **Perfect rate** | 0% |
+| **Average reward** | 0.000 |
+| **Tool calls** | 20 (1.0/task) |
+| **Tokens** | 31K in, 15K out |
+
+#### Llama 3.2 3B (meta-llama/llama-3.2-3b-instruct)
+
+| Metric | Value |
+|--------|-------|
+| **Pass rate** | 0% |
+| **Perfect rate** | 0% |
+| **Average reward** | 0.000 |
+| **Tool calls** | 24 (1.2/task) |
+| **Tokens** | 46K in, 2.4K out |
+
+#### Function Calling Support Check
+
+Verified via OpenRouter API (`supported_parameters` field):
+
+| Model | Has `tools` | Can Benchmark? |
+|-------|-------------|----------------|
+| `qwen/qwen3-4b:free` | ✅ | Yes (0% pass) |
+| `qwen/qwen3-8b` | ✅ | Yes (43% pass) |
+| `meta-llama/llama-3.2-3b-instruct` | ✅ | Yes (0% pass) |
+| `meta-llama/llama-3.2-1b-instruct` | ❌ | No |
+| `google/gemma-3-4b-it` | ❌ | No |
+| `google/gemma-3n-*` | ❌ | No |
+
+**Benchmark Calibration Summary:**
+
+| Tier | Models | Pass Rate | RL Opportunity |
+|------|--------|-----------|----------------|
+| Small (3-4B) | Qwen3-4B, Llama 3.2-3B | 0% | Huge! |
+| Medium (8B) | Qwen3-8B, Ministral-8B | 43-68% | Moderate |
+| Large | Kimi K2, GLM-4.7 | 72-75% | Ceiling |
+
+---
 
 ### 2026-01-01: Ministral 8B Full Benchmark with Efficiency Guidelines
 
@@ -599,3 +658,16 @@ Tested cheaper alternatives to GPT-5.2 from Chinese providers.
 - Bench split uses seeds 110000-111000 (20 per archetype)
 - Efficiency penalty: -10% per extra tool call, floor at 0.2, cutoff at 11+
 - Run benchmarks on cloud via `.github/workflows/bench.yml` (Namespace runners)
+
+## Benchmark Calibration
+
+| Tier | Model | Pass Rate | Perfect Rate | RL Target? |
+|------|-------|-----------|--------------|------------|
+| Small | Qwen3-4B | 0% | 0% | ✅ Ideal |
+| Small | Llama 3.2-3B | 0% | 0% | ✅ Ideal |
+| Medium | Qwen3-8B | 43.1% | 31.6% | ✅ Good |
+| Medium | Ministral-8B | 68.4% | 57.9% | Validation |
+| Large | Kimi K2 | 72.8% | 60.5% | Ceiling |
+| Large | GLM-4.7 | 74.7% | 63.2% | Ceiling |
+
+**Key Insight:** 0% → 43% → 75% progression shows clear learning signal for RL training.
