@@ -509,7 +509,7 @@ class SvgPathDataGenerator(Generator):
 <svg width="400" height="250" viewBox="0 0 400 250">
     <line x1="40" y1="200" x2="360" y2="200" stroke="#333" stroke-width="2"/>
     <line x1="40" y1="0" x2="40" y2="200" stroke="#333" stroke-width="2"/>
-    {''.join(bars)}
+    {"".join(bars)}
 </svg>
 <p>Data visualization - hover for details</p>
 </body>
@@ -534,7 +534,7 @@ class SvgPathDataGenerator(Generator):
     <h3>Performance Over Time</h3>
     <svg width="400" height="220" viewBox="0 0 400 220">
         <path d="{path_d}" fill="none" stroke="#e74c3c" stroke-width="3"/>
-        <path d="{path_d} L {50 + (len(data_points)-1)*70},180 L 50,180 Z"
+        <path d="{path_d} L {50 + (len(data_points) - 1) * 70},180 L 50,180 Z"
               fill="rgba(231,76,60,0.2)" stroke="none"/>
     </svg>
 </div>
@@ -571,7 +571,7 @@ class SvgPathDataGenerator(Generator):
 <body>
 <h2>Market Distribution</h2>
 <svg width="300" height="220" viewBox="0 0 300 220">
-    {''.join(paths)}
+    {"".join(paths)}
 </svg>
 <p>Interactive chart - click segments for details</p>
 </body>

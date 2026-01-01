@@ -724,16 +724,16 @@ class SemanticDecoyExtremeGenerator(Generator):
         query_type = rng.choice(["color_and_size", "color", "size"])
 
         if query_type == "color_and_size":
-            query = f'Extract the price of the {target["color"]} {target["size"]} {base_name}. There are many similar items - be precise.'
+            query = f"Extract the price of the {target['color']} {target['size']} {base_name}. There are many similar items - be precise."
         elif query_type == "color":
             # Find items with same color
             same_color = [i for i in items if i["color"] == target["color"]]
             if len(same_color) > 1:
-                query = f'Extract the price of the {target["color"]} {target["size"]} {base_name}. Multiple {target["color"]} items exist.'
+                query = f"Extract the price of the {target['color']} {target['size']} {base_name}. Multiple {target['color']} items exist."
             else:
-                query = f'Extract the price of the {target["color"]} item.'
+                query = f"Extract the price of the {target['color']} item."
         else:
-            query = f'Extract the price of the {target["color"]} {target["size"]} {base_name}.'
+            query = f"Extract the price of the {target['color']} {target['size']} {base_name}."
 
         ground_truth = target["price"]
 

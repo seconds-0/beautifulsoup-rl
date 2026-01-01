@@ -25,9 +25,9 @@ def preview_example(example: dict, idx: int) -> None:
     """Print a formatted preview of an example."""
     info = example["info"]
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Example {idx}: {info.get('archetype_id', 'unknown')}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     # Task metadata
     print(f"\nArchetype: {info.get('archetype_id')}")
@@ -92,9 +92,9 @@ def main():
         print("No examples found matching criteria")
 
     # Summary statistics
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("Summary Statistics")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     archetype_counts = {}
     difficulty_counts = {}

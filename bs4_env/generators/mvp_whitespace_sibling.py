@@ -117,7 +117,7 @@ class WhitespaceSiblingGenerator(Generator):
 
         body_content = f"""
 <div class="content-section">
-    <h2>{rng.choice(['Items', 'List', 'Options', 'Menu', 'Categories'])}</h2>
+    <h2>{rng.choice(["Items", "List", "Options", "Menu", "Categories"])}</h2>
     <p>{header_text}</p>
     {list_wrapper}
     <p class="footer-note">{footer_text}</p>

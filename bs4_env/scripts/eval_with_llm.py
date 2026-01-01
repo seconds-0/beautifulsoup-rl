@@ -276,7 +276,7 @@ def run_evaluation(
     print(f"Model: {model}")
     print("Using OpenAI function calling API (production-match)")
     end_index = min(start_index + num_examples, len(env))
-    print(f"Evaluating examples {start_index+1} to {end_index}...\n")
+    print(f"Evaluating examples {start_index + 1} to {end_index}...\n")
 
     results = []
     total_reward = 0.0
@@ -290,7 +290,7 @@ def run_evaluation(
         info = example["info"]
 
         print(
-            f"[{i+1}/{end_index}] {info.get('archetype_id')} (seed={info.get('seed')})...",
+            f"[{i + 1}/{end_index}] {info.get('archetype_id')} (seed={info.get('seed')})...",
             end=" ",
             flush=True,
         )
@@ -355,9 +355,9 @@ def run_evaluation(
     # Summary
     avg_reward = total_reward / num_to_test
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("EVALUATION SUMMARY")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"Model: {model}")
     print(f"Examples: {num_to_test}")
     print(f"Average reward: {avg_reward:.3f}")

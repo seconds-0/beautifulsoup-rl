@@ -221,7 +221,7 @@ class ExtractLinksGenerator(Generator):
         links_html = f"""
 <nav id="{container_id}" class="{container_class}">
   <ul>
-    {"".join(f'<li>{link}</li>' for link in link_parts)}
+    {"".join(f"<li>{link}</li>" for link in link_parts)}
   </ul>
 </nav>
 """
@@ -454,7 +454,7 @@ class DirectChildrenGenerator(Generator):
 
         # Generate direct children (what we want)
         num_children = rng.randint(3, 5)
-        child_texts = [f"Child {i+1}" for i in range(num_children)]
+        child_texts = [f"Child {i + 1}" for i in range(num_children)]
 
         # Generate nested content that looks like children but isn't direct
         nested_item_texts = ["Nested A", "Nested B", "Deep Item"]
