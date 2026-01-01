@@ -8,6 +8,7 @@ Focus on **small/weak models** - they benefit most from RL training on this envi
 
 ### Priority (Small Models)
 - [x] `mistralai/ministral-8b-2512` - **BEST 8B: 63.2% pass rate** (Ministral 3, Dec 2025, 680 examples)
+- [x] `mistralai/ministral-3b-2512` - **50.6% pass rate** (Ministral 3B, Jan 2026, 680 examples, $1.10)
 - [x] `qwen/qwen3-8b` - Free tier available (**43.1% pass rate**, 680 examples)
 - [x] `mistralai/ministral-8b` - Old version (**27.5% pass rate** - loopy, expensive)
 
@@ -24,6 +25,47 @@ Focus on **small/weak models** - they benefit most from RL training on this envi
 ---
 
 ## Benchmark Runs (Expanded - Now 50 Archetypes)
+
+### 2026-01-01: Ministral 3B Full Benchmark (680 examples)
+
+**Model:** `mistralai/ministral-3b-2512` (Ministral 3B, with efficiency guidelines)
+**Config:** split=bench, mode=all, 680 examples (34 archetypes)
+**Cost:** $1.10
+
+| Metric | Value |
+|--------|-------|
+| **Pass rate (≥0.5)** | 50.6% |
+| **Perfect rate (=1.0)** | 19.7% |
+| **Average reward** | 0.453 |
+| **Total tool calls** | 3,117 |
+| **Total tokens** | ~11M |
+
+**Top Performing Archetypes:**
+
+| Archetype | Avg Reward | Perfect |
+|-----------|------------|---------|
+| extract_images | 0.945 | 14/20 |
+| select_options | 0.910 | 10/20 |
+| extract_links | 0.905 | 14/20 |
+| class_reserved_word | 0.875 | 9/20 |
+| deep_nesting_extraction | 0.825 | 11/20 |
+| direct_children | 0.785 | 0/20 |
+
+**Hardest Archetypes (0% pass):**
+- aggregation_min_max, semantic_decoy_extreme, count_elements
+- relational_query, list_extraction, partial_data_extraction
+
+**Comparison with 8B models:**
+
+| Model | Pass Rate | Perfect Rate | Avg Reward |
+|-------|-----------|--------------|------------|
+| Ministral 3 8B | 63.2% | 56.2% | 0.621 |
+| **Ministral 3B** | **50.6%** | **19.7%** | **0.453** |
+| Qwen3-8B | 43.1% | 26.6% | 0.401 |
+
+**Key Finding:** 3B model achieves 50.6% pass rate - better than Qwen3-8B (43.1%) despite being 2.7x smaller. Good RL training candidate.
+
+---
 
 ### 2025-12-31: Efficiency Guidelines Added (Prompt Improvement)
 
