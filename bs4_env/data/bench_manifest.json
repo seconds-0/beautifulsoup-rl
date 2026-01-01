@@ -1,0 +1,4008 @@
+{
+  "version": "1.0.0",
+  "split": "bench",
+  "seeds_per_archetype": 20,
+  "total_entries": 1000,
+  "entries": [
+    {
+      "archetype_id": "mvp.aggregation_min_max",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.aggregation_min_max",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.aggregation_min_max",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.aggregation_min_max",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.aggregation_min_max",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.aggregation_min_max",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.aggregation_min_max",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.aggregation_min_max",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.aggregation_min_max",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.aggregation_min_max",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.aggregation_min_max",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.aggregation_min_max",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.aggregation_min_max",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.aggregation_min_max",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.aggregation_min_max",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.aggregation_min_max",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.aggregation_min_max",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.aggregation_min_max",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.aggregation_min_max",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.aggregation_min_max",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.attribute_selector",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.attribute_selector",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.attribute_selector",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.attribute_selector",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.attribute_selector",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.attribute_selector",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.attribute_selector",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.attribute_selector",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.attribute_selector",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.attribute_selector",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.attribute_selector",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.attribute_selector",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.attribute_selector",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.attribute_selector",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.attribute_selector",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.attribute_selector",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.attribute_selector",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.attribute_selector",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.attribute_selector",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.attribute_selector",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.class_reserved_word",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.class_reserved_word",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.class_reserved_word",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.class_reserved_word",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.class_reserved_word",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.class_reserved_word",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.class_reserved_word",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.class_reserved_word",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.class_reserved_word",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.class_reserved_word",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.class_reserved_word",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.class_reserved_word",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.class_reserved_word",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.class_reserved_word",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.class_reserved_word",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.class_reserved_word",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.class_reserved_word",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.class_reserved_word",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.class_reserved_word",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.class_reserved_word",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.compare_products",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.compare_products",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.compare_products",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.compare_products",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.compare_products",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.compare_products",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.compare_products",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.compare_products",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.compare_products",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.compare_products",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.compare_products",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.compare_products",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.compare_products",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.compare_products",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.compare_products",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.compare_products",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.compare_products",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.compare_products",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.compare_products",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.compare_products",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.count_elements",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.count_elements",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.count_elements",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.count_elements",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.count_elements",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.count_elements",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.count_elements",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.count_elements",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.count_elements",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.count_elements",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.count_elements",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.count_elements",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.count_elements",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.count_elements",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.count_elements",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.count_elements",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.count_elements",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.count_elements",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.count_elements",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.count_elements",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.credential_detection",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.credential_detection",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.credential_detection",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.credential_detection",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.credential_detection",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.credential_detection",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.credential_detection",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.credential_detection",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.credential_detection",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.credential_detection",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.credential_detection",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.credential_detection",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.credential_detection",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.credential_detection",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.credential_detection",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.credential_detection",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.credential_detection",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.credential_detection",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.credential_detection",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.credential_detection",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.css_combinator",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.css_combinator",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.css_combinator",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.css_combinator",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.css_combinator",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.css_combinator",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.css_combinator",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.css_combinator",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.css_combinator",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.css_combinator",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.css_combinator",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.css_combinator",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.css_combinator",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.css_combinator",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.css_combinator",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.css_combinator",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.css_combinator",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.css_combinator",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.css_combinator",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.css_combinator",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.deep_nesting_extraction",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.deep_nesting_extraction",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.deep_nesting_extraction",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.deep_nesting_extraction",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.deep_nesting_extraction",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.deep_nesting_extraction",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.deep_nesting_extraction",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.deep_nesting_extraction",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.deep_nesting_extraction",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.deep_nesting_extraction",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.deep_nesting_extraction",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.deep_nesting_extraction",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.deep_nesting_extraction",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.deep_nesting_extraction",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.deep_nesting_extraction",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.deep_nesting_extraction",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.deep_nesting_extraction",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.deep_nesting_extraction",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.deep_nesting_extraction",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.deep_nesting_extraction",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.descendants_filter",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.descendants_filter",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.descendants_filter",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.descendants_filter",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.descendants_filter",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.descendants_filter",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.descendants_filter",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.descendants_filter",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.descendants_filter",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.descendants_filter",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.descendants_filter",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.descendants_filter",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.descendants_filter",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.descendants_filter",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.descendants_filter",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.descendants_filter",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.descendants_filter",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.descendants_filter",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.descendants_filter",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.descendants_filter",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.direct_children",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.direct_children",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.direct_children",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.direct_children",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.direct_children",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.direct_children",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.direct_children",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.direct_children",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.direct_children",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.direct_children",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.direct_children",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.direct_children",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.direct_children",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.direct_children",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.direct_children",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.direct_children",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.direct_children",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.direct_children",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.direct_children",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.direct_children",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.extract_attribute",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.extract_attribute",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.extract_attribute",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.extract_attribute",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.extract_attribute",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.extract_attribute",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.extract_attribute",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.extract_attribute",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.extract_attribute",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.extract_attribute",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.extract_attribute",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.extract_attribute",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.extract_attribute",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.extract_attribute",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.extract_attribute",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.extract_attribute",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.extract_attribute",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.extract_attribute",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.extract_attribute",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.extract_attribute",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.extract_emoji_content",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.extract_emoji_content",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.extract_emoji_content",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.extract_emoji_content",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.extract_emoji_content",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.extract_emoji_content",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.extract_emoji_content",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.extract_emoji_content",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.extract_emoji_content",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.extract_emoji_content",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.extract_emoji_content",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.extract_emoji_content",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.extract_emoji_content",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.extract_emoji_content",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.extract_emoji_content",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.extract_emoji_content",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.extract_emoji_content",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.extract_emoji_content",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.extract_emoji_content",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.extract_emoji_content",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.extract_images",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.extract_images",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.extract_images",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.extract_images",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.extract_images",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.extract_images",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.extract_images",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.extract_images",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.extract_images",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.extract_images",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.extract_images",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.extract_images",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.extract_images",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.extract_images",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.extract_images",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.extract_images",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.extract_images",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.extract_images",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.extract_images",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.extract_images",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.extract_links",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.extract_links",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.extract_links",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.extract_links",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.extract_links",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.extract_links",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.extract_links",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.extract_links",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.extract_links",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.extract_links",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.extract_links",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.extract_links",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.extract_links",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.extract_links",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.extract_links",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.extract_links",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.extract_links",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.extract_links",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.extract_links",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.extract_links",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.extract_multilingual",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.extract_multilingual",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.extract_multilingual",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.extract_multilingual",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.extract_multilingual",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.extract_multilingual",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.extract_multilingual",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.extract_multilingual",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.extract_multilingual",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.extract_multilingual",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.extract_multilingual",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.extract_multilingual",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.extract_multilingual",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.extract_multilingual",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.extract_multilingual",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.extract_multilingual",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.extract_multilingual",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.extract_multilingual",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.extract_multilingual",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.extract_multilingual",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.extract_rtl",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.extract_rtl",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.extract_rtl",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.extract_rtl",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.extract_rtl",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.extract_rtl",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.extract_rtl",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.extract_rtl",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.extract_rtl",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.extract_rtl",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.extract_rtl",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.extract_rtl",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.extract_rtl",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.extract_rtl",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.extract_rtl",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.extract_rtl",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.extract_rtl",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.extract_rtl",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.extract_rtl",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.extract_rtl",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_class",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_class",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_class",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_class",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_class",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_class",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_class",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_class",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_class",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_class",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_class",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_class",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_class",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_class",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_class",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_class",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_class",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_class",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_class",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_class",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_id",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_id",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_id",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_id",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_id",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_id",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_id",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_id",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_id",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_id",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_id",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_id",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_id",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_id",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_id",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_id",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_id",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_id",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_id",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.extract_text_by_id",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.form_action_method",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.form_action_method",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.form_action_method",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.form_action_method",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.form_action_method",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.form_action_method",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.form_action_method",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.form_action_method",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.form_action_method",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.form_action_method",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.form_action_method",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.form_action_method",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.form_action_method",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.form_action_method",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.form_action_method",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.form_action_method",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.form_action_method",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.form_action_method",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.form_action_method",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.form_action_method",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.form_field_enumeration",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.form_field_enumeration",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.form_field_enumeration",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.form_field_enumeration",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.form_field_enumeration",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.form_field_enumeration",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.form_field_enumeration",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.form_field_enumeration",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.form_field_enumeration",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.form_field_enumeration",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.form_field_enumeration",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.form_field_enumeration",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.form_field_enumeration",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.form_field_enumeration",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.form_field_enumeration",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.form_field_enumeration",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.form_field_enumeration",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.form_field_enumeration",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.form_field_enumeration",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.form_field_enumeration",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.honeypot_detection",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.honeypot_detection",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.honeypot_detection",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.honeypot_detection",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.honeypot_detection",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.honeypot_detection",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.honeypot_detection",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.honeypot_detection",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.honeypot_detection",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.honeypot_detection",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.honeypot_detection",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.honeypot_detection",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.honeypot_detection",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.honeypot_detection",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.honeypot_detection",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.honeypot_detection",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.honeypot_detection",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.honeypot_detection",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.honeypot_detection",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.honeypot_detection",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.json_ld_array",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.json_ld_array",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.json_ld_array",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.json_ld_array",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.json_ld_array",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.json_ld_array",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.json_ld_array",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.json_ld_array",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.json_ld_array",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.json_ld_array",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.json_ld_array",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.json_ld_array",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.json_ld_array",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.json_ld_array",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.json_ld_array",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.json_ld_array",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.json_ld_array",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.json_ld_array",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.json_ld_array",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.json_ld_array",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.json_ld_extraction",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.json_ld_extraction",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.json_ld_extraction",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.json_ld_extraction",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.json_ld_extraction",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.json_ld_extraction",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.json_ld_extraction",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.json_ld_extraction",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.json_ld_extraction",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.json_ld_extraction",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.json_ld_extraction",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.json_ld_extraction",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.json_ld_extraction",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.json_ld_extraction",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.json_ld_extraction",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.json_ld_extraction",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.json_ld_extraction",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.json_ld_extraction",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.json_ld_extraction",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.json_ld_extraction",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.label_input_mapping",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.label_input_mapping",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.label_input_mapping",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.label_input_mapping",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.label_input_mapping",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.label_input_mapping",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.label_input_mapping",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.label_input_mapping",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.label_input_mapping",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.label_input_mapping",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.label_input_mapping",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.label_input_mapping",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.label_input_mapping",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.label_input_mapping",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.label_input_mapping",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.label_input_mapping",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.label_input_mapping",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.label_input_mapping",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.label_input_mapping",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.label_input_mapping",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.limit_image_text",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.limit_image_text",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.limit_image_text",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.limit_image_text",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.limit_image_text",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.limit_image_text",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.limit_image_text",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.limit_image_text",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.limit_image_text",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.limit_image_text",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.limit_image_text",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.limit_image_text",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.limit_image_text",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.limit_image_text",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.limit_image_text",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.limit_image_text",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.limit_image_text",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.limit_image_text",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.limit_image_text",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.limit_image_text",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.limit_js_required",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.limit_js_required",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.limit_js_required",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.limit_js_required",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.limit_js_required",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.limit_js_required",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.limit_js_required",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.limit_js_required",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.limit_js_required",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.limit_js_required",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.limit_js_required",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.limit_js_required",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.limit_js_required",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.limit_js_required",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.limit_js_required",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.limit_js_required",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.limit_js_required",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.limit_js_required",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.limit_js_required",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.limit_js_required",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.link_chain",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.link_chain",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.link_chain",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.link_chain",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.link_chain",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.link_chain",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.link_chain",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.link_chain",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.link_chain",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.link_chain",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.link_chain",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.link_chain",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.link_chain",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.link_chain",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.link_chain",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.link_chain",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.link_chain",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.link_chain",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.link_chain",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.link_chain",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.list_extraction",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.list_extraction",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.list_extraction",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.list_extraction",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.list_extraction",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.list_extraction",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.list_extraction",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.list_extraction",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.list_extraction",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.list_extraction",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.list_extraction",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.list_extraction",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.list_extraction",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.list_extraction",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.list_extraction",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.list_extraction",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.list_extraction",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.list_extraction",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.list_extraction",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.list_extraction",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.multi_hop_filter",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.multi_hop_filter",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.multi_hop_filter",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.multi_hop_filter",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.multi_hop_filter",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.multi_hop_filter",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.multi_hop_filter",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.multi_hop_filter",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.multi_hop_filter",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.multi_hop_filter",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.multi_hop_filter",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.multi_hop_filter",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.multi_hop_filter",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.multi_hop_filter",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.multi_hop_filter",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.multi_hop_filter",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.multi_hop_filter",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.multi_hop_filter",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.multi_hop_filter",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.multi_hop_filter",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.multivalue_class",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.multivalue_class",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.multivalue_class",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.multivalue_class",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.multivalue_class",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.multivalue_class",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.multivalue_class",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.multivalue_class",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.multivalue_class",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.multivalue_class",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.multivalue_class",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.multivalue_class",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.multivalue_class",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.multivalue_class",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.multivalue_class",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.multivalue_class",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.multivalue_class",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.multivalue_class",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.multivalue_class",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.multivalue_class",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.navigablestring_parent",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.navigablestring_parent",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.navigablestring_parent",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.navigablestring_parent",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.navigablestring_parent",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.navigablestring_parent",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.navigablestring_parent",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.navigablestring_parent",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.navigablestring_parent",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.navigablestring_parent",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.navigablestring_parent",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.navigablestring_parent",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.navigablestring_parent",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.navigablestring_parent",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.navigablestring_parent",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.navigablestring_parent",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.navigablestring_parent",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.navigablestring_parent",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.navigablestring_parent",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.navigablestring_parent",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.none_attribute_error",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.none_attribute_error",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.none_attribute_error",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.none_attribute_error",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.none_attribute_error",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.none_attribute_error",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.none_attribute_error",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.none_attribute_error",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.none_attribute_error",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.none_attribute_error",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.none_attribute_error",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.none_attribute_error",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.none_attribute_error",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.none_attribute_error",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.none_attribute_error",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.none_attribute_error",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.none_attribute_error",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.none_attribute_error",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.none_attribute_error",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.none_attribute_error",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.pagination_aggregate",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.pagination_aggregate",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.pagination_aggregate",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.pagination_aggregate",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.pagination_aggregate",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.pagination_aggregate",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.pagination_aggregate",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.pagination_aggregate",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.pagination_aggregate",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.pagination_aggregate",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.pagination_aggregate",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.pagination_aggregate",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.pagination_aggregate",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.pagination_aggregate",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.pagination_aggregate",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.pagination_aggregate",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.pagination_aggregate",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.pagination_aggregate",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.pagination_aggregate",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.pagination_aggregate",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.parser_differences",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.parser_differences",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.parser_differences",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.parser_differences",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.parser_differences",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.parser_differences",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.parser_differences",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.parser_differences",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.parser_differences",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.parser_differences",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.parser_differences",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.parser_differences",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.parser_differences",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.parser_differences",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.parser_differences",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.parser_differences",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.parser_differences",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.parser_differences",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.parser_differences",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.parser_differences",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.parser_required",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.parser_required",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.parser_required",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.parser_required",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.parser_required",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.parser_required",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.parser_required",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.parser_required",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.parser_required",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.parser_required",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.parser_required",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.parser_required",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.parser_required",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.parser_required",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.parser_required",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.parser_required",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.parser_required",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.parser_required",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.parser_required",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.parser_required",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.partial_data_extraction",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.partial_data_extraction",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.partial_data_extraction",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.partial_data_extraction",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.partial_data_extraction",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.partial_data_extraction",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.partial_data_extraction",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.partial_data_extraction",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.partial_data_extraction",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.partial_data_extraction",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.partial_data_extraction",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.partial_data_extraction",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.partial_data_extraction",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.partial_data_extraction",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.partial_data_extraction",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.partial_data_extraction",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.partial_data_extraction",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.partial_data_extraction",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.partial_data_extraction",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.partial_data_extraction",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.relational_query",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.relational_query",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.relational_query",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.relational_query",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.relational_query",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.relational_query",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.relational_query",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.relational_query",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.relational_query",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.relational_query",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.relational_query",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.relational_query",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.relational_query",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.relational_query",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.relational_query",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.relational_query",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.relational_query",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.relational_query",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.relational_query",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.relational_query",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.remove_scripts_styles",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.remove_scripts_styles",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.remove_scripts_styles",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.remove_scripts_styles",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.remove_scripts_styles",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.remove_scripts_styles",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.remove_scripts_styles",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.remove_scripts_styles",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.remove_scripts_styles",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.remove_scripts_styles",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.remove_scripts_styles",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.remove_scripts_styles",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.remove_scripts_styles",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.remove_scripts_styles",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.remove_scripts_styles",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.remove_scripts_styles",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.remove_scripts_styles",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.remove_scripts_styles",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.remove_scripts_styles",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.remove_scripts_styles",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.search_then_detail",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.search_then_detail",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.search_then_detail",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.search_then_detail",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.search_then_detail",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.search_then_detail",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.search_then_detail",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.search_then_detail",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.search_then_detail",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.search_then_detail",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.search_then_detail",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.search_then_detail",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.search_then_detail",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.search_then_detail",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.search_then_detail",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.search_then_detail",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.search_then_detail",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.search_then_detail",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.search_then_detail",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.search_then_detail",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.select_options",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.select_options",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.select_options",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.select_options",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.select_options",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.select_options",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.select_options",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.select_options",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.select_options",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.select_options",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.select_options",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.select_options",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.select_options",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.select_options",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.select_options",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.select_options",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.select_options",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.select_options",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.select_options",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.select_options",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.semantic_ambiguity",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.semantic_ambiguity",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.semantic_ambiguity",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.semantic_ambiguity",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.semantic_ambiguity",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.semantic_ambiguity",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.semantic_ambiguity",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.semantic_ambiguity",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.semantic_ambiguity",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.semantic_ambiguity",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.semantic_ambiguity",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.semantic_ambiguity",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.semantic_ambiguity",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.semantic_ambiguity",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.semantic_ambiguity",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.semantic_ambiguity",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.semantic_ambiguity",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.semantic_ambiguity",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.semantic_ambiguity",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.semantic_ambiguity",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.semantic_decoy_extreme",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.semantic_decoy_extreme",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.semantic_decoy_extreme",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.semantic_decoy_extreme",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.semantic_decoy_extreme",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.semantic_decoy_extreme",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.semantic_decoy_extreme",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.semantic_decoy_extreme",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.semantic_decoy_extreme",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.semantic_decoy_extreme",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.semantic_decoy_extreme",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.semantic_decoy_extreme",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.semantic_decoy_extreme",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.semantic_decoy_extreme",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.semantic_decoy_extreme",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.semantic_decoy_extreme",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.semantic_decoy_extreme",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.semantic_decoy_extreme",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.semantic_decoy_extreme",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.semantic_decoy_extreme",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.sibling_navigation",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.sibling_navigation",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.sibling_navigation",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.sibling_navigation",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.sibling_navigation",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.sibling_navigation",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.sibling_navigation",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.sibling_navigation",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.sibling_navigation",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.sibling_navigation",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.sibling_navigation",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.sibling_navigation",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.sibling_navigation",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.sibling_navigation",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.sibling_navigation",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.sibling_navigation",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.sibling_navigation",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.sibling_navigation",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.sibling_navigation",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.sibling_navigation",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.string_returns_none",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.string_returns_none",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.string_returns_none",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.string_returns_none",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.string_returns_none",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.string_returns_none",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.string_returns_none",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.string_returns_none",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.string_returns_none",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.string_returns_none",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.string_returns_none",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.string_returns_none",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.string_returns_none",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.string_returns_none",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.string_returns_none",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.string_returns_none",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.string_returns_none",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.string_returns_none",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.string_returns_none",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.string_returns_none",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.structured_output",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.structured_output",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.structured_output",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.structured_output",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.structured_output",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.structured_output",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.structured_output",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.structured_output",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.structured_output",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.structured_output",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.structured_output",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.structured_output",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.structured_output",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.structured_output",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.structured_output",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.structured_output",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.structured_output",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.structured_output",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.structured_output",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.structured_output",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.table_column_by_header",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.table_column_by_header",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.table_column_by_header",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.table_column_by_header",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.table_column_by_header",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.table_column_by_header",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.table_column_by_header",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.table_column_by_header",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.table_column_by_header",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.table_column_by_header",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.table_column_by_header",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.table_column_by_header",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.table_column_by_header",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.table_column_by_header",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.table_column_by_header",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.table_column_by_header",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.table_column_by_header",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.table_column_by_header",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.table_column_by_header",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.table_column_by_header",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.table_list_of_dicts",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.table_list_of_dicts",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.table_list_of_dicts",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.table_list_of_dicts",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.table_list_of_dicts",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.table_list_of_dicts",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.table_list_of_dicts",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.table_list_of_dicts",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.table_list_of_dicts",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.table_list_of_dicts",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.table_list_of_dicts",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.table_list_of_dicts",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.table_list_of_dicts",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.table_list_of_dicts",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.table_list_of_dicts",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.table_list_of_dicts",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.table_list_of_dicts",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.table_list_of_dicts",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.table_list_of_dicts",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.table_list_of_dicts",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.table_list_of_lists",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.table_list_of_lists",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.table_list_of_lists",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.table_list_of_lists",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.table_list_of_lists",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.table_list_of_lists",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.table_list_of_lists",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.table_list_of_lists",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.table_list_of_lists",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.table_list_of_lists",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.table_list_of_lists",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.table_list_of_lists",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.table_list_of_lists",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.table_list_of_lists",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.table_list_of_lists",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.table_list_of_lists",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.table_list_of_lists",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.table_list_of_lists",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.table_list_of_lists",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.table_list_of_lists",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.table_rowspan",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.table_rowspan",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.table_rowspan",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.table_rowspan",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.table_rowspan",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.table_rowspan",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.table_rowspan",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.table_rowspan",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.table_rowspan",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.table_rowspan",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.table_rowspan",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.table_rowspan",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.table_rowspan",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.table_rowspan",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.table_rowspan",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.table_rowspan",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.table_rowspan",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.table_rowspan",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.table_rowspan",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.table_rowspan",
+      "seed": 110019
+    },
+    {
+      "archetype_id": "mvp.whitespace_sibling",
+      "seed": 110000
+    },
+    {
+      "archetype_id": "mvp.whitespace_sibling",
+      "seed": 110001
+    },
+    {
+      "archetype_id": "mvp.whitespace_sibling",
+      "seed": 110002
+    },
+    {
+      "archetype_id": "mvp.whitespace_sibling",
+      "seed": 110003
+    },
+    {
+      "archetype_id": "mvp.whitespace_sibling",
+      "seed": 110004
+    },
+    {
+      "archetype_id": "mvp.whitespace_sibling",
+      "seed": 110005
+    },
+    {
+      "archetype_id": "mvp.whitespace_sibling",
+      "seed": 110006
+    },
+    {
+      "archetype_id": "mvp.whitespace_sibling",
+      "seed": 110007
+    },
+    {
+      "archetype_id": "mvp.whitespace_sibling",
+      "seed": 110008
+    },
+    {
+      "archetype_id": "mvp.whitespace_sibling",
+      "seed": 110009
+    },
+    {
+      "archetype_id": "mvp.whitespace_sibling",
+      "seed": 110010
+    },
+    {
+      "archetype_id": "mvp.whitespace_sibling",
+      "seed": 110011
+    },
+    {
+      "archetype_id": "mvp.whitespace_sibling",
+      "seed": 110012
+    },
+    {
+      "archetype_id": "mvp.whitespace_sibling",
+      "seed": 110013
+    },
+    {
+      "archetype_id": "mvp.whitespace_sibling",
+      "seed": 110014
+    },
+    {
+      "archetype_id": "mvp.whitespace_sibling",
+      "seed": 110015
+    },
+    {
+      "archetype_id": "mvp.whitespace_sibling",
+      "seed": 110016
+    },
+    {
+      "archetype_id": "mvp.whitespace_sibling",
+      "seed": 110017
+    },
+    {
+      "archetype_id": "mvp.whitespace_sibling",
+      "seed": 110018
+    },
+    {
+      "archetype_id": "mvp.whitespace_sibling",
+      "seed": 110019
+    }
+  ]
+}

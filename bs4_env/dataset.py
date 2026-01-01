@@ -8,7 +8,9 @@ managing train/eval/bench splits with disjoint seeds.
 
 import json
 import random
+import warnings
 from collections.abc import Iterator
+from pathlib import Path
 from typing import Any
 
 from datasets import Dataset
@@ -66,6 +68,7 @@ def generate_dataset_rows(config: EnvConfig) -> Iterator[dict[str, Any]]:
 
     Yields dictionaries with 'prompt' (list of messages) and 'info' (dict).
 
+    For bench split, uses the fixed manifest to ensure stability.
     For tiered mode, applies difficulty-weighted sampling to produce more
     hard tasks and fewer easy tasks, optimizing for RL training signal.
 
@@ -77,6 +80,11 @@ def generate_dataset_rows(config: EnvConfig) -> Iterator[dict[str, Any]]:
     """
     # Import auto_import to ensure all generators are registered
     from bs4_env import auto_import  # noqa: F401
+
+    # For bench split, use the fixed manifest to ensure stability
+    if config.split == "bench":
+        yield from _generate_from_manifest(config)
+        return
 
     # Get archetypes to include
     archetype_ids = _get_archetype_ids_for_config(config)
@@ -125,6 +133,49 @@ def generate_dataset_rows(config: EnvConfig) -> Iterator[dict[str, Any]]:
             yield from _generate_for_archetype(
                 archetype_id, seed_start, seed_end, examples_per_archetype, rng, config
             )
+
+
+def _generate_from_manifest(config: EnvConfig) -> Iterator[dict[str, Any]]:
+    """Generate examples from the fixed bench manifest.
+
+    This ensures bench split is stable regardless of archetype additions/removals.
+
+    Args:
+        config: Environment configuration.
+
+    Yields:
+        Dictionary with 'prompt' and 'info' for each task instance.
+    """
+    manifest = load_bench_manifest()
+
+    # Apply filters if specified
+    filtered_manifest = manifest
+    if config.archetypes:
+        filtered_manifest = [
+            (aid, seed) for aid, seed in manifest if aid in config.archetypes
+        ]
+    if config.difficulty != "mixed":
+        filtered_manifest = [
+            (aid, seed)
+            for aid, seed in filtered_manifest
+            if get_archetype(aid).difficulty == config.difficulty
+        ]
+
+    # Apply num_examples limit if specified
+    if config.num_examples is not None:
+        filtered_manifest = filtered_manifest[: config.num_examples]
+
+    # Generate tasks
+    for archetype_id, seed in filtered_manifest:
+        try:
+            spec = get_archetype(archetype_id)
+            generator = spec.generator_class()
+            task = generator.generate(seed)
+            row = _task_to_row(task, spec)
+            yield row
+        except Exception as e:
+            print(f"Error generating {archetype_id} seed {seed}: {e}")
+            continue
 
 
 def _generate_for_archetype(
@@ -261,13 +312,28 @@ def _task_to_row(task: TaskInstance, spec: Any) -> dict[str, Any]:
 def load_bench_manifest() -> list[tuple[str, int]]:
     """Load the bench manifest of fixed (archetype_id, seed) pairs.
 
+    The manifest is loaded from bs4_env/data/bench_manifest.json to ensure
+    benchmark stability. If the file doesn't exist, falls back to programmatic
+    generation with a warning.
+
     Returns:
         List of (archetype_id, seed) tuples for the benchmark set.
     """
-    # For now, generate programmatically
-    # In production, this would load from bench_manifest.json
-    manifest = []
+    manifest_path = Path(__file__).parent / "data" / "bench_manifest.json"
 
+    if manifest_path.exists():
+        with open(manifest_path) as f:
+            data = json.load(f)
+        return [(entry["archetype_id"], entry["seed"]) for entry in data["entries"]]
+
+    # Fallback: generate programmatically (with warning)
+    warnings.warn(
+        "bench_manifest.json not found, generating dynamically. "
+        "This may cause benchmark instability if archetypes are added/removed.",
+        UserWarning,
+        stacklevel=2,
+    )
+    manifest = []
     archetype_ids = get_all_archetype_ids()
     seeds_per_archetype = 20
 
