@@ -192,6 +192,17 @@ Dev:
 
 ## Git Workflow
 
+### Git Author (REQUIRED)
+All commits must use the **seconds-0** GitHub account:
+```bash
+git config user.name "seconds-0"
+git config user.email "36005888+seconds-0@users.noreply.github.com"
+```
+
+A pre-commit hook enforces this - commits will be rejected if the wrong author is configured.
+
+**Do NOT use** the huth-stacks account for this repository.
+
 ### Atomic Commits (Mandatory)
 Each commit should be ONE coherent change for reviewability. Commit after completing each logical unit, not at the end of a phase.
 
