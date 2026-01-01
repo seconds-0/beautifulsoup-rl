@@ -137,6 +137,13 @@ BeautifulSoup and common parsers (html.parser, lxml, html5lib) are pre-installed
 2. Iterate if needed until you have the correct result
 3. Provide your final answer as a JSON object (no tool calls)
 
+## Efficiency
+
+- Most tasks can be solved in 1-3 tool calls
+- If your code produces valid output matching the expected format, finalize immediately
+- If you've tried 3+ different approaches without success, provide your best answer
+- Excessive tool calls (10+) result in zero reward regardless of correctness
+
 ## Output Format
 
 Your final response (when you stop calling tools) must be a valid JSON object:
