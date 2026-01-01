@@ -133,14 +133,14 @@ class TestRunnerScript:
         """Generated script should define globals via base64 decoding."""
         script = build_runner_script(
             "print(HTML)",
-            {"HTML": "test", "QUERY": "query", "CONSTRAINTS": {}},
+            {"HTML": "test", "QUERY": "query", "CONSTRAINTS": {"key": "value"}},
         )
 
-        # Check for base64 encoding pattern
+        # Check for base64 encoding pattern for all globals
         assert "base64.b64decode" in script
         assert "HTML = base64.b64decode" in script
         assert "QUERY = base64.b64decode" in script
-        assert "CONSTRAINTS = " in script
+        assert "CONSTRAINTS = json.loads(base64.b64decode" in script
         # Verify the script is valid Python and can be compiled
         compile(script, "<test>", "exec")
 
@@ -183,3 +183,48 @@ class TestRunnerScript:
             compile(script, "<test>", "exec")
             # Verify base64 pattern is used
             assert "base64.b64decode" in script
+
+    def test_base64_roundtrip_decode(self):
+        """Verify base64 encoding/decoding preserves exact values."""
+        # Test with tricky values that could break with naive escaping
+        test_html = '<div class="test">Content with \'quotes\' and "double" and """triple"""</div>'
+        test_query = "Extract the text containing 'apostrophe' values"
+        test_constraints = {
+            "key_with_'quotes'": "value with 'single' quotes",
+            "unicode": "日本語テスト",
+            "nested": {"inner": "value"},
+        }
+
+        script = build_runner_script(
+            # Print all values as JSON for verification
+            """
+import json
+result = {
+    "html": HTML,
+    "query": QUERY,
+    "constraints": CONSTRAINTS,
+}
+print(json.dumps(result))
+""",
+            {"HTML": test_html, "QUERY": test_query, "CONSTRAINTS": test_constraints},
+        )
+
+        # Script should compile
+        compile(script, "<test>", "exec")
+
+        # Execute the script and verify values
+        import subprocess
+        import json as json_module
+
+        result = subprocess.run(
+            ["python3", "-c", script],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        assert result.returncode == 0, f"Script failed: {result.stderr}"
+
+        output = json_module.loads(result.stdout.strip())
+        assert output["html"] == test_html
+        assert output["query"] == test_query
+        assert output["constraints"] == test_constraints

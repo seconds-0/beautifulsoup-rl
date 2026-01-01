@@ -29,11 +29,13 @@ def build_runner_script(
     Returns:
         Complete Python script ready for execution.
     """
-    # Use base64 encoding for HTML and QUERY to avoid escape edge cases
+    # Use base64 encoding for all globals to avoid escape edge cases
     # This handles all special characters (quotes, backslashes, unicode) cleanly
     html_b64 = base64.b64encode(globals_dict.get("HTML", "").encode("utf-8")).decode("ascii")
     query_b64 = base64.b64encode(globals_dict.get("QUERY", "").encode("utf-8")).decode("ascii")
+    # CONSTRAINTS also base64 encoded to avoid single-quote injection issues
     constraints_json = json.dumps(globals_dict.get("CONSTRAINTS", {}))
+    constraints_b64 = base64.b64encode(constraints_json.encode("utf-8")).decode("ascii")
 
     # Build the script
     script = f'''#!/usr/bin/env python3
@@ -51,7 +53,7 @@ HTML = base64.b64decode("{html_b64}").decode("utf-8")
 
 QUERY = base64.b64decode("{query_b64}").decode("utf-8")
 
-CONSTRAINTS = json.loads('{constraints_json}')
+CONSTRAINTS = json.loads(base64.b64decode("{constraints_b64}").decode("utf-8"))
 
 # =============================================================================
 # Helper Functions

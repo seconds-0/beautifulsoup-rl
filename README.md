@@ -85,18 +85,16 @@ from beautiful_soup_env import load_environment
 # Training configuration for PRIME-RL
 env = load_environment(
     split="train",              # 1000 seeds per archetype
-    mode="mvp",                 # 52 core archetypes
-    difficulty="mixed",
-    difficulty_weights={        # Overweight harder tasks for RL signal
-        "easy": 0.2,
-        "medium": 0.4,
-        "hard": 0.4,
-    },
+    mode="all",                 # All 52 archetypes (phase 1 + phase 2)
+    difficulty="mixed",         # Mix all difficulties
     executor_backend="prime",   # Use Prime's sandboxed executor
     network_access=False,       # Determinism + safety
     timeout_s=30.0,
     seed=42,                    # Reproducibility
 )
+
+# Alternative: Use mode="mvp" for 29 core phase-1 archetypes only
+# Alternative: Use mode="tiered" for difficulty-weighted sampling
 ```
 
 ### Key Training Parameters
@@ -106,15 +104,16 @@ env = load_environment(
 | `split` | `"train"` | `"eval"` | `"bench"` |
 | Seed range | 0-100k | 100k-110k | 110k+ (fixed) |
 | Examples/archetype | 1000 | 100 | 20 |
-| Total examples | ~52k | ~5.2k | 1040 |
 
-### Difficulty Weighting
+### Mode Options
 
-The `difficulty_weights` parameter controls task sampling distribution. Default is uniform, but overweighting harder tasks provides stronger RL signal:
-
-- **Uniform**: `{"easy": 0.33, "medium": 0.33, "hard": 0.34}` (default)
-- **Hard-focused**: `{"easy": 0.2, "medium": 0.4, "hard": 0.4}` (recommended for training)
-- **Easy curriculum**: `{"easy": 0.6, "medium": 0.3, "hard": 0.1}` (for initial exploration)
+| Mode | Archetypes | Description |
+|------|------------|-------------|
+| `"mvp"` | 29 | Phase 1 core archetypes (production-ready) |
+| `"phase2"` | 23 | Phase 2 archetypes (advanced) |
+| `"all"` | 52 | All archetypes, uniform sampling |
+| `"tiered"` | 52 | All archetypes with difficulty-weighted sampling |
+| `"hard_only"` | 18 | Only hard difficulty archetypes |
 
 ## Running Evaluations
 

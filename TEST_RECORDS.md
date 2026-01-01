@@ -18,7 +18,7 @@ Track RL training progress by comparing baseline (pre-training) to trained model
 
 *Last updated: 2026-01-01*
 
-**Training config:** `split=train`, `mode=mvp`, `difficulty_weights={easy:0.2, medium:0.4, hard:0.4}`
+**Training config:** `split=train`, `mode=all`, `difficulty=mixed` (see README for mode options)
 
 ---
 
