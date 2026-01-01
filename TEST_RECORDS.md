@@ -79,7 +79,7 @@ Investigated why certain archetypes have 0% pass rate on small models. Key findi
 - Model uses `find_all('li')` instead of `find_all(class_='list-item')`, returning 292 items
 - HTML size: 76KB (50KB+ chrome)
 
-**Status:** Valid training signal - models should learn to find main content list vs nav/footer. Could make query more specific if this proves too hard post-RL.
+**Status:** ✅ FIXED - Query changed from "the list" to ".item-list element" to remove ambiguity while keeping realistic chrome difficulty. Commit: `cad186b`
 
 #### 2. mvp.partial_data_extraction (5% pass)
 
@@ -111,7 +111,7 @@ These require `navigate` tool for multi-page extraction:
 
 | Category | Archetypes | Issue | Fix Needed? |
 |----------|------------|-------|-------------|
-| Ambiguous query | list_extraction | Chrome pollution | Maybe - clarify query |
+| Ambiguous query | list_extraction | Chrome pollution | ✅ Fixed (cad186b) |
 | Complex schema | partial_data_extraction | Nullable fields | No - valid difficulty |
 | Multi-step | search_then_detail, link_chain, compare_products | Navigate tool | No - designed hard |
 | Computation | aggregation_min_max, count_elements | Extract + compute | No - valid signal |
