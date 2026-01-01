@@ -158,3 +158,53 @@ class TestDifficultyFilter:
                 info = json.loads(row["info"])
                 spec = get_archetype(info["archetype_id"])
                 assert spec.difficulty == "hard"
+
+    def test_get_archetype_ids_respects_difficulty_easy(self):
+        """_get_archetype_ids_for_config() filters by difficulty='easy'."""
+        config = EnvConfig(mode="all", split="bench", difficulty="easy", num_examples=10)
+        archetype_ids = _get_archetype_ids_for_config(config)
+
+        # All returned archetypes should be easy
+        for archetype_id in archetype_ids:
+            spec = get_archetype(archetype_id)
+            assert spec.difficulty == "easy", f"{archetype_id} is {spec.difficulty}, not easy"
+
+    def test_get_archetype_ids_respects_difficulty_medium(self):
+        """_get_archetype_ids_for_config() filters by difficulty='medium'."""
+        config = EnvConfig(mode="all", split="bench", difficulty="medium", num_examples=10)
+        archetype_ids = _get_archetype_ids_for_config(config)
+
+        # All returned archetypes should be medium
+        for archetype_id in archetype_ids:
+            spec = get_archetype(archetype_id)
+            assert spec.difficulty == "medium", f"{archetype_id} is {spec.difficulty}, not medium"
+
+    def test_get_archetype_ids_respects_difficulty_hard(self):
+        """_get_archetype_ids_for_config() filters by difficulty='hard'."""
+        config = EnvConfig(mode="all", split="bench", difficulty="hard", num_examples=10)
+        archetype_ids = _get_archetype_ids_for_config(config)
+
+        # All returned archetypes should be hard
+        for archetype_id in archetype_ids:
+            spec = get_archetype(archetype_id)
+            assert spec.difficulty == "hard", f"{archetype_id} is {spec.difficulty}, not hard"
+
+    def test_difficulty_filter_with_mvp_mode(self):
+        """difficulty filter works with mvp mode (phase 1 + difficulty)."""
+        config = EnvConfig(mode="mvp", split="bench", difficulty="easy", num_examples=10)
+        archetype_ids = _get_archetype_ids_for_config(config)
+
+        # All should be phase 1 AND easy
+        for archetype_id in archetype_ids:
+            spec = get_archetype(archetype_id)
+            assert spec.phase == 1, f"{archetype_id} is phase {spec.phase}"
+            assert spec.difficulty == "easy", f"{archetype_id} is {spec.difficulty}"
+
+    def test_mixed_difficulty_returns_all(self):
+        """difficulty='mixed' returns archetypes of all difficulties."""
+        config = EnvConfig(mode="all", split="bench", difficulty="mixed", num_examples=10)
+        archetype_ids = _get_archetype_ids_for_config(config)
+
+        # Should have multiple difficulties
+        difficulties = {get_archetype(aid).difficulty for aid in archetype_ids}
+        assert len(difficulties) > 1, f"Expected multiple difficulties, got {difficulties}"

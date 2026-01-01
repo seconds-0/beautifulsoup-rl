@@ -120,13 +120,8 @@ def generate_dataset_rows(config: EnvConfig) -> Iterator[dict[str, Any]]:
                 )
     else:
         # Standard mode: uniform sampling
+        # Note: difficulty filtering is already applied in _get_archetype_ids_for_config()
         for archetype_id in archetype_ids:
-            spec = get_archetype(archetype_id)
-
-            # Filter by difficulty if specified
-            if config.difficulty != "mixed" and spec.difficulty != config.difficulty:
-                continue
-
             yield from _generate_for_archetype(
                 archetype_id, seed_start, seed_end, examples_per_archetype, rng, config
             )
@@ -203,6 +198,10 @@ def _get_archetype_ids_for_config(config: EnvConfig) -> list[str]:
         specs = list_archetypes()
     else:  # "all"
         specs = list_archetypes()
+
+    # Apply difficulty filter when not "mixed" (and not already filtered by hard_only mode)
+    if config.difficulty != "mixed" and config.mode != "hard_only":
+        specs = [s for s in specs if s.difficulty == config.difficulty]
 
     return [spec.archetype_id for spec in specs]
 
