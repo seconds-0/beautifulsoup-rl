@@ -6,7 +6,7 @@ This module provides the tool interface that models interact with.
 """
 
 import json
-from typing import Callable
+from collections.abc import Callable
 
 from bs4_env.grading.schema import validate_output
 from bs4_env.tools.executor import Executor

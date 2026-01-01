@@ -6,8 +6,9 @@ This module provides the registration system for task archetypes. Each archetype
 is a parameterized generator that produces task instances from a seed.
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Callable, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 if TYPE_CHECKING:
     from bs4_env.generators.base import Generator

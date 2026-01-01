@@ -1,10 +1,10 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "split": "bench",
   "description": "Fixed benchmark manifest for reproducible evaluation",
-  "archetype_count": 53,
+  "archetype_count": 52,
   "seeds_per_archetype": 20,
-  "total_entries": 1060,
+  "total_entries": 1040,
   "entries": [
     {
       "archetype_id": "mvp.aggregation_min_max",
@@ -2964,86 +2964,6 @@
     },
     {
       "archetype_id": "mvp.parser_differences",
-      "seed": 110019
-    },
-    {
-      "archetype_id": "mvp.parser_required",
-      "seed": 110000
-    },
-    {
-      "archetype_id": "mvp.parser_required",
-      "seed": 110001
-    },
-    {
-      "archetype_id": "mvp.parser_required",
-      "seed": 110002
-    },
-    {
-      "archetype_id": "mvp.parser_required",
-      "seed": 110003
-    },
-    {
-      "archetype_id": "mvp.parser_required",
-      "seed": 110004
-    },
-    {
-      "archetype_id": "mvp.parser_required",
-      "seed": 110005
-    },
-    {
-      "archetype_id": "mvp.parser_required",
-      "seed": 110006
-    },
-    {
-      "archetype_id": "mvp.parser_required",
-      "seed": 110007
-    },
-    {
-      "archetype_id": "mvp.parser_required",
-      "seed": 110008
-    },
-    {
-      "archetype_id": "mvp.parser_required",
-      "seed": 110009
-    },
-    {
-      "archetype_id": "mvp.parser_required",
-      "seed": 110010
-    },
-    {
-      "archetype_id": "mvp.parser_required",
-      "seed": 110011
-    },
-    {
-      "archetype_id": "mvp.parser_required",
-      "seed": 110012
-    },
-    {
-      "archetype_id": "mvp.parser_required",
-      "seed": 110013
-    },
-    {
-      "archetype_id": "mvp.parser_required",
-      "seed": 110014
-    },
-    {
-      "archetype_id": "mvp.parser_required",
-      "seed": 110015
-    },
-    {
-      "archetype_id": "mvp.parser_required",
-      "seed": 110016
-    },
-    {
-      "archetype_id": "mvp.parser_required",
-      "seed": 110017
-    },
-    {
-      "archetype_id": "mvp.parser_required",
-      "seed": 110018
-    },
-    {
-      "archetype_id": "mvp.parser_required",
       "seed": 110019
     },
     {

@@ -12,7 +12,8 @@ Two modes:
 
 import contextlib
 import json
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from bs4_env.config import EnvConfig, TaskConstraints
 from bs4_env.dataset import build_dataset

@@ -128,19 +128,19 @@ This environment trains agents to use BeautifulSoup (BS4), Python's most popular
 
 | Metric | Count |
 |--------|-------|
-| **Total Archetypes** | 53 |
-| **Solvable Tasks** | 48 |
+| **Total Archetypes** | 52 |
+| **Solvable Tasks** | 47 |
 | **Limitation Tasks** | 5 |
 
 **By Difficulty:**
 | Easy | Medium | Hard |
 |------|--------|------|
-| 10 | 24 | 19 |
+| 10 | 24 | 18 |
 
 **By Category:**
 | Category | Count | Description |
 |----------|-------|-------------|
-| hard | 11 | Complex extraction requiring multiple techniques |
+| hard | 10 | Complex extraction requiring multiple techniques |
 | advanced | 8 | Advanced BS4 features and edge cases |
 | forms | 6 | Form parsing and input extraction |
 | core_extraction | 5 | Basic text and attribute extraction |
@@ -155,11 +155,11 @@ This environment trains agents to use BeautifulSoup (BS4), Python's most popular
 
 ### Benchmark Stability
 
-The benchmark split uses a fixed manifest (`bs4_env/data/bench_manifest.json`) containing 1060 pre-selected (archetype, seed) pairs. This ensures:
+The benchmark split uses a fixed manifest (`bs4_env/data/bench_manifest.json`) containing 1040 pre-selected (archetype, seed) pairs. This ensures:
 
 - **Reproducibility**: Same tasks across runs and environment versions
 - **Isolation**: Adding/removing archetypes doesn't affect existing benchmark tasks
-- **Versioning**: Manifest version tracks benchmark changes (currently v1.1.0)
+- **Versioning**: Manifest version tracks benchmark changes (currently v1.2.0)
 
 ### Baseline Results
 

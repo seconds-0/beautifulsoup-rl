@@ -369,7 +369,7 @@ Tested cheaper alternatives to GPT-5.2 from Chinese providers.
 | Category | Archetypes | Avg Reward | Pass Rate |
 |----------|------------|------------|-----------|
 | **Perfect (100%)** | deep_nesting, extract_text_by_id, class_reserved_word, extract_multilingual, extract_rtl, table_list_of_dicts | 1.000 | 100% |
-| **Excellent (90%+)** | attribute_selector, parser_required, multivalue_class, json_ld_array, none_attribute_error, css_combinator, parser_differences, extract_emoji, navigablestring_parent | 0.95 | 95%+ |
+| **Excellent (90%+)** | attribute_selector, multivalue_class, json_ld_array, none_attribute_error, css_combinator, parser_differences, extract_emoji, navigablestring_parent | 0.95 | 95%+ |
 | **Good (80%+)** | extract_text_by_class, sibling_navigation | 0.80 | 83% |
 | **Moderate (50-80%)** | relational_query, multi_hop_filter, json_ld_extraction, string_returns_none | 0.67 | 71% |
 | **Challenging (20-50%)** | count_elements, structured_output, semantic_decoy, semantic_ambiguity, aggregation_min_max | 0.41 | 44% |

@@ -11,7 +11,6 @@ import json
 import pytest
 from bs4 import BeautifulSoup
 
-from bs4_env.generators.mvp_hard import ParserRequiredGenerator
 from bs4_env.generators.mvp_json_ld import JsonLdArrayGenerator
 from bs4_env.generators.mvp_tables import TableRowspanGenerator
 
@@ -153,74 +152,3 @@ class TestJsonLdArray:
                 continue
 
         pytest.fail(f"Could not find ground truth in {target_type} block")
-
-
-class TestParserRequired:
-    """Tests for the parser_required archetype."""
-
-    def test_determinism(self):
-        """Same seed produces same output."""
-        gen = ParserRequiredGenerator()
-        task1 = gen.generate(seed=42)
-        task2 = gen.generate(seed=42)
-
-        assert task1.html == task2.html
-        assert task1.query == task2.query
-        assert task1.ground_truth == task2.ground_truth
-
-    def test_different_seeds_different_output(self):
-        """Different seeds produce different output."""
-        gen = ParserRequiredGenerator()
-        task1 = gen.generate(seed=42)
-        task2 = gen.generate(seed=43)
-
-        assert task1.ground_truth != task2.ground_truth
-
-    def test_has_malformation_type(self):
-        """Should have a malformation type in metadata."""
-        gen = ParserRequiredGenerator()
-        task = gen.generate(seed=42)
-
-        assert "malform_type" in task.metadata
-        assert task.metadata["malform_type"] in [
-            "unclosed_tag",
-            "nested_misorder",
-            "optional_end_tag",
-        ]
-
-    def test_ground_truth_in_html(self):
-        """Ground truth should be in the HTML."""
-        gen = ParserRequiredGenerator()
-        task = gen.generate(seed=42)
-
-        assert task.ground_truth in task.html
-
-    def test_parses_with_html_parser(self):
-        """HTML should parse (even if malformed) with html.parser."""
-        gen = ParserRequiredGenerator()
-        task = gen.generate(seed=42)
-
-        # Should not raise an exception
-        soup = BeautifulSoup(task.html, "html.parser")
-        assert soup is not None
-
-    def test_parses_with_lxml(self):
-        """HTML should parse with lxml."""
-        gen = ParserRequiredGenerator()
-        task = gen.generate(seed=42)
-
-        # Should not raise an exception
-        soup = BeautifulSoup(task.html, "lxml")
-        assert soup is not None
-
-    def test_correct_extraction_possible(self):
-        """Ground truth should be extractable with some parser."""
-        gen = ParserRequiredGenerator()
-        task = gen.generate(seed=42)
-
-        # Try with lxml (most lenient for our malformations)
-        soup = BeautifulSoup(task.html, "lxml")
-
-        # Ground truth is a price
-        found = task.ground_truth in soup.get_text()
-        assert found, f"Could not find {task.ground_truth} in parsed HTML"

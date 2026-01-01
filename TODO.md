@@ -41,49 +41,6 @@ After:  "The `answer` field must be an **object** with these exact keys: {"cheap
 
 ---
 
-### parser_required Archetype Doesn't Test Parser Differences
-
-**Status:** Open - needs redesign
-
-**Problem:** The `ParserRequiredGenerator` in `mvp_hard.py` claims to test parser-dependent HTML, but testing shows all three parsers (`html.parser`, `lxml`, `html5lib`) handle the "malformed" cases identically:
-
-```
-=== unclosed_tag ===
-  html.parser : $99.99   (finds value)
-  lxml        : $99.99   (finds value)
-  html5lib    : $99.99   (finds value)
-
-=== nested_misorder ===
-  html.parser : $149.99  (finds value)
-  lxml        : $149.99  (finds value)
-  html5lib    : $149.99  (finds value)
-
-=== optional_end_tag ===
-  html.parser : Special: $25.00Premium: $50.00  (includes extra!)
-  lxml        : Special: $25.00  (correct)
-  html5lib    : Special: $25.00  (correct)
-```
-
-**Issues:**
-1. `unclosed_tag`: All parsers handle `<p>` followed by `<p>` correctly (implicit close)
-2. `nested_misorder`: Misnested `<b><i>text</b></i>` is recovered by all parsers
-3. `optional_end_tag`: Unclosed `<li>` is **valid HTML5**, not malformed. `html.parser` is worse here, not "different"
-
-**Root Cause:** Modern HTML parsers are very lenient. The "malformed" examples chosen are common patterns that parsers handle gracefully.
-
-**Options:**
-1. Find genuinely parser-dependent HTML (rare edge cases)
-2. Rename to test something else (e.g., "lenient parsing")
-3. Remove archetype entirely
-4. Test parser *selection* rather than parser *requirement*
-
-**Research Needed:**
-- [ ] Find real-world HTML that produces different parse trees across parsers
-- [ ] Check BS4 documentation for known parser differences
-- [ ] Consider testing parser performance/features rather than correctness
-
----
-
 ### Log Storage Was Insufficient (FIXED 2025-12-30)
 
 **Status:** Fixed in commit `925d7cc`
@@ -113,8 +70,6 @@ After:  "The `answer` field must be an **object** with these exact keys: {"cheap
 - [ ] **Validate multi-step tasks work end-to-end** - Run a few examples manually to verify navigate tool integration is correct.
 
 - [ ] **Add test for navigate tool** - Unit test that verifies navigate tool is exposed and works correctly.
-
-- [ ] **Fix parser_required archetype** - Either find genuinely parser-dependent HTML or redesign the archetype.
 
 ### Medium Priority
 
@@ -169,7 +124,7 @@ After:  "The `answer` field must be an **object** with these exact keys: {"cheap
 - [x] Fix navigate tool exposure (2025-12-30)
 - [x] Add full log storage (2025-12-30)
 - [x] Re-trigger all benchmarks with fix (2025-12-30)
-- [x] Document parser_required bug (2025-12-30)
+- [x] Document parser_required bug (2025-12-30) - Removed archetype entirely (2026-01-01)
 
 ---
 
@@ -210,7 +165,7 @@ After:  "The `answer` field must be an **object** with these exact keys: {"cheap
 | File | Purpose |
 |------|---------|
 | `bs4_env/scripts/eval_with_llm.py` | LLM evaluation script |
-| `bs4_env/generators/mvp_hard.py` | Contains parser_required (buggy) |
+| `bs4_env/generators/mvp_hard.py` | Hard archetypes |
 | `bs4_env/generators/mvp_multistep.py` | Multi-step archetypes |
 | `bs4_env/tools/tool_defs.py` | Tool definitions including navigate |
 | `TEST_RECORDS.md` | Benchmark results history |

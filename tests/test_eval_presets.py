@@ -240,7 +240,7 @@ class TestBenchManifestStability:
         infos2 = [json.loads(row["info"]) for row in ds2]
 
         assert len(infos1) == len(infos2), "Different number of examples"
-        for i, (info1, info2) in enumerate(zip(infos1, infos2)):
+        for i, (info1, info2) in enumerate(zip(infos1, infos2, strict=False)):
             assert info1["archetype_id"] == info2["archetype_id"], f"Archetype mismatch at {i}"
             assert info1["seed"] == info2["seed"], f"Seed mismatch at {i}"
 

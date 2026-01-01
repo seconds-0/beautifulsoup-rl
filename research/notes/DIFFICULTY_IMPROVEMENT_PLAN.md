@@ -57,7 +57,6 @@ Tier 4 (Very Hard): 6 archetypes - Multi-hop, aggregation, complex tables
 5. **`mvp.table_rowspan`** - Complex tables with row/column spans
 6. **`mvp.json_ld_array`** - Multiple JSON-LD blocks, select by @type
 7. **`mvp.semantic_decoy_extreme`** - 5+ near-identical elements
-8. **`mvp.parser_required`** - HTML needing specific parser
 
 ### Multi-Step Archetypes
 1. **`mvp.search_then_detail`** - Find item in list → extract from detail page
