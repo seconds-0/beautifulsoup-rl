@@ -2,6 +2,26 @@
 
 Track evaluation progress and results. Update this file after each benchmark run.
 
+---
+
+## Baseline vs Trained Model Performance
+
+Track RL training progress by comparing baseline (pre-training) to trained model performance.
+
+| Model | Baseline | After Training | Improvement | Status |
+|-------|----------|----------------|-------------|--------|
+| Qwen3-4B | 0.0% | TBD | - | RL target (no function calling) |
+| Llama 3.2-3B | 0.0% | TBD | - | RL target (no function calling) |
+| Ministral 3B | 50.6% | TBD | - | Strong small model |
+| Qwen3-8B | 43.1% | TBD | - | RL candidate |
+| Ministral 8B | 68.4% | TBD | - | 8B ceiling |
+
+*Last updated: 2026-01-01*
+
+**Training config:** `split=train`, `mode=mvp`, `difficulty_weights={easy:0.2, medium:0.4, hard:0.4}`
+
+---
+
 ## Target Models
 
 Focus on **small/weak models** - they benefit most from RL training on this environment.
@@ -34,7 +54,7 @@ Focus on **small/weak models** - they benefit most from RL training on this envi
 
 ---
 
-## Benchmark Runs (Expanded - Now 53 Archetypes, 1060 Bench Examples)
+## Benchmark Runs (52 Archetypes, 1040 Bench Examples)
 
 ### 2026-01-01: New Limitation Archetypes Baseline (Ministral 3B)
 
