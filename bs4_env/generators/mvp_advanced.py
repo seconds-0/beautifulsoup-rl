@@ -658,7 +658,7 @@ class ListExtractionGenerator(Generator):
         if rng.random() < 0.3:
             html = introduce_malformation(html, rng)
 
-        query = "Extract all item texts from the list. Return as a list of strings."
+        query = "Extract all item texts from the .item-list element. Return as a list of strings."
 
         return TaskInstance(
             html=html,
