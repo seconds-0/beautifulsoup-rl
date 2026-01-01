@@ -36,7 +36,13 @@ import sys
 import time
 from typing import Any
 
-from openai import OpenAI
+try:
+    from openai import OpenAI
+except ImportError:
+    print("Error: OpenAI package not installed.")
+    print("Install with: pip install beautiful-soup-env[eval]")
+    print("Or: pip install openai")
+    sys.exit(1)
 
 from beautiful_soup_env import load_environment
 from bs4_env.tools.harness import RUN_PYTHON_TOOL_SCHEMA, NAVIGATE_TOOL_SCHEMA

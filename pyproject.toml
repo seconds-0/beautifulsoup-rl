@@ -31,10 +31,15 @@ dependencies = [
     "soupsieve>=2.4",
     "datasets>=2.14.0",
     "jsonschema>=4.17.0",
-    "openai>=2.11.0",
 ]
 
 [project.optional-dependencies]
+eval = [
+    "openai>=2.11.0",
+]
+prime = [
+    "prime-sandboxes>=0.1.0",
+]
 dev = [
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
@@ -46,7 +51,7 @@ verifiers = [
     "verifiers>=0.1.0",
 ]
 all = [
-    "beautiful-soup-env[dev,verifiers]",
+    "beautiful-soup-env[dev,verifiers,eval,prime]",
 ]
 
 [project.urls]
@@ -55,7 +60,10 @@ Documentation = "https://github.com/seconds-0/beautifulsoup-rl#readme"
 Repository = "https://github.com/seconds-0/beautifulsoup-rl"
 
 [tool.hatch.build.targets.wheel]
-packages = ["bs4_env", "beautiful_soup_env.py"]
+packages = ["bs4_env"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"beautiful_soup_env.py" = "beautiful_soup_env.py"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
