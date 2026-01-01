@@ -25,11 +25,41 @@ Focus on **small/weak models** - they benefit most from RL training on this envi
 
 ## Benchmark Runs (Expanded - Now 50 Archetypes)
 
+### 2025-12-31: Efficiency Guidelines Added (Prompt Improvement)
+
+**Change:** Added explicit efficiency guidelines to system prompt in `bs4_env/prompt.py`:
+```
+## Efficiency
+- Most tasks can be solved in 1-3 tool calls
+- If your code produces valid output matching the expected format, finalize immediately
+- If you've tried 3+ different approaches without success, provide your best answer
+- Excessive tool calls (10+) result in zero reward regardless of correctness
+```
+
+**Test Results** (Ministral 3B 2512, 5 instances per archetype):
+
+| Archetype | Before | After | Change |
+|-----------|--------|-------|--------|
+| mvp.extract_attribute | 60% | **80%** | +20% |
+| mvp.extract_links | 80% | **100%** | +20% |
+| mvp.extract_images | 100% | **100%** | same |
+| mvp.direct_children | 60% | **80%** | +20% |
+| mvp.descendants_filter | 60% | **100%** | +40% |
+| mvp.table_column_by_header | 100% | 80% | -20% |
+| mvp.remove_scripts_styles | 100% | **100%** | same |
+| **Overall** | **80%** | **91.4%** | **+11.4%** |
+
+**Cost:** ~$0.03-0.04 (35 API calls to Ministral 3B)
+
+**Key Finding:** Efficiency guidelines reduced no-output loop failures significantly. The prompt helps models learn to finalize rather than looping indefinitely.
+
+---
+
 ### 2025-12-31: New Archetypes Added (7 Core Extraction + Traversal)
 
 **Completed PRD target of 50 archetypes.** Added 7 new archetypes to fill remaining gaps.
 
-**Quick Test Results** (Ministral 3B 2512, 5 instances per archetype):
+**Quick Test Results** (Ministral 3B 2512, 5 instances per archetype, BEFORE efficiency guidelines):
 
 | Archetype | Pass Rate | Notes |
 |-----------|-----------|-------|
@@ -43,7 +73,7 @@ Focus on **small/weak models** - they benefit most from RL training on this envi
 | **Overall** | **80%** (28/35) | Solid performance |
 
 **Failure Analysis:**
-- **No-output loops** (7 cases): Model made 10 tool calls without final answer - needs investigation
+- **No-output loops** (7 cases): Model made 10 tool calls without final answer - fixed by efficiency guidelines
 - **Order mismatch** (1 case): `descendants_filter` found correct items in wrong order - consider order-agnostic grading
 - **Wrong data** (1 case): Model extracted text instead of `title` attribute - genuine skill gap
 
