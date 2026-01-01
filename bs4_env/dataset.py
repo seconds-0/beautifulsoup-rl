@@ -6,6 +6,7 @@ This module builds HuggingFace datasets from task generators,
 managing train/eval/bench splits with disjoint seeds.
 """
 
+import hashlib
 import json
 import random
 import warnings
@@ -19,6 +20,54 @@ from bs4_env.config import EnvConfig, TaskConstraints
 from bs4_env.generators.base import TaskInstance
 from bs4_env.prompt import format_prompt
 from bs4_env.registry import get_all_archetype_ids, get_archetype, list_archetypes
+
+
+def _stable_seed_from_key(key: str) -> int:
+    """Generate a stable integer seed from a string key.
+
+    Uses SHA-256 to produce a deterministic integer.
+    This is different from Python's hash() which is salted per-run.
+
+    Args:
+        key: A string key to hash.
+
+    Returns:
+        A stable integer seed (positive, fits in 64 bits).
+    """
+    h = hashlib.sha256(key.encode("utf-8")).hexdigest()
+    return int(h[:16], 16)  # Use first 64 bits
+
+
+def _select_seeds_for_archetype(
+    archetype_id: str,
+    split: str,
+    config_seed: int,
+    num_examples: int,
+    seed_range: tuple[int, int],
+) -> list[int]:
+    """Select seeds independently per archetype.
+
+    Each archetype gets its own RNG, so adding/removing archetypes
+    doesn't affect seed selection for other archetypes.
+
+    Args:
+        archetype_id: The archetype ID.
+        split: The dataset split (train/eval/bench).
+        config_seed: The config-level seed.
+        num_examples: Number of seeds to select.
+        seed_range: Tuple of (start, end) for available seeds.
+
+    Returns:
+        List of selected seeds for this archetype.
+    """
+    # Create a unique key for this archetype + split + config combination
+    key = f"{archetype_id}:{split}:{config_seed}"
+    rng = random.Random(_stable_seed_from_key(key))
+
+    available = list(range(seed_range[0], seed_range[1]))
+    rng.shuffle(available)
+    return available[:num_examples]
+
 
 # Seed ranges for each split to ensure no overlap
 SEED_RANGES = {
@@ -93,13 +142,8 @@ def generate_dataset_rows(config: EnvConfig) -> Iterator[dict[str, Any]]:
         return
 
     # Get seed range and count for this split
-    seed_start, seed_end = SEED_RANGES.get(config.split, (0, 100000))
+    seed_range = SEED_RANGES.get(config.split, (0, 100000))
     examples_per_archetype = _get_examples_per_archetype(config)
-
-    # Use config seed to shuffle which seeds we use
-    import random
-
-    rng = random.Random(config.seed)
 
     # For tiered mode, compute weighted examples per archetype
     if config.mode == "tiered":
@@ -124,14 +168,14 @@ def generate_dataset_rows(config: EnvConfig) -> Iterator[dict[str, Any]]:
 
             for archetype_id in difficulty_archetypes:
                 yield from _generate_for_archetype(
-                    archetype_id, seed_start, seed_end, examples_per_archetype_in_tier, rng, config
+                    archetype_id, examples_per_archetype_in_tier, seed_range, config
                 )
     else:
         # Standard mode: uniform sampling
         # Note: difficulty filtering is already applied in _get_archetype_ids_for_config()
         for archetype_id in archetype_ids:
             yield from _generate_for_archetype(
-                archetype_id, seed_start, seed_end, examples_per_archetype, rng, config
+                archetype_id, examples_per_archetype, seed_range, config
             )
 
 
@@ -151,9 +195,7 @@ def _generate_from_manifest(config: EnvConfig) -> Iterator[dict[str, Any]]:
     # Apply filters if specified
     filtered_manifest = manifest
     if config.archetypes:
-        filtered_manifest = [
-            (aid, seed) for aid, seed in manifest if aid in config.archetypes
-        ]
+        filtered_manifest = [(aid, seed) for aid, seed in manifest if aid in config.archetypes]
     if config.difficulty != "mixed":
         filtered_manifest = [
             (aid, seed)
@@ -180,37 +222,35 @@ def _generate_from_manifest(config: EnvConfig) -> Iterator[dict[str, Any]]:
 
 def _generate_for_archetype(
     archetype_id: str,
-    seed_start: int,
-    seed_end: int,
     num_examples: int,
-    rng: random.Random,
+    seed_range: tuple[int, int],
     config: EnvConfig,
 ) -> Iterator[dict[str, Any]]:
     """Generate examples for a single archetype.
 
+    Uses per-archetype RNG seeding so that adding/removing archetypes
+    doesn't affect seed selection for other archetypes.
+
     Args:
         archetype_id: The archetype to generate for.
-        seed_start: Start of seed range.
-        seed_end: End of seed range.
         num_examples: Number of examples to generate.
-        rng: Random number generator for shuffling.
+        seed_range: Tuple of (start, end) for available seeds.
         config: Environment configuration.
 
     Yields:
         Dictionary with 'prompt' and 'info' for each task instance.
     """
-
     spec = get_archetype(archetype_id)
     generator = spec.generator_class()
 
-    # Generate seeds for this archetype
-    available_seeds = list(range(seed_start, seed_end))
-    if config.split == "bench":
-        # Bench uses fixed seeds, don't shuffle
-        seeds = available_seeds[:num_examples]
-    else:
-        rng.shuffle(available_seeds)
-        seeds = available_seeds[:num_examples]
+    # Select seeds independently for this archetype
+    seeds = _select_seeds_for_archetype(
+        archetype_id=archetype_id,
+        split=config.split,
+        config_seed=config.seed,
+        num_examples=num_examples,
+        seed_range=seed_range,
+    )
 
     for seed in seeds:
         try:
