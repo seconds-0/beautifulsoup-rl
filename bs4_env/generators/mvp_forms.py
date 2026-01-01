@@ -11,13 +11,11 @@ This module implements form-related extraction tasks that test:
 These are common real-world scraping tasks that require careful handling.
 """
 
-from bs4_env.config import STRING_SCHEMA, TaskConstraints
 from bs4_env.generators.base import (
     Generator,
     HtmlStyle,
     TaskInstance,
     add_noise_comments,
-    generate_variable_content,
     make_rng,
     random_class_name,
     random_id,
@@ -102,12 +100,14 @@ class FormFieldEnumerationGenerator(Generator):
             value = f"default_{rng.randint(1, 100)}" if has_value else ""
             required = rng.random() < 0.4
 
-            fields.append({
-                "name": name,
-                "type": field_type,
-                "value": value,
-                "required": required,
-            })
+            fields.append(
+                {
+                    "name": name,
+                    "type": field_type,
+                    "value": value,
+                    "required": required,
+                }
+            )
 
         # Build form HTML
         form_id = random_id(rng)
@@ -115,7 +115,7 @@ class FormFieldEnumerationGenerator(Generator):
 
         field_html_parts = []
         for f in fields:
-            required_attr = ' required' if f["required"] else ""
+            required_attr = " required" if f["required"] else ""
             value_attr = f' value="{f["value"]}"' if f["value"] else ""
             field_html_parts.append(
                 f'<input type="{f["type"]}" name="{f["name"]}"{value_attr}{required_attr}>'
@@ -275,10 +275,7 @@ class SelectOptionsGenerator(Generator):
         selected_options = all_options[:num_options]
 
         # Build ground truth
-        ground_truth = [
-            {"label": label, "value": value}
-            for label, value in selected_options
-        ]
+        ground_truth = [{"label": label, "value": value} for label, value in selected_options]
 
         # Build select HTML
         select_id = random_id(rng)
@@ -297,7 +294,10 @@ class SelectOptionsGenerator(Generator):
 """
 
         # Add distractor select
-        distractor_options = ['<option value="a">Option A</option>', '<option value="b">Option B</option>']
+        distractor_options = [
+            '<option value="a">Option A</option>',
+            '<option value="b">Option B</option>',
+        ]
         distractor_select = f"""
 <select id="filter-{rng.randint(100, 999)}" name="filter">
   {"".join(distractor_options)}
@@ -540,8 +540,7 @@ class LabelInputMappingGenerator(Generator):
 
         # Build ground truth
         ground_truth = [
-            {"label": label, "input_name": input_name}
-            for label, input_name, _ in selected_pairs
+            {"label": label, "input_name": input_name} for label, input_name, _ in selected_pairs
         ]
 
         # Build form HTML

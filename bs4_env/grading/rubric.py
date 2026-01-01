@@ -469,9 +469,7 @@ def _grade_ok_response(
     normalization = task_info.get("normalization", {})
 
     # Apply type coercion to bridge format differences
-    coerced_answer, coerced_truth = _apply_type_coercion(
-        answer, ground_truth, answer_schema
-    )
+    coerced_answer, coerced_truth = _apply_type_coercion(answer, ground_truth, answer_schema)
 
     # Compare with normalization
     if values_equal(coerced_answer, coerced_truth, normalization):

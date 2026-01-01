@@ -17,7 +17,6 @@ from bs4_env.generators.base import (
     Generator,
     HtmlStyle,
     TaskInstance,
-    add_noise_comments,
     generate_variable_content,
     make_rng,
     random_class_name,
@@ -77,9 +76,13 @@ class ExtractAttributeGenerator(Generator):
             target_html = f'<a id="{target_id}" {attr_name}="{target_value}">Click here</a>'
         elif tag == "img":
             if attr_name == "src":
-                target_html = f'<img id="{target_id}" {attr_name}="{target_value}" alt="placeholder">'
+                target_html = (
+                    f'<img id="{target_id}" {attr_name}="{target_value}" alt="placeholder">'
+                )
             else:
-                target_html = f'<img id="{target_id}" src="/img/x.jpg" {attr_name}="{target_value}">'
+                target_html = (
+                    f'<img id="{target_id}" src="/img/x.jpg" {attr_name}="{target_value}">'
+                )
         else:
             target_html = f'<{tag} id="{target_id}" {attr_name}="{target_value}">Content</{tag}>'
 
@@ -93,7 +96,9 @@ class ExtractAttributeGenerator(Generator):
             elif tag == "img":
                 distractors.append(f'<img id="{dist_id}" src="{dist_value}" alt="other">')
             else:
-                distractors.append(f'<{tag} id="{dist_id}" {attr_name}="{dist_value}">Other</{tag}>')
+                distractors.append(
+                    f'<{tag} id="{dist_id}" {attr_name}="{dist_value}">Other</{tag}>'
+                )
 
         # Shuffle elements
         elements = [target_html] + distractors
@@ -203,10 +208,7 @@ class ExtractLinksGenerator(Generator):
         selected_links = all_links[:num_links]
 
         # Build ground truth
-        ground_truth = [
-            {"text": text, "href": href}
-            for text, href in selected_links
-        ]
+        ground_truth = [{"text": text, "href": href} for text, href in selected_links]
 
         container_id = random_id(rng)
         container_class = random_class_name(rng)
@@ -344,10 +346,7 @@ class ExtractImagesGenerator(Generator):
         selected_images = all_images[:num_images]
 
         # Build ground truth
-        ground_truth = [
-            {"src": src, "alt": alt}
-            for src, alt in selected_images
-        ]
+        ground_truth = [{"src": src, "alt": alt} for src, alt in selected_images]
 
         container_id = random_id(rng)
         container_class = random_class_name(rng)
@@ -572,9 +571,9 @@ class DescendantsFilterGenerator(Generator):
         items = [
             (f"Regular item {rng.randint(1, 99)}", False),
             (f"This is {keyword} content", True),
-            (f"Another regular item", False),
+            ("Another regular item", False),
             (f"A {keyword} announcement", True),
-            (f"Normal text here", False),
+            ("Normal text here", False),
             (f"Something {keyword} to note", True),
         ]
         rng.shuffle(items)
@@ -692,7 +691,9 @@ class TableColumnByHeaderGenerator(Generator):
                 rows.append([name, dept, salary, date])
 
         elif table_type == "products":
-            products = rng.sample(template["product_pool"], min(num_rows, len(template["product_pool"])))
+            products = rng.sample(
+                template["product_pool"], min(num_rows, len(template["product_pool"]))
+            )
             for i in range(num_rows):
                 prod = products[i % len(products)] if i < len(products) else f"Item{i}"
                 prod_name = f"{prod} {rng.choice(['Pro', 'Plus', 'Lite', 'Max'])}"

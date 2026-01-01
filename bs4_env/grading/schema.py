@@ -6,9 +6,8 @@ This module handles validation of model outputs against expected schemas.
 """
 
 import json
-from typing import Any
-
 import re
+from typing import Any
 
 from jsonschema import Draft7Validator
 
@@ -133,7 +132,11 @@ def _is_coercible_to_schema(answer: Any, answer_schema: dict) -> bool:
         return bool(re.fullmatch(r"[+-]?\d+", answer.strip()))
 
     # Numeric value -> string (for prices, e.g., 185.40 -> "$185.40")
-    if schema_type == "string" and isinstance(answer, (int, float)) and not isinstance(answer, bool):
+    if (
+        schema_type == "string"
+        and isinstance(answer, (int, float))
+        and not isinstance(answer, bool)
+    ):
         return True
 
     return False

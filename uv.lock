@@ -175,13 +175,14 @@ dependencies = [
     { name = "html5lib" },
     { name = "jsonschema" },
     { name = "lxml" },
-    { name = "openai" },
     { name = "soupsieve" },
 ]
 
 [package.optional-dependencies]
 all = [
     { name = "mypy" },
+    { name = "openai" },
+    { name = "prime-sandboxes" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pytest-timeout" },
@@ -195,20 +196,27 @@ dev = [
     { name = "pytest-timeout" },
     { name = "ruff" },
 ]
+eval = [
+    { name = "openai" },
+]
+prime = [
+    { name = "prime-sandboxes" },
+]
 verifiers = [
     { name = "verifiers" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "beautiful-soup-env", extras = ["dev", "verifiers"], marker = "extra == 'all'" },
+    { name = "beautiful-soup-env", extras = ["dev", "verifiers", "eval", "prime"], marker = "extra == 'all'" },
     { name = "beautifulsoup4", specifier = ">=4.12.0" },
     { name = "datasets", specifier = ">=2.14.0" },
     { name = "html5lib", specifier = ">=1.1" },
     { name = "jsonschema", specifier = ">=4.17.0" },
     { name = "lxml", specifier = ">=4.9.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.7.0" },
-    { name = "openai", specifier = ">=2.11.0" },
+    { name = "openai", marker = "extra == 'eval'", specifier = ">=2.11.0" },
+    { name = "prime-sandboxes", marker = "extra == 'prime'", specifier = ">=0.1.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.4.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.1.0" },
     { name = "pytest-timeout", marker = "extra == 'dev'", specifier = ">=2.2.0" },
@@ -216,7 +224,7 @@ requires-dist = [
     { name = "soupsieve", specifier = ">=2.4" },
     { name = "verifiers", marker = "extra == 'verifiers'", specifier = ">=0.1.0" },
 ]
-provides-extras = ["dev", "verifiers", "all"]
+provides-extras = ["eval", "prime", "dev", "verifiers", "all"]
 
 [[package]]
 name = "beautifulsoup4"
