@@ -9,6 +9,7 @@ This module builds the runner script that wraps user code with:
 - Error handling
 """
 
+import base64
 import json
 from typing import Any
 
@@ -28,9 +29,10 @@ def build_runner_script(
     Returns:
         Complete Python script ready for execution.
     """
-    # Escape the values for embedding in the script
-    html_escaped = _escape_for_python(globals_dict.get("HTML", ""))
-    query_escaped = _escape_for_python(globals_dict.get("QUERY", ""))
+    # Use base64 encoding for HTML and QUERY to avoid escape edge cases
+    # This handles all special characters (quotes, backslashes, unicode) cleanly
+    html_b64 = base64.b64encode(globals_dict.get("HTML", "").encode("utf-8")).decode("ascii")
+    query_b64 = base64.b64encode(globals_dict.get("QUERY", "").encode("utf-8")).decode("ascii")
     constraints_json = json.dumps(globals_dict.get("CONSTRAINTS", {}))
 
     # Build the script
@@ -39,14 +41,15 @@ def build_runner_script(
 
 import sys
 import json
+import base64
 
 # =============================================================================
-# Injected Globals
+# Injected Globals (base64 encoded to avoid escape issues)
 # =============================================================================
 
-HTML = """{html_escaped}"""
+HTML = base64.b64decode("{html_b64}").decode("utf-8")
 
-QUERY = """{query_escaped}"""
+QUERY = base64.b64decode("{query_b64}").decode("utf-8")
 
 CONSTRAINTS = json.loads('{constraints_json}')
 
@@ -126,23 +129,6 @@ def build_tool_response(result: dict[str, Any]) -> str:
         lines.append(f"Runtime: {result['runtime_ms']}ms")
 
     return "\n".join(lines).strip()
-
-
-def _escape_for_python(s: str) -> str:
-    """Escape a string for embedding in a Python triple-quoted string.
-
-    Args:
-        s: The string to escape.
-
-    Returns:
-        Escaped string safe for embedding in triple quotes.
-    """
-    # Handle triple quotes within the string
-    s = s.replace('"""', '\\"\\"\\"')
-    # Handle backslashes (must be done before other escapes)
-    # Actually, in triple-quoted strings, we mainly need to escape
-    # the triple quote sequence itself
-    return s
 
 
 def extract_print_output(stdout: str) -> str | None:

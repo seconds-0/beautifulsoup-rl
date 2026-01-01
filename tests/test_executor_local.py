@@ -130,15 +130,19 @@ class TestRunnerScript:
     """Tests for runner script generation."""
 
     def test_script_has_globals(self):
-        """Generated script should define globals."""
+        """Generated script should define globals via base64 decoding."""
         script = build_runner_script(
             "print(HTML)",
             {"HTML": "test", "QUERY": "query", "CONSTRAINTS": {}},
         )
 
-        assert 'HTML = """test"""' in script
-        assert 'QUERY = """query"""' in script
+        # Check for base64 encoding pattern
+        assert "base64.b64decode" in script
+        assert "HTML = base64.b64decode" in script
+        assert "QUERY = base64.b64decode" in script
         assert "CONSTRAINTS = " in script
+        # Verify the script is valid Python and can be compiled
+        compile(script, "<test>", "exec")
 
     def test_script_has_make_soup(self):
         """Generated script should define make_soup helper."""
@@ -159,13 +163,23 @@ class TestRunnerScript:
 
         assert user_code in script
 
-    def test_html_escaping(self):
-        """HTML with quotes should be properly escaped."""
-        html = '<div class="test">content</div>'
-        script = build_runner_script(
-            "print(HTML)",
-            {"HTML": html, "QUERY": "", "CONSTRAINTS": {}},
-        )
+    def test_html_with_special_chars(self):
+        """HTML with special characters should be handled via base64 encoding."""
+        # Test various edge cases that would break triple-quoted strings
+        test_cases = [
+            '<div class="test">content</div>',  # Basic quotes
+            '<div>"""triple quotes"""</div>',  # Triple quotes
+            '<div>\\backslash\\</div>',  # Backslashes
+            '<div>日本語</div>',  # Unicode
+            '<div>\n\t\r</div>',  # Whitespace
+        ]
 
-        # Script should be valid Python
-        compile(script, "<test>", "exec")
+        for html in test_cases:
+            script = build_runner_script(
+                "print(HTML)",
+                {"HTML": html, "QUERY": "", "CONSTRAINTS": {}},
+            )
+            # Script should be valid Python
+            compile(script, "<test>", "exec")
+            # Verify base64 pattern is used
+            assert "base64.b64decode" in script
