@@ -19,9 +19,19 @@ pip install -e .
 # With development dependencies
 pip install -e ".[dev]"
 
-# With Verifiers support
+# With all extras (dev, verifiers, prime, eval)
 pip install -e ".[all]"
 ```
+
+### Optional Dependencies
+
+| Extra | Purpose | When to Use |
+|-------|---------|-------------|
+| `.[dev]` | pytest, ruff, mypy | Local development and testing |
+| `.[eval]` | OpenAI client | Running LLM evaluations |
+| `.[prime]` | Prime sandboxes | Production execution on Prime |
+| `.[verifiers]` | Verifiers framework | Integration with Prime's RL pipeline |
+| `.[all]` | All of the above | Full development environment |
 
 ## Quick Start
 
@@ -140,6 +150,23 @@ prime env eval beautiful_soup_env \
   -m <model-name> \
   -n 100
 ```
+
+### Prime Sandbox Mode
+
+When running on Prime's infrastructure, the environment uses sandboxed execution:
+
+```python
+env = load_environment(
+    executor_backend="prime",  # Uses Prime's sandboxed executor
+    network_access=True,       # Required to install bs4/lxml in default image
+)
+```
+
+**Sandbox Configuration:**
+- **Default image**: Uses `python:3.11-slim` with `network_access=True` to pip install dependencies
+- **Prebuilt image**: For faster startup or network-isolated execution, use a custom image with bs4/lxml pre-installed and set `network_access=False`
+- Code execution timeout defaults to 30 seconds
+- A starter training config is available at `configs/prime-rl/beautiful-soup-env.toml`
 
 ## Development
 

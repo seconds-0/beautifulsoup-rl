@@ -1,0 +1,30 @@
+# PRIME-RL Training Configuration for BeautifulSoup Environment
+#
+# This is a starter configuration for training with PRIME-RL.
+# Adjust parameters based on your training setup and compute resources.
+
+[environment]
+name = "beautiful_soup_env"
+split = "train"
+mode = "all"           # All 52 archetypes
+difficulty = "mixed"   # Mix of easy, medium, hard
+
+[environment.executor]
+backend = "prime"      # Use Prime's sandboxed executor
+timeout_s = 30.0
+max_output_chars = 10000
+network_access = true  # Required to pip install bs4/lxml in default image
+# Set to false only if using a prebuilt image with dependencies
+
+[training]
+# Recommended training hyperparameters
+batch_size = 32
+learning_rate = 1e-5
+max_tool_calls = 10
+seed = 42
+
+[evaluation]
+# Use bench split for consistent evaluation
+split = "bench"
+mode = "mvp"           # 29 core archetypes
+num_examples = 100
