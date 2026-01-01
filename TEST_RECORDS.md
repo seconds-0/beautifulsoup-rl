@@ -7,7 +7,7 @@ Track evaluation progress and results. Update this file after each benchmark run
 Focus on **small/weak models** - they benefit most from RL training on this environment.
 
 ### Priority (Small Models)
-- [x] `mistralai/ministral-8b-2512` - **BEST 8B: 63.2% pass rate** (Ministral 3, Dec 2025, 680 examples)
+- [x] `mistralai/ministral-8b-2512` - **BEST 8B: 68.4% pass rate** (Ministral 3, Jan 2026, 680 examples, efficiency guidelines)
 - [x] `mistralai/ministral-3b-2512` - **50.6% pass rate** (Ministral 3B, Jan 2026, 680 examples, $1.10)
 - [x] `qwen/qwen3-8b` - Free tier available (**43.1% pass rate**, 680 examples)
 - [x] `mistralai/ministral-8b` - Old version (**27.5% pass rate** - loopy, expensive)
@@ -25,6 +25,40 @@ Focus on **small/weak models** - they benefit most from RL training on this envi
 ---
 
 ## Benchmark Runs (Expanded - Now 50 Archetypes)
+
+### 2026-01-01: Ministral 8B Full Benchmark with Efficiency Guidelines
+
+**Model:** `mistralai/ministral-8b-2512` (Ministral 3 8B)
+**Config:** split=bench, mode=all, 680 examples (34 archetypes)
+**Prompt:** With efficiency guidelines
+
+| Metric | Value |
+|--------|-------|
+| **Pass rate (≥0.5)** | 68.4% |
+| **Perfect rate (=1.0)** | 57.9% |
+| **Average reward** | 0.665 |
+| **Total tool calls** | 1,027 |
+| **Total tokens** | ~4M |
+
+**Perfect Archetypes (100%):**
+- attribute_selector, class_reserved_word, deep_nesting_extraction
+- extract_images, extract_multilingual, form_action_method
+- remove_scripts_styles, select_options
+
+**Hardest Archetypes (0% perfect):**
+- list_extraction (0%) - **NOTE: Fix deployed but not in this benchmark**
+- label_input_mapping (0%) - Complex form/label relationships
+
+**Comparison with Ministral 3B:**
+
+| Model | Pass Rate | Perfect Rate | Avg Reward |
+|-------|-----------|--------------|------------|
+| **Ministral 8B** | **68.4%** | **57.9%** | **0.665** |
+| Ministral 3B | 50.6% | 19.7% | 0.453 |
+
+**Key Finding:** 8B model shows +17.8% pass rate over 3B - significant scaling improvement. Both still struggle with multi-step and aggregation tasks.
+
+---
 
 ### 2026-01-01: Ministral 3B Full Benchmark (680 examples)
 
