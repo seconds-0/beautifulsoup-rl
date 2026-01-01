@@ -67,6 +67,59 @@ Focus on **small/weak models** - they benefit most from RL training on this envi
 
 ---
 
+### 2026-01-01: Weak Archetype Investigation
+
+Investigated why certain archetypes have 0% pass rate on small models. Key findings:
+
+#### 1. mvp.list_extraction (0% pass, marked "easy")
+
+**Root Cause:** Ambiguous query + massive chrome pollution
+- Query: "Extract all item texts from the list" - which list?
+- HTML contains **292 `<li>` elements** from navigation chrome but only **4 target items** with class `list-item`
+- Model uses `find_all('li')` instead of `find_all(class_='list-item')`, returning 292 items
+- HTML size: 76KB (50KB+ chrome)
+
+**Status:** Valid training signal - models should learn to find main content list vs nav/footer. Could make query more specific if this proves too hard post-RL.
+
+#### 2. mvp.partial_data_extraction (5% pass)
+
+**Root Cause:** Complex output schema + nullable fields
+- Expects list of dicts with `name`, `price`, `description` keys
+- Some fields are `null` (missing in HTML)
+- Small models struggle with structured nullable output
+- HTML size: 94KB
+
+**Status:** Legitimate difficulty. Tests real-world scraping patterns where not all data is present.
+
+#### 3. Multi-step archetypes (0% pass)
+
+These require `navigate` tool for multi-page extraction:
+- `search_then_detail`: Find item, navigate to detail page, extract data
+- `link_chain`: Follow breadcrumb chain to destination
+- `compare_products`: Visit multiple product pages, compare prices
+
+**Status:** Legitimately hard for pre-RL models. Tests planning and multi-step execution. These archetypes are designed to challenge models.
+
+#### 4. Computation archetypes (23-48% pass)
+
+- `aggregation_min_max` (23%): Extract all prices, compute min/max
+- `count_elements` (48%): Count products matching condition
+
+**Status:** These are valid hard archetypes. Models must extract + compute, not just extract.
+
+#### Summary
+
+| Category | Archetypes | Issue | Fix Needed? |
+|----------|------------|-------|-------------|
+| Ambiguous query | list_extraction | Chrome pollution | Maybe - clarify query |
+| Complex schema | partial_data_extraction | Nullable fields | No - valid difficulty |
+| Multi-step | search_then_detail, link_chain, compare_products | Navigate tool | No - designed hard |
+| Computation | aggregation_min_max, count_elements | Extract + compute | No - valid signal |
+
+**Recommendation:** These archetypes provide good RL training signal. The 0% pass rates on pre-RL small models indicate genuine capability gaps that training should address.
+
+---
+
 ### 2025-12-31: Efficiency Guidelines Added (Prompt Improvement)
 
 **Change:** Added explicit efficiency guidelines to system prompt in `bs4_env/prompt.py`:
