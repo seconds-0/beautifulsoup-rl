@@ -90,3 +90,6 @@ credentials.json
 *.key
 outputs/
 example_rendered.html
+
+# Vendor documentation cache
+docs/vendor/

@@ -102,6 +102,16 @@ config = EnvConfig(executor_backend="local")
 ### 5. Normalization is Dangerous
 Start with strict exact-match. Only add normalization when demonstrably needed. Over-normalization enables reward hacking.
 
+### 6. Verify External Library APIs Before Implementation
+When overriding or calling methods from external libraries (`verifiers`, `datasets`, etc.):
+
+1. **Look up current API docs** using Context7 or WebSearch
+2. **Read the actual installed source** if docs unavailable (e.g., `/opt/homebrew/lib/python3.11/site-packages/verifiers/envs/`)
+3. **Cache important docs** in `docs/vendor/` (gitignored) for offline reference
+4. **Update mocks to match real signatures** - a mock returning the wrong type hides bugs until production
+
+**Example failure:** `env_response` was mocked to return `(response, state)` but real API returns just `Messages`. Tests passed, production crashed.
+
 ## Running Tests
 
 ```bash
