@@ -56,6 +56,48 @@ Focus on **small/weak models** - they benefit most from RL training on this envi
 
 ## Benchmark Runs (52 Archetypes, 1040 Bench Examples)
 
+### 2026-01-02: Price Bounds Fix - Ground Truth Contamination Bug ⭐
+
+**Bug Fixed:** `wrap_with_realistic_chrome(complexity="realistic")` added product grids with
+random prices ($10-$999) that contaminated aggregation task ground truths.
+
+**Affected Archetypes:**
+- `aggregation_min_max` - min/max price computation
+- `pagination_aggregate` - multi-page price aggregation
+- `compare_products` - price comparison
+
+**Fix:** Added `price_bounds` parameter to constrain extra prices within original data bounds.
+
+**Results (gpt-5-nano, 20 examples, 3 rollouts each):**
+
+| Metric | Before Fix | After Fix | Change |
+|--------|-----------|-----------|--------|
+| Average Reward | 17.8% | **94.0%** | +76.2% |
+| Pass Rate (≥0.5) | ~20% | **~95%** | +75% |
+
+**Per-Rollout:**
+- r1: 93.3% (18.65/20)
+- r2: 99.3% (19.85/20)
+- r3: 99.5% (19.9/20)
+
+**Files Modified:**
+- `bs4_env/generators/base.py` - Added `price_bounds` to `generate_product_grid()`,
+  `wrap_with_realistic_chrome()`, `generate_bulk_noise()`
+- `bs4_env/generators/mvp_hard.py` - Pass bounds in `AggregationMinMaxGenerator`
+- `bs4_env/generators/mvp_multistep.py` - Pass bounds in `PaginationAggregateGenerator`,
+  `CompareProductsGenerator`
+
+**Commits:** `3d6f74c`, `dcac702`
+
+**Key Learning:** Ground truth must remain valid after HTML augmentation. Any generator
+computing aggregations should pass bounds to prevent chrome from contaminating results.
+
+**Ground Truth Audit:** Audited all other generators - no additional fixes needed. Other
+generators extract specific labeled data (not global aggregations), so chrome doesn't
+affect their ground truth.
+
+---
+
 ### 2026-01-01: New Limitation Archetypes Baseline (Ministral 3B)
 
 **Environment Update:** Added 5 limitation archetypes (PR #3):
