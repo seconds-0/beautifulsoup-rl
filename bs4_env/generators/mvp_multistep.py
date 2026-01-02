@@ -284,6 +284,8 @@ class PaginationAggregateGenerator(Generator):
                 pages[f"/results?page={page_num}"] = page_html
 
         # Wrap initial page with chrome
+        # Compute price bounds to prevent added product grids from contaminating ground truth
+        all_prices = [p["price_val"] for p in all_products]
         html = wrap_with_realistic_chrome(
             initial_html,
             style,
@@ -292,6 +294,7 @@ class PaginationAggregateGenerator(Generator):
             complexity="realistic",
             include_nav=True,
             include_footer=True,
+            price_bounds=(min(all_prices), max(all_prices)),
         )
 
         query = (
@@ -687,6 +690,8 @@ class CompareProductsGenerator(Generator):
         for p in products:
             pages[p["href"]] = self._build_detail_page(p, style, rng)
 
+        # Pass price bounds to prevent added product grids from confusing the model
+        comparison_prices = [p["price_val"] for p in products]
         html = wrap_with_realistic_chrome(
             comparison_html,
             style,
@@ -695,6 +700,7 @@ class CompareProductsGenerator(Generator):
             complexity="realistic",
             include_nav=True,
             include_footer=True,
+            price_bounds=(min(comparison_prices), max(comparison_prices)),
         )
 
         query = (

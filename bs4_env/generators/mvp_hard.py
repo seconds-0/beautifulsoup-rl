@@ -352,6 +352,8 @@ class AggregationMinMaxGenerator(Generator):
         body_content += "</div>"
 
         # Wrap with realistic chrome
+        # CRITICAL: Pass price_bounds to prevent added product grids from
+        # containing prices outside our ground truth range
         html = wrap_with_realistic_chrome(
             body_content,
             style,
@@ -360,6 +362,7 @@ class AggregationMinMaxGenerator(Generator):
             complexity="realistic",
             include_nav=True,
             include_footer=True,
+            price_bounds=(min(prices), max(prices)),
         )
 
         if rng.random() < 0.3:

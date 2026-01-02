@@ -2323,6 +2323,7 @@ def wrap_with_realistic_chrome(
     include_nav: bool = True,
     include_footer: bool = True,
     target_size: int | None = None,
+    price_bounds: tuple[float, float] | None = None,
 ) -> str:
     """Wrap body content with realistic HTML document structure.
 
@@ -2343,6 +2344,9 @@ def wrap_with_realistic_chrome(
         include_nav: Whether to include navigation.
         include_footer: Whether to include footer.
         target_size: Optional explicit target size for "realistic" mode.
+        price_bounds: Optional (min, max) price bounds for product grids.
+            Pass this when the body_content contains price data to ensure
+            added product grids don't contaminate ground truth.
 
     Returns:
         Complete HTML document string.
@@ -2438,7 +2442,9 @@ def wrap_with_realistic_chrome(
 
         # Add product grid or comments after main content
         if rng.random() < 0.5:
-            body_parts.insert(-1, generate_product_grid(rng, style, count=12))
+            body_parts.insert(
+                -1, generate_product_grid(rng, style, count=12, price_bounds=price_bounds)
+            )
         else:
             body_parts.insert(-1, generate_comments_section(rng, style, count=15))
 
@@ -2628,7 +2634,12 @@ def generate_sidebar_content(rng: random.Random, style: HtmlStyle, items: int = 
 </aside>"""
 
 
-def generate_product_grid(rng: random.Random, style: HtmlStyle, count: int = 12) -> str:
+def generate_product_grid(
+    rng: random.Random,
+    style: HtmlStyle,
+    count: int = 12,
+    price_bounds: tuple[float, float] | None = None,
+) -> str:
     """Generate e-commerce style product grid.
 
     Real e-commerce sites have grids of 12-48 products with images,
@@ -2638,6 +2649,9 @@ def generate_product_grid(rng: random.Random, style: HtmlStyle, count: int = 12)
         rng: Random instance.
         style: The HTML style.
         count: Number of products.
+        price_bounds: Optional (min, max) price bounds. If set, generated prices
+            will stay within these bounds to avoid contaminating ground truth
+            in aggregation tasks.
 
     Returns:
         HTML string for product grid.
@@ -2645,7 +2659,13 @@ def generate_product_grid(rng: random.Random, style: HtmlStyle, count: int = 12)
     products = []
     for i in range(count):
         name = random_product_name(rng)
-        price = random_price(rng)
+        # Use bounded prices if specified (prevents ground truth contamination)
+        if price_bounds:
+            min_p, max_p = price_bounds
+            # Generate prices within 30%-90% of the bounds to avoid edge cases
+            price = f"${rng.uniform(min_p * 0.3, max_p * 0.9):.2f}"
+        else:
+            price = random_price(rng)
         rating = round(rng.uniform(3.0, 5.0), 1)
         reviews = rng.randint(10, 500)
         desc = random_paragraph(rng, sentences=2)
