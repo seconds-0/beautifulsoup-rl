@@ -2,6 +2,10 @@
 
 An RL environment for training and evaluating agents on BeautifulSoup HTML parsing tasks. Built for [Prime Intellect's Environments Hub](https://docs.primeintellect.ai/verifiers/environments).
 
+**Naming:**
+- **Hub name**: `primeintellect/beautiful-soup-env` (use in `prime env eval`)
+- **Python module**: `beautiful_soup_env` (use in `from beautiful_soup_env import ...`)
+
 ## Overview
 
 This environment trains agents to:
@@ -128,6 +132,14 @@ env = load_environment(
 | `"tiered"` | 52 | All archetypes with difficulty-weighted sampling |
 | `"hard_only"` | 18 | Only hard difficulty archetypes |
 
+### Bench Split Behavior
+
+The `bench` split uses a **fixed manifest** for reproducibility across runs:
+- The `mode` parameter is **ignored** for bench - all 52 archetypes are included regardless of mode setting
+- `archetype_filter` and `difficulty` filters still apply if specified
+- Tasks are loaded from `bs4_env/data/bench_manifest.json` (20 seeds × 52 archetypes = 1040 tasks)
+- This ensures benchmark scores are comparable across environment versions
+
 ## Running Evaluations
 
 ### Local Testing
@@ -142,10 +154,10 @@ python -m bs4_env.scripts.smoke_eval_local
 ### Prime Evaluation
 ```bash
 # Run benchmark evaluation
-prime env eval beautiful_soup_env -m meta-llama/llama-3.1-70b-instruct -n 100
+prime env eval primeintellect/beautiful-soup-env -m meta-llama/llama-3.1-70b-instruct -n 100
 
 # With specific environment config
-prime env eval beautiful_soup_env \
+prime env eval primeintellect/beautiful-soup-env \
   -a '{"split":"bench","mode":"mvp"}' \
   -m <model-name> \
   -n 100
