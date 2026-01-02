@@ -93,3 +93,6 @@ example_rendered.html
 
 # Vendor documentation cache
 docs/vendor/
+
+# Local hookify rules
+.claude/*.local.md
