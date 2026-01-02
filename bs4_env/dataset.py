@@ -8,6 +8,7 @@ managing train/eval/bench splits with disjoint seeds.
 
 import hashlib
 import json
+import logging
 import random
 import warnings
 from collections.abc import Iterator
@@ -15,6 +16,8 @@ from pathlib import Path
 from typing import Any
 
 from datasets import Dataset
+
+logger = logging.getLogger(__name__)
 
 from bs4_env.config import EnvConfig, TaskConstraints
 from bs4_env.generators.base import TaskInstance
@@ -216,7 +219,7 @@ def _generate_from_manifest(config: EnvConfig) -> Iterator[dict[str, Any]]:
             row = _task_to_row(task, spec)
             yield row
         except Exception as e:
-            print(f"Error generating {archetype_id} seed {seed}: {e}")
+            logger.error(f"Error generating {archetype_id} seed {seed}: {e}")
             continue
 
 
@@ -259,7 +262,7 @@ def _generate_for_archetype(
             yield row
         except Exception as e:
             # Log error but continue
-            print(f"Error generating {archetype_id} seed {seed}: {e}")
+            logger.error(f"Error generating {archetype_id} seed {seed}: {e}")
             continue
 
 
@@ -340,6 +343,9 @@ def _task_to_row(task: TaskInstance, spec: Any) -> dict[str, Any]:
         constraints=constraints,
     )
 
+    # Inject difficulty from archetype spec (ensures consistency)
+    task.difficulty = spec.difficulty
+
     # Build info dict (hidden from model, used for grading)
     info = task.to_info_dict()
 
@@ -408,6 +414,11 @@ def get_dataset_stats(dataset: Dataset) -> dict[str, Any]:
         if archetype_id not in stats["by_archetype"]:
             stats["by_archetype"][archetype_id] = 0
         stats["by_archetype"][archetype_id] += 1
+
+        # Track by difficulty (now available in info dict)
+        difficulty = info.get("difficulty", "medium")
+        if difficulty in stats["by_difficulty"]:
+            stats["by_difficulty"][difficulty] += 1
 
         if info.get("solvable", True):
             stats["solvable"] += 1

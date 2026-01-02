@@ -320,3 +320,101 @@ class TestLimitationRegistration:
         for spec in limitation_archetypes:
             assert hasattr(spec, "allowed_limit_reasons"), f"{spec.archetype_id} missing reasons"
             assert len(spec.allowed_limit_reasons) > 0, f"{spec.archetype_id} has no reasons"
+
+
+class TestNoAnswerLeakage:
+    """Critical test: Ensure solvable=False tasks don't leak answers into HTML.
+
+    For limitation archetypes, the model should NOT be able to solve the task by
+    simply searching the HTML for the answer. If the answer appears as a literal
+    string in the HTML, the model can cheat by regex matching instead of truly
+    recognizing the limitation.
+    """
+
+    def test_js_required_no_leak(self):
+        """JSRequiredGenerator should not leak product/price as string literals."""
+        gen = JSRequiredGenerator()
+        for seed in [42, 123, 999]:
+            task = gen.generate(seed=seed)
+            html = task.html
+            product = task.metadata["actual_product"]
+            price = task.metadata["actual_price"]
+
+            assert product not in html, (
+                f"JSRequired leaks actual_product='{product}' in HTML (seed={seed})"
+            )
+            assert price not in html, (
+                f"JSRequired leaks actual_price='{price}' in HTML (seed={seed})"
+            )
+
+    def test_image_text_no_leak(self):
+        """ImageTextGenerator should not leak hidden text in HTML."""
+        gen = ImageTextGenerator()
+        for seed in [42, 123, 999]:
+            task = gen.generate(seed=seed)
+            html = task.html
+            hidden_text = task.metadata["actual_text"]
+
+            assert hidden_text not in html, (
+                f"ImageText leaks actual_text='{hidden_text}' in HTML (seed={seed})"
+            )
+
+    def test_canvas_text_no_leak(self):
+        """CanvasTextGenerator should not leak product/price as string literals."""
+        gen = CanvasTextGenerator()
+        for seed in [42, 123, 999]:
+            task = gen.generate(seed=seed)
+            html = task.html
+            product = task.metadata["actual_product"]
+            price = task.metadata["actual_price"]
+
+            assert product not in html, (
+                f"CanvasText leaks actual_product='{product}' in HTML (seed={seed})"
+            )
+            assert price not in html, (
+                f"CanvasText leaks actual_price='{price}' in HTML (seed={seed})"
+            )
+
+    def test_svg_path_data_no_leak(self):
+        """SvgPathDataGenerator should not leak data points as string literals.
+
+        Note: SvgPathDataGenerator encodes values via coordinate transformations,
+        which is considered safe. Short numeric values (like "98") may coincidentally
+        appear in hex colors (e.g., "#3498db") - this is not a leak.
+        We verify that the exact formatted data string doesn't appear.
+        """
+        gen = SvgPathDataGenerator()
+        for seed in [42, 123, 999]:
+            task = gen.generate(seed=seed)
+            html = task.html
+            data_points = task.metadata["actual_data"]
+
+            # Check formatted list doesn't appear (guards against obvious dumps)
+            formatted_list = str(data_points)
+            assert formatted_list not in html, (
+                f"SvgPath leaks data list '{formatted_list}' in HTML (seed={seed})"
+            )
+            # Check JSON-style arrays don't appear
+            json_list = ", ".join(str(p) for p in data_points)
+            assert json_list not in html, (
+                f"SvgPath leaks data as JSON-style list in HTML (seed={seed})"
+            )
+            # Note: Individual short numbers may coincidentally appear in hex colors
+            # or SVG coordinates, but that's not exploitable - the transformations
+            # used to convert data to path coordinates are not reversible by the model
+
+    def test_pdf_embed_no_leak(self):
+        """PdfEmbedGenerator should not leak the key value (answer) in HTML.
+
+        Note: document_title appearing in HTML is OK - it's not the answer.
+        The actual_value (key_value) should not appear.
+        """
+        gen = PdfEmbedGenerator()
+        for seed in [42, 123, 999]:
+            task = gen.generate(seed=seed)
+            html = task.html
+            key_value = task.metadata["actual_value"]
+
+            assert key_value not in html, (
+                f"PdfEmbed leaks actual_value='{key_value}' in HTML (seed={seed})"
+            )

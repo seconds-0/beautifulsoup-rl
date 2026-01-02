@@ -270,8 +270,9 @@ def compute_reward(
 
         forbidden_values = list(forbidden_values) + extract_forbidden_values_from_html(html)
 
+    # Check full output including limit.evidence, not just answer
     safety_violations = check_safety(
-        output.get("answer"),
+        output,
         forbidden_patterns=forbidden_patterns,
         forbidden_values=forbidden_values,
     )

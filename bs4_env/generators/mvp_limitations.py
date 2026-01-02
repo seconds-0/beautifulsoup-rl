@@ -97,6 +97,9 @@ class JSRequiredGenerator(Generator):
 
     def _react_pattern(self, rng, product_name: str, price: str) -> tuple[str, str]:
         """Generate React-style JS rendering."""
+        # Encode values as character codes to prevent string literal leakage
+        name_codes = ",".join(str(ord(c)) for c in product_name)
+        price_codes = ",".join(str(ord(c)) for c in price)
         html = f"""<!DOCTYPE html>
 <html>
 <head><title>Product Page</title></head>
@@ -107,9 +110,10 @@ class JSRequiredGenerator(Generator):
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script>
-const productData = {{
-    name: "{product_name}",
-    price: "{price}"
+var _c = [[{name_codes}], [{price_codes}]];
+var productData = {{
+    name: _c[0].map(function(c){{return String.fromCharCode(c);}}).join(''),
+    price: _c[1].map(function(c){{return String.fromCharCode(c);}}).join('')
 }};
 ReactDOM.render(
     React.createElement('div', null,
@@ -121,10 +125,13 @@ ReactDOM.render(
 </script>
 </body>
 </html>"""
-        return html, "ReactDOM.render"
+        return html, "String.fromCharCode"
 
     def _vanilla_js_pattern(self, rng, product_name: str, price: str) -> tuple[str, str]:
         """Generate vanilla JS DOM manipulation."""
+        # Encode values as character codes to prevent string literal leakage
+        name_codes = ",".join(str(ord(c)) for c in product_name)
+        price_codes = ",".join(str(ord(c)) for c in price)
         html = f"""<!DOCTYPE html>
 <html>
 <head><title>Product Page</title></head>
@@ -134,16 +141,22 @@ ReactDOM.render(
 </div>
 <script>
 window.onload = function() {{
+    var _v = [[{name_codes}], [{price_codes}]];
+    var n = _v[0].map(function(c){{return String.fromCharCode(c);}}).join('');
+    var p = _v[1].map(function(c){{return String.fromCharCode(c);}}).join('');
     var container = document.getElementById('product-container');
-    container.innerHTML = '<h1>{product_name}</h1><span class="price">{price}</span>';
+    container.innerHTML = '<h1>' + n + '</h1><span class="price">' + p + '</span>';
 }};
 </script>
 </body>
 </html>"""
-        return html, "document.getElementById"
+        return html, "String.fromCharCode"
 
     def _vue_pattern(self, rng, product_name: str, price: str) -> tuple[str, str]:
         """Generate Vue.js style rendering."""
+        # Encode values as character codes to prevent string literal leakage
+        name_codes = ",".join(str(ord(c)) for c in product_name)
+        price_codes = ",".join(str(ord(c)) for c in price)
         html = f"""<!DOCTYPE html>
 <html>
 <head><title>Product Page</title></head>
@@ -157,21 +170,28 @@ window.onload = function() {{
 </div>
 <script src="https://unpkg.com/vue@3"></script>
 <script>
+var _u = [[{name_codes}], [{price_codes}]];
 Vue.createApp({{
     data() {{
         return {{
             loading: false,
-            product: {{ name: '{product_name}', price: '{price}' }}
+            product: {{
+                name: _u[0].map(function(c){{return String.fromCharCode(c);}}).join(''),
+                price: _u[1].map(function(c){{return String.fromCharCode(c);}}).join('')
+            }}
         }}
     }}
 }}).mount('#app');
 </script>
 </body>
 </html>"""
-        return html, "Vue.createApp"
+        return html, "String.fromCharCode"
 
     def _data_fetch_pattern(self, rng, product_name: str, price: str) -> tuple[str, str]:
         """Generate async data fetch pattern."""
+        # Encode values as character codes to prevent string literal leakage
+        name_codes = ",".join(str(ord(c)) for c in product_name)
+        price_codes = ",".join(str(ord(c)) for c in price)
         html = f"""<!DOCTYPE html>
 <html>
 <head><title>Product Page</title></head>
@@ -180,9 +200,13 @@ Vue.createApp({{
     <div class="skeleton">Loading product data...</div>
 </main>
 <script>
+var _f = [[{name_codes}], [{price_codes}]];
 async function loadProduct() {{
-    // Simulated API response
-    const data = {{ name: "{product_name}", price: "{price}" }};
+    // Simulated API response - decoded at runtime
+    const data = {{
+        name: _f[0].map(c => String.fromCharCode(c)).join(''),
+        price: _f[1].map(c => String.fromCharCode(c)).join('')
+    }};
     document.getElementById('content').innerHTML =
         `<h1>${{data.name}}</h1><p class="price">${{data.price}}</p>`;
 }}
@@ -190,7 +214,7 @@ loadProduct();
 </script>
 </body>
 </html>"""
-        return html, "async function loadProduct"
+        return html, "String.fromCharCode"
 
 
 @register(
@@ -234,7 +258,8 @@ class ImageTextGenerator(Generator):
         <img src="/images/{image_filename}"
              alt="Document content"
              title="Content image"
-             data-content="{hidden_text}">
+             class="text-content-image"
+             loading="lazy">
     </div>
     <p>For more information, contact support.</p>
 </article>"""
@@ -342,7 +367,10 @@ class CanvasTextGenerator(Generator):
         )
 
     def _simple_text_pattern(self, rng, product_name: str, price: str) -> tuple[str, str]:
-        """Generate simple canvas text drawing."""
+        """Generate simple canvas text drawing with runtime data loading."""
+        # Encode values as character codes - not directly extractable as strings
+        name_codes = ",".join(str(ord(c)) for c in product_name)
+        price_codes = ",".join(str(ord(c)) for c in price)
         html = f"""<!DOCTYPE html>
 <html>
 <head><title>Product Display</title></head>
@@ -353,19 +381,24 @@ class CanvasTextGenerator(Generator):
 <script>
 const canvas = document.getElementById('productCanvas');
 const ctx = canvas.getContext('2d');
+// Product data loaded from runtime configuration
+const d = {{n: [{name_codes}], p: [{price_codes}]}};
 ctx.fillStyle = '#333';
 ctx.font = '24px Arial';
-ctx.fillText('{product_name}', 20, 50);
+ctx.fillText(String.fromCharCode(...d.n), 20, 50);
 ctx.font = '32px Arial';
 ctx.fillStyle = '#e63946';
-ctx.fillText('{price}', 20, 100);
+ctx.fillText(String.fromCharCode(...d.p), 20, 100);
 </script>
 </body>
 </html>"""
-        return html, "ctx.fillText"
+        return html, "String.fromCharCode"
 
     def _styled_text_pattern(self, rng, product_name: str, price: str) -> tuple[str, str]:
-        """Generate styled canvas text with gradients."""
+        """Generate styled canvas text with gradients and encoded data."""
+        # Encode values as character codes
+        name_codes = ",".join(str(ord(c)) for c in product_name)
+        price_codes = ",".join(str(ord(c)) for c in price)
         html = f"""<!DOCTYPE html>
 <html>
 <head><title>Product Showcase</title></head>
@@ -381,19 +414,24 @@ gradient.addColorStop(0, '#1a1a2e');
 gradient.addColorStop(1, '#16213e');
 ctx.fillStyle = gradient;
 ctx.fillRect(0, 0, 300, 150);
+// Decode product info at runtime
+var _d = [[{name_codes}], [{price_codes}]];
 ctx.fillStyle = '#fff';
 ctx.font = 'bold 20px Helvetica';
-ctx.fillText('{product_name}', 15, 45);
+ctx.fillText(_d[0].map(function(c){{return String.fromCharCode(c);}}).join(''), 15, 45);
 ctx.font = '28px Helvetica';
 ctx.fillStyle = '#ffd700';
-ctx.fillText('{price}', 15, 90);
+ctx.fillText(_d[1].map(function(c){{return String.fromCharCode(c);}}).join(''), 15, 90);
 </script>
 </body>
 </html>"""
-        return html, "getContext('2d')"
+        return html, "String.fromCharCode"
 
     def _rotated_text_pattern(self, rng, product_name: str, price: str) -> tuple[str, str]:
         """Generate rotated/transformed canvas text."""
+        # Encode values as character codes to prevent string literal leakage
+        name_codes = ",".join(str(ord(c)) for c in product_name)
+        price_codes = ",".join(str(ord(c)) for c in price)
         html = f"""<!DOCTYPE html>
 <html>
 <head><title>Special Offer</title></head>
@@ -404,6 +442,7 @@ ctx.fillText('{price}', 15, 90);
 </section>
 <script>
 (function() {{
+    var _r = [[{name_codes}], [{price_codes}]];
     var canvas = document.getElementById('offerCanvas');
     var ctx = canvas.getContext('2d');
     ctx.save();
@@ -412,16 +451,16 @@ ctx.fillText('{price}', 15, 90);
     ctx.font = 'bold 22px sans-serif';
     ctx.fillStyle = '#2d3436';
     ctx.textAlign = 'center';
-    ctx.fillText('{product_name}', 0, -20);
+    ctx.fillText(_r[0].map(function(c){{return String.fromCharCode(c);}}).join(''), 0, -20);
     ctx.font = '36px sans-serif';
     ctx.fillStyle = '#d63031';
-    ctx.fillText('{price}', 0, 30);
+    ctx.fillText(_r[1].map(function(c){{return String.fromCharCode(c);}}).join(''), 0, 30);
     ctx.restore();
 }})();
 </script>
 </body>
 </html>"""
-        return html, "ctx.fillText"
+        return html, "String.fromCharCode"
 
 
 @register(

@@ -86,15 +86,18 @@ class LocalSubprocessExecutor(Executor):
         self,
         python_path: str | None = None,
         max_output_chars: int = 10000,
+        network_access: bool = True,  # Ignored - local subprocess has no network isolation
     ):
         """Initialize the executor.
 
         Args:
             python_path: Path to Python interpreter. If None, uses sys.executable.
             max_output_chars: Maximum characters to capture from stdout/stderr.
+            network_access: Ignored. Local subprocess has no network isolation.
         """
         self.python_path = python_path or sys.executable
         self.max_output_chars = max_output_chars
+        # network_access is ignored for local subprocess (no isolation)
 
     def run(
         self,
@@ -458,16 +461,19 @@ class PooledSubprocessExecutor(Executor):
         self,
         num_workers: int = 4,
         max_output_chars: int = 10000,
+        network_access: bool = True,  # Ignored - pooled subprocess has no network isolation
     ):
         """Initialize the pooled executor.
 
         Args:
             num_workers: Number of worker processes in the pool.
             max_output_chars: Maximum characters to capture from stdout/stderr.
+            network_access: Ignored. Pooled subprocess has no network isolation.
         """
         self.num_workers = num_workers
         self.max_output_chars = max_output_chars
         self._pool = None
+        # network_access is ignored for pooled subprocess (no isolation)
 
     def __enter__(self):
         """Enter context manager, create worker pool."""

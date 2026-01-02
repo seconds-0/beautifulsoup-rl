@@ -70,6 +70,7 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
     executor = get_executor(
         backend=config.executor_backend,
         max_output_chars=config.max_output_chars,
+        network_access=config.network_access,
     )
 
     # Define the run_python tool
@@ -471,6 +472,7 @@ class MinimalEnv:
             self._executor = get_executor(
                 backend=self.config.executor_backend,
                 max_output_chars=self.config.max_output_chars,
+                network_access=self.config.network_access,
             )
         return self._executor
 

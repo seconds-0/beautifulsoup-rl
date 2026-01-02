@@ -163,10 +163,35 @@ env = load_environment(
 ```
 
 **Sandbox Configuration:**
-- **Default image**: Uses `python:3.11-slim` with `network_access=True` to pip install dependencies
-- **Prebuilt image**: For faster startup or network-isolated execution, use a custom image with bs4/lxml pre-installed and set `network_access=False`
+- **Default image**: Uses `python:3.11-slim` with `network_access=True` to pip install dependencies at runtime
+- **Prebuilt image (recommended for production)**: Use a custom Docker image with dependencies pre-installed and set `network_access=False`
 - Code execution timeout defaults to 30 seconds
 - A starter training config is available at `configs/prime-rl/beautiful-soup-env.toml`
+
+### Prebuilt Image Strategy (for `network_access=False`)
+
+For deterministic training and security-isolated execution, you need a prebuilt Docker image since runtime `pip install` requires network access.
+
+**Required dependencies:**
+```dockerfile
+FROM python:3.11-slim
+RUN pip install --no-cache-dir beautifulsoup4 lxml html5lib
+```
+
+**Using the prebuilt image:**
+```python
+env = load_environment(
+    executor_backend="prime",
+    network_access=False,      # No runtime network access
+    docker_image="your-registry/bs4-prebuilt:latest",  # Your prebuilt image
+)
+```
+
+**Benefits of prebuilt images:**
+- **Determinism**: No network variability or version drift from pip installs
+- **Speed**: No dependency installation overhead per sandbox
+- **Security**: Complete network isolation during code execution
+- **Reliability**: No failures from network issues or package availability
 
 ## Development
 

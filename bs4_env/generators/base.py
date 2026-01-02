@@ -64,6 +64,7 @@ class TaskInstance:
     archetype_id: str
     seed: int
     solvable: bool = True
+    difficulty: str = "medium"  # Task difficulty level
     answer_schema: dict = field(default_factory=dict)
     normalization: dict = field(
         default_factory=lambda: {
@@ -100,6 +101,7 @@ class TaskInstance:
             "archetype_id": self.archetype_id,
             "seed": self.seed,
             "solvable": self.solvable,
+            "difficulty": self.difficulty,
             "ground_truth": self.ground_truth,
             "answer_schema": self.answer_schema,
             "normalization": self.normalization,
@@ -130,6 +132,13 @@ class Generator(ABC):
         if self._archetype_spec is None:
             raise RuntimeError(f"{self.__class__.__name__} was not registered with @register")
         return self._archetype_spec.archetype_id
+
+    @property
+    def difficulty(self) -> str:
+        """Get the difficulty level from the registered spec."""
+        if self._archetype_spec is None:
+            raise RuntimeError(f"{self.__class__.__name__} was not registered with @register")
+        return self._archetype_spec.difficulty
 
     @abstractmethod
     def generate(self, seed: int) -> TaskInstance:

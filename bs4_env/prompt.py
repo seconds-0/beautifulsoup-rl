@@ -176,8 +176,7 @@ Some tasks CANNOT be solved with static HTML parsing. When you encounter these, 
 - The actual data is inside JavaScript code, not DOM elements
 
 **Text in images** (`reason: "image_text"`):
-- The content you need is only available as an image (`.png`, `.jpg`)
-- The text is in a `data-content` attribute on an `<img>` tag
+- The content you need is only available as an image (`.png`, `.jpg`, `.svg`)
 - BeautifulSoup can't read text from images - that requires OCR
 
 **When to claim limit:**
