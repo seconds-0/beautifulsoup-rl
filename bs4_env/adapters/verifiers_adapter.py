@@ -14,9 +14,12 @@ Two modes:
 
 import contextlib
 import json
+import logging
 import warnings
 from collections.abc import Callable
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 from bs4_env.config import EnvConfig, TaskConstraints
 from bs4_env.dataset import build_dataset
@@ -218,8 +221,11 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
                                         code = args_dict.get("code", "")
                                         if code:
                                             code_samples.append(code)
-                                    except json.JSONDecodeError:
-                                        pass
+                                    except json.JSONDecodeError as e:
+                                        logger.warning(
+                                            f"Failed to parse tool arguments: {e}. "
+                                            f"Args preview: {str(args)[:100]}"
+                                        )
 
         # Extract string content from completion
         if isinstance(completion, list):
@@ -293,10 +299,25 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
         ) -> dict:
             """Inject state into tool arguments."""
             if tool_name == "run_python":
+                html = state.get("html", "")
+                query = state.get("query", "")
+
+                # Warn if critical data is missing (prevents silent data-passing bugs)
+                if not html:
+                    logger.warning(
+                        f"update_tool_args: state['html'] is empty! "
+                        f"Available keys: {list(state.keys())}"
+                    )
+                if not query:
+                    logger.warning(
+                        f"update_tool_args: state['query'] is empty! "
+                        f"Available keys: {list(state.keys())}"
+                    )
+
                 return {
                     **tool_args,
-                    "html": state.get("html", ""),
-                    "query": state.get("query", ""),
+                    "html": html,
+                    "query": query,
                     "constraints_json": json.dumps(state.get("constraints", {})),
                 }
             elif tool_name == "navigate":
