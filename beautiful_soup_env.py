@@ -37,6 +37,11 @@ def load_environment(
     timeout_s: float = 30.0,
     max_output_chars: int = 10000,
     archetypes: list[str] | None = None,
+    # Prime sandbox-specific settings (only used when executor_backend="prime")
+    docker_image: str | None = None,
+    cpu_cores: int = 1,
+    memory_gb: int = 2,
+    timeout_minutes: int = 30,
     **kwargs: Any,
 ) -> Any:
     """Load the BeautifulSoup RL environment.
@@ -49,11 +54,15 @@ def load_environment(
         difficulty: Task difficulty - "easy", "medium", "hard", or "mixed".
         num_examples: Number of examples (None for default based on split).
         seed: Random seed for reproducibility.
-        executor_backend: Code executor - "local" or "prime".
+        executor_backend: Code executor - "local", "prime", or "pooled".
         network_access: Allow network in sandbox (should be False).
         timeout_s: Code execution timeout in seconds.
         max_output_chars: Max characters from stdout/stderr.
         archetypes: Specific archetype IDs to include (optional).
+        docker_image: Docker image for Prime sandbox (default: python:3.11-slim).
+        cpu_cores: CPU cores for Prime sandbox (default: 1).
+        memory_gb: Memory in GB for Prime sandbox (default: 2).
+        timeout_minutes: Sandbox lifecycle timeout in minutes (default: 30).
         **kwargs: Additional arguments (for future compatibility).
 
     Returns:
@@ -77,6 +86,10 @@ def load_environment(
         timeout_s=timeout_s,
         max_output_chars=max_output_chars,
         archetypes=archetypes,
+        docker_image=docker_image,
+        cpu_cores=cpu_cores,
+        memory_gb=memory_gb,
+        timeout_minutes=timeout_minutes,
     )
 
     return build_verifiers_environment(config)
