@@ -261,11 +261,9 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
             """Set up task-specific state from the dataset row."""
             state = await super().setup_state(state, **kwargs)
 
-            # Get the current example's info
-            row = kwargs.get("row", {})
-            info = row.get("info", {})
-            if isinstance(info, str):
-                info = json.loads(info)
+            # Get info from state (verifiers stores it in state.input and forwards access)
+            # Note: verifiers already parses JSON info in init_state
+            info = state.get("info", {})
 
             # HTML and query are stored in info (not in prompt)
             html = info.get("html", "")
