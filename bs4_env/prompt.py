@@ -142,7 +142,7 @@ BeautifulSoup and common parsers (html.parser, lxml, html5lib) are pre-installed
 - Most tasks can be solved in 1-3 tool calls
 - If your code produces valid output matching the expected format, finalize immediately
 - If you've tried 3+ different approaches without success, provide your best answer
-- Excessive tool calls (10+) result in zero reward regardless of correctness
+- Excessive tool calls (10+) result in zero reward for extraction tasks (limitation responses are exempt to allow exploration before abstaining)
 
 ## Output Format
 

@@ -67,9 +67,9 @@ def _select_seeds_for_archetype(
     key = f"{archetype_id}:{split}:{config_seed}"
     rng = random.Random(_stable_seed_from_key(key))
 
-    available = list(range(seed_range[0], seed_range[1]))
-    rng.shuffle(available)
-    return available[:num_examples]
+    # Use rng.sample() instead of shuffle for efficiency (O(num_examples) vs O(range_size))
+    available = range(seed_range[0], seed_range[1])
+    return list(rng.sample(available, min(num_examples, len(available))))
 
 
 # Seed ranges for each split to ensure no overlap
