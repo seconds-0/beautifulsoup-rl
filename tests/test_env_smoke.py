@@ -322,18 +322,18 @@ class TestVerifiersEnvResponse:
             },
         ]
 
-        # Mock parent's env_response to return unchanged (we test our override logic)
+        # Mock parent's env_response to return empty messages (we test our override logic)
         with patch.object(
             vf.StatefulToolEnv, "env_response", new_callable=AsyncMock
         ) as mock_parent:
-            mock_parent.return_value = (None, state.copy())
+            mock_parent.return_value = []  # Parent returns Messages, not tuple
 
-            # Call env_response
-            _, updated_state = await env.env_response(messages, state)
+            # Call env_response (state is mutated in-place)
+            await env.env_response(messages, state)
 
-        # Verify state was updated by our override logic
-        assert updated_state["html"] == "<html>Page 2 Content</html>"
-        assert "/page2" in updated_state["navigation_history"]
+        # Verify state was updated by our override logic (mutated in-place)
+        assert state["html"] == "<html>Page 2 Content</html>"
+        assert "/page2" in state["navigation_history"]
 
     @pytest.mark.asyncio
     async def test_env_response_no_update_on_navigate_error(self):
@@ -371,17 +371,17 @@ class TestVerifiersEnvResponse:
             },
         ]
 
-        # Mock parent's env_response to return unchanged
+        # Mock parent's env_response to return empty messages
         with patch.object(
             vf.StatefulToolEnv, "env_response", new_callable=AsyncMock
         ) as mock_parent:
-            mock_parent.return_value = (None, state.copy())
+            mock_parent.return_value = []  # Parent returns Messages, not tuple
 
-            _, updated_state = await env.env_response(messages, state)
+            await env.env_response(messages, state)
 
-        # State should be unchanged
-        assert updated_state["html"] == original_html
-        assert len(updated_state["navigation_history"]) == 0
+        # State should be unchanged (no navigate success marker)
+        assert state["html"] == original_html
+        assert len(state["navigation_history"]) == 0
 
     def test_navigate_marker_parsing(self):
         """Test that NAVIGATE_SUCCESS_MARKER is correctly parsed."""

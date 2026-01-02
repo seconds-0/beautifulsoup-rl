@@ -311,8 +311,8 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
 
             Detects successful navigate calls and updates state["html"] accordingly.
             """
-            # Call parent implementation first
-            response, state = await super().env_response(messages, state, **kwargs)
+            # Call parent implementation first (returns Messages, not tuple)
+            response = await super().env_response(messages, state, **kwargs)
 
             # Check for navigate success in recent messages
             pages = state.get("pages", {})
@@ -335,7 +335,7 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
                             # Only process the most recent navigate
                             break
 
-            return response, state
+            return response
 
         def __len__(self) -> int:
             """Return number of examples in dataset."""
