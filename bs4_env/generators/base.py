@@ -2451,7 +2451,9 @@ def wrap_with_realistic_chrome(
         # Generate additional bulk to reach target (using mixed framework elements)
         current_size = sum(len(p) for p in body_parts)
         if current_size < actual_target:
-            bulk = generate_bulk_noise(rng, style, target_size=actual_target - current_size)
+            bulk = generate_bulk_noise(
+                rng, style, target_size=actual_target - current_size, price_bounds=price_bounds
+            )
             body_parts.insert(-1, bulk)
 
         # Apply deep nesting with mixed framework classes to main content area
@@ -2662,8 +2664,9 @@ def generate_product_grid(
         # Use bounded prices if specified (prevents ground truth contamination)
         if price_bounds:
             min_p, max_p = price_bounds
-            # Generate prices within 30%-90% of the bounds to avoid edge cases
-            price = f"${rng.uniform(min_p * 0.3, max_p * 0.9):.2f}"
+            # Generate prices WITHIN the bounds (with small buffer to avoid ties)
+            # This ensures extra prices don't exceed ground truth min/max
+            price = f"${rng.uniform(min_p * 1.01, max_p * 0.99):.2f}"
         else:
             price = random_price(rng)
         rating = round(rng.uniform(3.0, 5.0), 1)
@@ -2865,7 +2868,12 @@ def generate_deep_nested_wrapper(
     return result
 
 
-def generate_bulk_noise(rng: random.Random, style: HtmlStyle, target_size: int = 50000) -> str:
+def generate_bulk_noise(
+    rng: random.Random,
+    style: HtmlStyle,
+    target_size: int = 50000,
+    price_bounds: tuple[float, float] | None = None,
+) -> str:
     """Generate bulk noise content to reach target HTML size.
 
     This combines various content types to build up to a target size,
@@ -2876,6 +2884,7 @@ def generate_bulk_noise(rng: random.Random, style: HtmlStyle, target_size: int =
         rng: Random instance.
         style: The HTML style.
         target_size: Target HTML size in characters.
+        price_bounds: Optional (min, max) price bounds for product grids.
 
     Returns:
         HTML string of bulk content.
@@ -2884,8 +2893,10 @@ def generate_bulk_noise(rng: random.Random, style: HtmlStyle, target_size: int =
     current_size = 0
 
     generators = [
-        # Standard content generators
-        lambda: generate_product_grid(rng, style, count=rng.randint(6, 12)),
+        # Standard content generators (pass price_bounds to product grids)
+        lambda: generate_product_grid(
+            rng, style, count=rng.randint(6, 12), price_bounds=price_bounds
+        ),
         lambda: generate_comments_section(rng, style, count=rng.randint(5, 15)),
         lambda: generate_sidebar_content(rng, style, items=rng.randint(15, 30)),
         # Mixed framework content blocks
