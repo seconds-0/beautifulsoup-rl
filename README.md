@@ -146,12 +146,12 @@ Wrong answers with correct tool-use patterns receive partial credit (capped at 0
 | Tier | Pattern | Credit |
 |------|---------|--------|
 | 1 | BS4 import | +0.05 |
-| 2 | `BeautifulSoup(HTML, ...)` | +0.10 |
+| 2 | `BeautifulSoup(HTML, ...)` or `make_soup()` | +0.10 |
 | 3 | Selection method (`.find()`, `.select()`) | +0.10 |
 | 4 | Content access (`.text`, `.get_text()`) | +0.05 |
 
 **Anti-hacking safeguards:**
-- Requires `BeautifulSoup(HTML, ...)` with the injected HTML variable
+- Requires `BeautifulSoup(HTML, ...)` or `make_soup()` (the provided helper)
 - Tiers are cumulative (tier 3 requires tier 2)
 - Capped at 0.30 (below limitation reward of 0.50)
 - Blocked for `status="limit"` on solvable tasks
