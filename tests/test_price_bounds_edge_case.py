@@ -111,9 +111,7 @@ class TestProductGridWithNarrowBounds:
     def test_narrow_bounds_generates_valid_prices(self):
         """Product grid with narrow bounds should still work."""
         rng = random.Random(42)
-        html = generate_product_grid(
-            rng, HtmlStyle.BOOTSTRAP, count=5, price_bounds=(50.0, 50.01)
-        )
+        html = generate_product_grid(rng, HtmlStyle.BOOTSTRAP, count=5, price_bounds=(50.0, 50.01))
 
         assert "$" in html  # Should contain prices
         # Parse and verify prices are reasonable
@@ -127,9 +125,7 @@ class TestProductGridWithNarrowBounds:
     def test_equal_bounds_generates_valid_prices(self):
         """Product grid with equal bounds should still work."""
         rng = random.Random(42)
-        html = generate_product_grid(
-            rng, HtmlStyle.TAILWIND, count=3, price_bounds=(99.99, 99.99)
-        )
+        html = generate_product_grid(rng, HtmlStyle.TAILWIND, count=3, price_bounds=(99.99, 99.99))
 
         assert "$" in html
         prices = re.findall(r"\$(\d+\.\d{2})", html)

@@ -166,10 +166,10 @@ DICT_LIST_SCHEMA = {
 # Hard tasks can have larger HTML for more realistic challenges.
 
 HTML_SIZE_BUDGETS: dict[str, int] = {
-    "primer": 1_000,   # 1KB - Ultra-simple, single element
-    "easy": 5_000,     # 5KB - Simple extraction, minimal noise
+    "primer": 1_000,  # 1KB - Ultra-simple, single element
+    "easy": 5_000,  # 5KB - Simple extraction, minimal noise
     "medium": 10_000,  # 10KB - Moderate complexity
-    "hard": 30_000,    # 30KB - Complex tasks, more realistic
+    "hard": 30_000,  # 30KB - Complex tasks, more realistic
 }
 
 

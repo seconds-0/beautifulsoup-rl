@@ -85,9 +85,7 @@ class LazyBS4Dataset(Sequence):
 
         if cache_size > 0:
             # Create cached version of _generate_task
-            self._generate_task = lru_cache(maxsize=cache_size)(
-                self._generate_task_uncached
-            )
+            self._generate_task = lru_cache(maxsize=cache_size)(self._generate_task_uncached)
         else:
             self._generate_task = self._generate_task_uncached
 
@@ -114,9 +112,7 @@ class LazyBS4Dataset(Sequence):
         entry = self._entries[idx]
         return self._generate_task(entry.archetype_id, entry.seed)
 
-    def _generate_task_uncached(
-        self, archetype_id: str, seed: int
-    ) -> dict[str, Any]:
+    def _generate_task_uncached(self, archetype_id: str, seed: int) -> dict[str, Any]:
         """Generate a task from archetype_id and seed.
 
         This method may be wrapped with lru_cache when caching is enabled.
@@ -201,9 +197,7 @@ class LazyBS4Dataset(Sequence):
                 manifest = [(a, s) for a, s in manifest if a in config.archetypes]
             if config.difficulty != "mixed":
                 manifest = [
-                    (a, s)
-                    for a, s in manifest
-                    if get_archetype(a).difficulty == config.difficulty
+                    (a, s) for a, s in manifest if get_archetype(a).difficulty == config.difficulty
                 ]
             if config.num_examples:
                 manifest = manifest[: config.num_examples]
@@ -259,9 +253,7 @@ class LazyBS4Dataset(Sequence):
                         num_examples=examples_per,
                         seed_range=seed_range,
                     )
-                    entries.extend(
-                        LazyTaskEntry(archetype_id, seed) for seed in seeds
-                    )
+                    entries.extend(LazyTaskEntry(archetype_id, seed) for seed in seeds)
 
         return cls(entries, cache_size=cache_size)
 

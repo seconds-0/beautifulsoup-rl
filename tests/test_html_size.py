@@ -36,7 +36,7 @@ class TestHtmlCompression:
 
     def test_roundtrip_complex_html(self):
         """Complex HTML with attributes and nesting should roundtrip."""
-        html = '''<!DOCTYPE html>
+        html = """<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -49,7 +49,7 @@ class TestHtmlCompression:
         <p id="p1">Paragraph with "quotes" and 'apostrophes'</p>
     </div>
 </body>
-</html>'''
+</html>"""
         compressed = compress_html(html)
         decompressed = decompress_html(compressed)
         assert decompressed == html
@@ -85,21 +85,25 @@ class TestHtmlCompression:
 
         # Add some product cards
         for i in range(20):
-            html_parts.extend([
-                f'<div class="product-card" data-id="{i}">',
-                f'<img src="/images/product-{i}.jpg" alt="Product {i}">',
-                f'<h3 class="product-title">Product Name {i}</h3>',
-                '<p class="product-price">$99.99</p>',
-                '<button class="add-to-cart">Add to Cart</button>',
-                '</div>',
-            ])
+            html_parts.extend(
+                [
+                    f'<div class="product-card" data-id="{i}">',
+                    f'<img src="/images/product-{i}.jpg" alt="Product {i}">',
+                    f'<h3 class="product-title">Product Name {i}</h3>',
+                    '<p class="product-price">$99.99</p>',
+                    '<button class="add-to-cart">Add to Cart</button>',
+                    "</div>",
+                ]
+            )
 
-        html_parts.extend([
-            "</nav>",
-            "</header>",
-            "</body>",
-            "</html>",
-        ])
+        html_parts.extend(
+            [
+                "</nav>",
+                "</header>",
+                "</body>",
+                "</html>",
+            ]
+        )
 
         html = "\n".join(html_parts)
         compressed = compress_html(html)
@@ -171,8 +175,7 @@ class TestFixedSeedHtmlSizes:
         # Get primer archetypes from manifest
         manifest = load_bench_manifest()
         primer_entries = [
-            (aid, seed) for aid, seed in manifest
-            if get_archetype(aid).difficulty == "primer"
+            (aid, seed) for aid, seed in manifest if get_archetype(aid).difficulty == "primer"
         ][:5]  # First 5
 
         if not primer_entries:
@@ -199,8 +202,7 @@ class TestFixedSeedHtmlSizes:
 
         manifest = load_bench_manifest()
         easy_entries = [
-            (aid, seed) for aid, seed in manifest
-            if get_archetype(aid).difficulty == "easy"
+            (aid, seed) for aid, seed in manifest if get_archetype(aid).difficulty == "easy"
         ][:5]
 
         if not easy_entries:
@@ -234,8 +236,7 @@ class TestFixedSeedHtmlSizes:
 
         manifest = load_bench_manifest()
         hard_entries = [
-            (aid, seed) for aid, seed in manifest
-            if get_archetype(aid).difficulty == "hard"
+            (aid, seed) for aid, seed in manifest if get_archetype(aid).difficulty == "hard"
         ][:5]
 
         if not hard_entries:
@@ -296,7 +297,5 @@ class TestFixedSeedHtmlSizes:
         task1 = generator.generate(seed)
         task2 = generator.generate(seed)
 
-        assert len(task1.html) == len(task2.html), (
-            "Same seed produced different HTML sizes"
-        )
+        assert len(task1.html) == len(task2.html), "Same seed produced different HTML sizes"
         assert task1.html == task2.html, "Same seed produced different HTML"

@@ -191,9 +191,7 @@ class TestLazyDatasetParity:
             lazy_info = json.loads(lazy[i]["info"])
             eager_info = json.loads(eager[i]["info"])
 
-            assert lazy_info["ground_truth"] == eager_info["ground_truth"], (
-                f"Mismatch at index {i}"
-            )
+            assert lazy_info["ground_truth"] == eager_info["ground_truth"], f"Mismatch at index {i}"
 
     def test_info_json_shape_matches(self):
         """Lazy info dict should have same keys as eager."""
