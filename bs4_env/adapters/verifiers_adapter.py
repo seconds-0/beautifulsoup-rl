@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 from bs4_env.config import EnvConfig, TaskConstraints
 from bs4_env.dataset import build_dataset
+from bs4_env.generators.base import parse_task_info
 from bs4_env.grading.rubric import compute_reward, compute_weighted_tool_count
 from bs4_env.tools.executor import get_executor
 from bs4_env.tools.tool_defs import create_tool_registry
@@ -201,8 +202,12 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any, **env_kwargs: Any) -> 
             Reward value: 1.0 correct (efficiency-adjusted), 0.5 valid limitation,
             0.0 wrong or too many tool calls, -0.5 safety violation.
         """
-        # Get task_info from info kwarg (preferred) or state
-        task_info = info or state.get("info", {}) or state.get("task_info", {})
+        # Get task_info - prefer parsed version from state["task_info"] (set by setup_state)
+        # Fall back to info kwarg, then raw state["info"] (which may be a JSON string)
+        task_info = state.get("task_info") or info or state.get("info", {})
+        # Handle case where task_info is a JSON string
+        if isinstance(task_info, str):
+            task_info = parse_task_info(json.loads(task_info))
         html = state.get("html", "")
 
         # Count tool calls and extract code samples from completion history
@@ -284,9 +289,13 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any, **env_kwargs: Any) -> 
             """Set up task-specific state from the dataset row."""
             state = await super().setup_state(state, **kwargs)
 
-            # Get info from state (verifiers stores it in state.input and forwards access)
-            # Note: verifiers already parses JSON info in init_state
-            info = state.get("info", {})
+            # Get info from state (verifiers stores it)
+            # Info may be a JSON string (for PyArrow compatibility) or already parsed dict
+            info_raw = state.get("info", {})
+            if isinstance(info_raw, str):
+                info_raw = json.loads(info_raw)
+            # Parse nested JSON strings
+            info = parse_task_info(info_raw)
 
             # HTML and query are stored in info (not in prompt)
             html = info.get("html", "")
@@ -305,7 +314,7 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any, **env_kwargs: Any) -> 
             state["html"] = html
             state["query"] = query
             state["constraints"] = constraints
-            state["task_info"] = info
+            state["task_info"] = info  # Parsed version for grading
             state["pages"] = pages
             state["navigation_history"] = []
 
@@ -408,13 +417,19 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any, **env_kwargs: Any) -> 
                 Dictionary with 'prompt', 'info', 'html', 'query'.
             """
             row = self.dataset[idx]
-            info = json.loads(row["info"]) if isinstance(row["info"], str) else row["info"]
+            # Keep info as a raw JSON string - don't parse it at all
+            # This prevents verifiers from storing parsed dicts that cause PyArrow issues
+            info_str = row["info"] if isinstance(row["info"], str) else json.dumps(row["info"])
+            # Parse for local use only
+            info_raw = json.loads(info_str)
+            info_parsed = parse_task_info(info_raw)
 
             return {
                 "prompt": row["prompt"],
-                "info": info,
-                "html": info.get("html", ""),
-                "query": info.get("query", ""),
+                "info": info_str,  # Keep as JSON string for verifiers storage
+                "info_parsed": info_parsed,  # Parsed version for local use
+                "html": info_parsed.get("html", ""),
+                "query": info_parsed.get("query", ""),
                 "idx": idx,
             }
 
@@ -431,13 +446,13 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any, **env_kwargs: Any) -> 
             from bs4_env.tools.tool_defs import create_tool_registry
 
             constraints = TaskConstraints(
-                output_schema=example["info"].get("answer_schema", {}),
-                allowed_limit_reasons=example["info"]
+                output_schema=example.get("info_parsed", example["info"]).get("answer_schema", {}),
+                allowed_limit_reasons=example.get("info_parsed", example["info"])
                 .get("limit_info", {})
                 .get("allowed_reasons", []),
             )
 
-            pages = example["info"].get("pages", {})
+            pages = example.get("info_parsed", example["info"]).get("pages", {})
 
             # Use the executor and config from enclosing scope instead of hardcoding
             return create_tool_registry(
@@ -445,7 +460,7 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any, **env_kwargs: Any) -> 
                 html=example["html"],
                 query=example["query"],
                 constraints=constraints.__dict__,
-                task_info=example["info"],
+                task_info=example.get("info_parsed", example["info"]),
                 timeout_s=config.timeout_s,
                 pages=pages if pages else None,
             )
@@ -474,7 +489,7 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any, **env_kwargs: Any) -> 
 
             return compute_reward(
                 raw_output=output,
-                task_info=example["info"],
+                task_info=example.get("info_parsed", example["info"]),
                 html=example["html"],
                 tool_call_count=tool_call_count,
                 run_python_calls=run_python_calls,
@@ -593,15 +608,21 @@ class MinimalEnv:
             Dictionary with 'prompt', 'info', 'html', 'query'.
         """
         row = self.dataset[idx]
-        info = json.loads(row["info"]) if isinstance(row["info"], str) else row["info"]
+        # Keep info as a raw JSON string - don't parse it at all
+        # This prevents verifiers from storing parsed dicts that cause PyArrow issues
+        info_str = row["info"] if isinstance(row["info"], str) else json.dumps(row["info"])
+        # Parse for local use only
+        info_raw = json.loads(info_str)
+        info_parsed = parse_task_info(info_raw)
 
         # HTML and query are stored in info (not in prompt)
-        html = self._extract_html_from_info(info)
-        query = self._extract_query_from_info(info)
+        html = self._extract_html_from_info(info_parsed)
+        query = self._extract_query_from_info(info_parsed)
 
         return {
             "prompt": row["prompt"],
-            "info": info,
+            "info": info_str,  # Keep as JSON string for verifiers storage
+            "info_parsed": info_parsed,  # Parsed version for local use
             "html": html,
             "query": query,
             "idx": idx,
@@ -627,19 +648,21 @@ class MinimalEnv:
         """
 
         constraints = TaskConstraints(
-            output_schema=example["info"].get("answer_schema", {}),
-            allowed_limit_reasons=example["info"].get("limit_info", {}).get("allowed_reasons", []),
+            output_schema=example.get("info_parsed", example["info"]).get("answer_schema", {}),
+            allowed_limit_reasons=example.get("info_parsed", example["info"])
+            .get("limit_info", {})
+            .get("allowed_reasons", []),
         )
 
         # Get pages for multi-step tasks
-        pages = example["info"].get("pages", {})
+        pages = example.get("info_parsed", example["info"]).get("pages", {})
 
         return create_tool_registry(
             executor=self.executor,
             html=example["html"],
             query=example["query"],
             constraints=constraints.__dict__,
-            task_info=example["info"],
+            task_info=example.get("info_parsed", example["info"]),
             timeout_s=self.config.timeout_s,
             pages=pages if pages else None,
         )
@@ -666,7 +689,7 @@ class MinimalEnv:
         """
         return compute_reward(
             raw_output=output,
-            task_info=example["info"],
+            task_info=example.get("info_parsed", example["info"]),
             html=example["html"],
             tool_call_count=tool_call_count,
             run_python_calls=run_python_calls,
@@ -734,13 +757,13 @@ class MinimalEnv:
 
         return {
             "idx": idx,
-            "archetype_id": example["info"].get("archetype_id"),
-            "seed": example["info"].get("seed"),
+            "archetype_id": example.get("info_parsed", example["info"]).get("archetype_id"),
+            "seed": example.get("info_parsed", example["info"]).get("seed"),
             "reward": reward,
             "metrics": metrics,
             "final_output": final_output,
             "tool_calls": len(tool_history),
-            "ground_truth": example["info"].get("ground_truth"),
+            "ground_truth": example.get("info_parsed", example["info"]).get("ground_truth"),
         }
 
 

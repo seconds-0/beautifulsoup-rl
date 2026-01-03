@@ -11,6 +11,7 @@ This module provides the foundational classes and utilities for task generation:
 """
 
 import hashlib
+import json
 import random
 import re
 import string
@@ -96,24 +97,72 @@ class TaskInstance:
 
         Returns:
             Dictionary with all task information for grading.
+
+        Note:
+            All nested structures (dicts, lists) are JSON-serialized to ensure
+            consistent types across archetypes. This prevents PyArrow serialization
+            errors when mixing archetypes with different schemas in a dataset.
+
+            Fields like answer_schema vary by archetype (some have 'properties',
+            some don't), which causes PyArrow's schema inference to fail.
         """
         return {
             "archetype_id": self.archetype_id,
             "seed": self.seed,
             "solvable": self.solvable,
             "difficulty": self.difficulty,
-            "ground_truth": self.ground_truth,
-            "answer_schema": self.answer_schema,
-            "normalization": self.normalization,
-            "limit_info": self.limit_info,
-            "safety_info": self.safety_info,
-            "metadata": self.metadata,
-            # HTML and query stored here since not in prompt
+            # JSON-serialize all nested structures (prevents PyArrow errors)
+            "ground_truth": json.dumps(self.ground_truth),
+            "answer_schema": json.dumps(self.answer_schema),
+            "normalization": json.dumps(self.normalization),
+            "limit_info": json.dumps(self.limit_info),
+            "safety_info": json.dumps(self.safety_info),
+            "metadata": json.dumps(self.metadata),
+            # HTML and query are always strings
             "html": self.html,
             "query": self.query,
-            # For multi-step tasks
-            "pages": self.pages,
+            # For multi-step tasks - serialize pages dict
+            "pages": json.dumps(self.pages),
         }
+
+
+# JSON fields that need parsing when reading from dataset
+_JSON_SERIALIZED_FIELDS = frozenset(
+    [
+        "ground_truth",
+        "answer_schema",
+        "normalization",
+        "limit_info",
+        "safety_info",
+        "metadata",
+        "pages",
+    ]
+)
+
+
+def parse_task_info(info: dict[str, Any]) -> dict[str, Any]:
+    """Parse JSON-serialized fields in a task info dict.
+
+    Task info dicts from the dataset have certain fields JSON-serialized to
+    ensure consistent types for PyArrow. This function parses them back.
+
+    Args:
+        info: Task info dict (possibly with JSON-serialized fields).
+
+    Returns:
+        Task info dict with all fields parsed.
+    """
+    result = dict(info)
+    for field_name in _JSON_SERIALIZED_FIELDS:
+        if field_name in result:
+            value = result[field_name]
+            if isinstance(value, str):
+                try:
+                    result[field_name] = json.loads(value)
+                except json.JSONDecodeError:
+                    # Not valid JSON, keep as-is (backward compat)
+                    pass
+    return result
 
 
 class Generator(ABC):

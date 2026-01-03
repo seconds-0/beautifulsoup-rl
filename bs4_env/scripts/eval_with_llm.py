@@ -287,7 +287,10 @@ def run_evaluation(
 
     for i in range(start_index, end_index):
         example = env.get_example(i)
-        info = example["info"]
+        info = example.get("info_parsed", example["info"])
+        # Handle case where info is still a string (e.g., from older datasets)
+        if isinstance(info, str):
+            info = json.loads(info)
 
         print(
             f"[{i + 1}/{end_index}] {info.get('archetype_id')} (seed={info.get('seed')})...",
