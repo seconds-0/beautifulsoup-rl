@@ -422,7 +422,11 @@ def compute_process_partial_credit(
         Tuple of (reward, breakdown_dict) for debugging/metrics.
     """
     # Use parameter if provided, otherwise fall back to module constant
-    enabled = partial_credit_enabled if partial_credit_enabled is not None else PROCESS_PARTIAL_CREDIT_ENABLED
+    enabled = (
+        partial_credit_enabled
+        if partial_credit_enabled is not None
+        else PROCESS_PARTIAL_CREDIT_ENABLED
+    )
     if not enabled:
         return 0.0, {"disabled": True}
 
