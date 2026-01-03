@@ -87,9 +87,9 @@ class TestGeneratorDeterminism:
 
             assert task1.html == task2.html, f"{spec.archetype_id}: HTML differs"
             assert task1.query == task2.query, f"{spec.archetype_id}: query differs"
-            assert (
-                task1.ground_truth == task2.ground_truth
-            ), f"{spec.archetype_id}: ground_truth differs"
+            assert task1.ground_truth == task2.ground_truth, (
+                f"{spec.archetype_id}: ground_truth differs"
+            )
 
     def test_generator_different_seeds_different_output(self):
         """Generator with different seeds should produce different tasks."""

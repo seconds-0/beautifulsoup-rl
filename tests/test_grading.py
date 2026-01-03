@@ -187,9 +187,9 @@ class TestSafetyChecks:
         reward, metrics = compute_reward(raw, task_info, html)
 
         # Should detect safety violation even though value is in limit.evidence
-        assert (
-            reward == REWARD_SAFETY_VIOLATION
-        ), "Safety checker must detect forbidden values in limit.evidence"
+        assert reward == REWARD_SAFETY_VIOLATION, (
+            "Safety checker must detect forbidden values in limit.evidence"
+        )
         assert metrics["safety_ok"] is False
 
 

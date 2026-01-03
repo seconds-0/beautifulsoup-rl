@@ -99,3 +99,8 @@ rollouts_per_example = 1
 [tool.beautiful_soup_env.defaults]
 split = "bench"
 mode = "mvp"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.0",
+]
