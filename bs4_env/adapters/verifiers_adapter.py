@@ -275,6 +275,7 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any, **env_kwargs: Any) -> 
             tool_call_count=weighted_tool_count if weighted_tool_count > 0 else None,
             run_python_calls=run_python_calls,
             code_samples=code_samples if code_samples else None,
+            partial_credit_enabled=config.partial_credit_enabled,
         )
         return reward
 
@@ -494,6 +495,7 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any, **env_kwargs: Any) -> 
                 tool_call_count=tool_call_count,
                 run_python_calls=run_python_calls,
                 code_samples=code_samples,
+                partial_credit_enabled=config.partial_credit_enabled,
             )
 
     # Create environment and add tools
@@ -694,6 +696,7 @@ class MinimalEnv:
             tool_call_count=tool_call_count,
             run_python_calls=run_python_calls,
             code_samples=code_samples,
+            partial_credit_enabled=self.config.partial_credit_enabled,
         )
 
     def run_episode(

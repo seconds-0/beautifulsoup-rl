@@ -19,7 +19,17 @@ class EnvConfig:
             - "all": All archetypes
             - "hard_only": Only hard difficulty archetypes (for challenging benchmarks)
             - "tiered": All archetypes with difficulty-weighted sampling
-        difficulty: Task difficulty filter. "easy", "medium", "hard", or "mixed".
+            - "bootstrap": Primer + easy archetypes for 0% model onboarding
+        difficulty: Task difficulty filter. "primer", "easy", "medium", "hard", or "mixed".
+            "primer" includes ultra-simple tasks for teaching the basic action template.
+        complexity: HTML complexity level for generated tasks:
+            - "primer": Ultra-simple, single element (e.g., <span id="target">Hello</span>)
+            - "low": Simple structure, no chrome/noise
+            - "moderate": Real patterns with sparse boilerplate
+            - "realistic": Full noise, framework patterns, chrome (default)
+        partial_credit_enabled: Enable process-based partial credit for 0% models.
+            Awards credit for correct tool-use patterns (importing BS4, creating soup,
+            using selection methods) even when the final answer is wrong. Capped at 0.30.
         difficulty_weights: For tiered mode, relative weights for each difficulty.
             Default gives more weight to harder tasks for RL training signal.
         num_examples: Number of examples to generate. None for unlimited/default.
@@ -37,15 +47,19 @@ class EnvConfig:
     """
 
     split: Literal["train", "eval", "bench"] = "bench"
-    mode: Literal["mvp", "phase2", "all", "hard_only", "tiered"] = "mvp"
-    difficulty: Literal["easy", "medium", "hard", "mixed"] = "mixed"
+    mode: Literal["mvp", "phase2", "all", "hard_only", "tiered", "bootstrap"] = "mvp"
+    difficulty: Literal["primer", "easy", "medium", "hard", "mixed"] = "mixed"
+    complexity: Literal["primer", "low", "moderate", "realistic"] = "realistic"
     difficulty_weights: dict[str, float] = field(
         default_factory=lambda: {
+            "primer": 0.0,  # 0% primer tasks (only via explicit difficulty="primer")
             "easy": 0.2,  # 20% easy tasks
             "medium": 0.4,  # 40% medium tasks
             "hard": 0.4,  # 40% hard tasks (overweight for RL signal)
         }
     )
+    # Enable process-based partial credit for 0% models learning the tool-use pattern
+    partial_credit_enabled: bool = True
     num_examples: int | None = None
     seed: int = 42
     executor_backend: Literal["local", "prime", "pooled"] = "local"
