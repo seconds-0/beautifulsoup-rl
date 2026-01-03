@@ -148,3 +148,38 @@ DICT_LIST_SCHEMA = {
     "type": "array",
     "items": {"type": "object", "additionalProperties": {"type": ["string", "null"]}},
 }
+
+
+# =============================================================================
+# HTML Size Budgets
+# =============================================================================
+#
+# Target HTML sizes by difficulty level (in characters).
+# These budgets guide HTML generation to produce appropriately-sized content
+# for each difficulty tier, reducing memory usage and processing overhead.
+#
+# Note: These are soft targets. Generators may exceed these when necessary
+# for realistic content, but should aim to stay within these limits.
+#
+# Primer tasks are ultra-simple and have minimal HTML.
+# Easy/Medium tasks have moderate HTML to avoid overwhelming learners.
+# Hard tasks can have larger HTML for more realistic challenges.
+
+HTML_SIZE_BUDGETS: dict[str, int] = {
+    "primer": 1_000,  # 1KB - Ultra-simple, single element
+    "easy": 5_000,  # 5KB - Simple extraction, minimal noise
+    "medium": 10_000,  # 10KB - Moderate complexity
+    "hard": 30_000,  # 30KB - Complex tasks, more realistic
+}
+
+
+def get_size_budget(difficulty: str) -> int:
+    """Get HTML size budget for a difficulty level.
+
+    Args:
+        difficulty: "primer", "easy", "medium", or "hard"
+
+    Returns:
+        Target HTML size in characters. Defaults to medium (10KB) for unknown.
+    """
+    return HTML_SIZE_BUDGETS.get(difficulty, 10_000)

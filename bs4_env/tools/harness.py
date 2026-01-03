@@ -11,7 +11,50 @@ This module builds the runner script that wraps user code with:
 
 import base64
 import json
+import zlib
 from typing import Any
+
+# =============================================================================
+# HTML Compression Utilities
+# =============================================================================
+#
+# These utilities reduce HTML storage overhead by ~70-80% using zlib compression.
+# Useful for dataset storage and reducing memory footprint during training.
+#
+
+
+def compress_html(html: str) -> str:
+    """Compress HTML string using zlib + base64 encoding.
+
+    Achieves ~70-80% compression on typical HTML content.
+    The result is safe for JSON serialization and storage.
+
+    Args:
+        html: Raw HTML string.
+
+    Returns:
+        Base64-encoded zlib-compressed string.
+    """
+    compressed = zlib.compress(html.encode("utf-8"), level=9)
+    return base64.b64encode(compressed).decode("ascii")
+
+
+def decompress_html(compressed: str) -> str:
+    """Decompress HTML that was compressed with compress_html.
+
+    Security Note:
+        This function is intended for internal dataset loading only.
+        It does NOT validate input size or set decompression limits.
+        Do not use with untrusted/external input (decompression bomb risk).
+
+    Args:
+        compressed: Base64-encoded zlib-compressed string from compress_html.
+
+    Returns:
+        Original HTML string.
+    """
+    raw = base64.b64decode(compressed)
+    return zlib.decompress(raw).decode("utf-8")
 
 
 def build_runner_script(

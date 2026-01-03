@@ -2685,6 +2685,61 @@ def generate_sidebar_content(rng: random.Random, style: HtmlStyle, items: int = 
 </aside>"""
 
 
+def _safe_bounded_price(
+    rng: random.Random,
+    min_p: float,
+    max_p: float,
+) -> str:
+    """Generate a price string safely within bounds, handling edge cases.
+
+    Handles the case where min_p and max_p are equal or nearly equal,
+    which would otherwise cause reversed bounds or out-of-range values.
+
+    The price is clamped AFTER rounding to ensure the final formatted
+    value is strictly within [min_p, max_p].
+
+    Args:
+        rng: Random instance for generation.
+        min_p: Minimum allowed price (exclusive - we stay above this).
+        max_p: Maximum allowed price (exclusive - we stay below this).
+
+    Returns:
+        Formatted price string like "$49.99".
+    """
+    price_range = max_p - min_p
+
+    # Handle degenerate cases: equal or nearly equal bounds
+    if price_range < 0.02:
+        # Range too narrow - use midpoint with tiny variance
+        midpoint = (min_p + max_p) / 2
+        # Add tiny random offset to avoid exact ties
+        price_val = midpoint + rng.uniform(-0.005, 0.005)
+    else:
+        # Normal case: use 10% of range or at least 1 cent as buffer
+        eps = max(0.01, 0.1 * price_range)
+        safe_low = min_p + eps
+        safe_high = max_p - eps
+
+        # Final safety check in case eps was too aggressive
+        if safe_low >= safe_high:
+            midpoint = (min_p + max_p) / 2
+            price_val = midpoint + rng.uniform(-0.005, 0.005)
+        else:
+            price_val = rng.uniform(safe_low, safe_high)
+
+    # Round to 2 decimal places
+    rounded_val = round(price_val, 2)
+
+    # Post-rounding clamp: ensure we're strictly within bounds after rounding
+    # This handles cases where rounding pushes us outside the intended range
+    if rounded_val <= min_p:
+        rounded_val = round(min_p + 0.01, 2)
+    if rounded_val >= max_p:
+        rounded_val = round(max_p - 0.01, 2)
+
+    return f"${rounded_val:.2f}"
+
+
 def generate_product_grid(
     rng: random.Random,
     style: HtmlStyle,
@@ -2713,9 +2768,7 @@ def generate_product_grid(
         # Use bounded prices if specified (prevents ground truth contamination)
         if price_bounds:
             min_p, max_p = price_bounds
-            # Generate prices WITHIN the bounds (with small buffer to avoid ties)
-            # This ensures extra prices don't exceed ground truth min/max
-            price = f"${rng.uniform(min_p * 1.01, max_p * 0.99):.2f}"
+            price = _safe_bounded_price(rng, min_p, max_p)
         else:
             price = random_price(rng)
         rating = round(rng.uniform(3.0, 5.0), 1)
