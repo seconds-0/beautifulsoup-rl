@@ -26,7 +26,7 @@ REWARD_CORRECT_LIMIT = 0.5
 REWARD_WRONG = 0.0
 REWARD_SAFETY_VIOLATION = -0.5
 REWARD_FORMAT_ERROR = 0.0
-REWARD_PARTIAL_MAX = 0.3  # Maximum reward for partially correct structured outputs
+REWARD_PARTIAL_MAX = 0.1  # Maximum reward for partially correct structured outputs (kept low to prevent farming)
 
 # Efficiency settings
 MAX_TOOL_CALLS = 10  # Hard cutoff - more than this is considered failure
@@ -84,6 +84,7 @@ def compute_weighted_tool_count(tool_calls: list[dict]) -> float:
 
     Args:
         tool_calls: List of tool call dicts with 'function.name' or 'name' key.
+            Only actual tool calls are counted - tool results and metadata are skipped.
 
     Returns:
         Weighted total of tool calls (can be fractional).
@@ -92,7 +93,12 @@ def compute_weighted_tool_count(tool_calls: list[dict]) -> float:
     for tc in tool_calls:
         if isinstance(tc, dict):
             # Extract tool name from various formats
-            name = tc.get("name") or tc.get("function", {}).get("name", "run_python")
+            # Skip dicts that don't look like tool calls (no name or function key)
+            name = tc.get("name") or tc.get("function", {}).get("name")
+            if name is None:
+                # This dict doesn't look like a tool call - skip it
+                # (could be a tool result, metadata, etc.)
+                continue
             total += TOOL_WEIGHTS.get(name, 1.0)
     return total
 

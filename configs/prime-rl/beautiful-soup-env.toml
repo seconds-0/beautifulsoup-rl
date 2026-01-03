@@ -1,30 +1,97 @@
-# PRIME-RL Training Configuration for BeautifulSoup Environment
+# PRIME-RL single-file config for BeautifulSoup RL environment.
+# Intended to run via:  uv run prime-rl @ configs/prime-rl/beautiful-soup-env.toml
 #
-# This is a starter configuration for training with PRIME-RL.
-# Adjust parameters based on your training setup and compute resources.
+# This follows the official "single TOML" prime-rl layout shown in Verifiers docs.
+#
+# Tune as needed:
+# - [model].name (pick your base model)
+# - [orchestrator] batch_size / rollouts_per_example (based on GPU + throughput)
+# - [[orchestrator.env]].args (train split, mode, executor backend, etc.)
+# - [orchestrator.sampling] (max_tokens / temperature)
 
-[environment]
-name = "beautiful_soup_env"
+# 2-GPU layout: inference on GPU 0, trainer on GPU 1
+inference_gpu_ids = [0]
+trainer_gpu_ids = [1]
+
+# Total number of optimizer steps.
+# Start small for shakeout runs, then scale.
+max_steps = 1000
+
+[model]
+# Pick a model that can reliably do tool calling + short Python snippets.
+# The Verifiers docs example uses Qwen/Qwen3-4B-Instruct-2507.
+name = "Qwen/Qwen3-4B-Instruct-2507"
+
+[wandb]
+# Optional, but highly recommended for tracking.
+project = "beautiful-soup-env"
+name = "bs4-rl-qwen3-4b-lora"
+
+[trainer.optim]
+lr = 1e-5
+weight_decay = 0.0
+
+[trainer.model.experimental.lora]
+# LoRA is the lowest-friction way to get a nice demo quickly.
+rank = 8
+alpha = 32
+dropout = 0.0
+target_modules = [
+  "q_proj",
+  "k_proj",
+  "v_proj",
+  "o_proj",
+  "gate_proj",
+  "up_proj",
+  "down_proj"
+]
+
+[orchestrator]
+# batch_size is "rollouts per batch" in prime-rl land.
+# For early debugging, keep these modest; then scale up once stable.
+batch_size = 256
+rollouts_per_example = 8
+
+# Context length. Your prompts include HTML + tool chatter.
+# If your HTML gets longer, bump this (and ensure your model supports it).
+seq_len = 4096
+
+mask_truncated_completions = false
+zero_truncated_completions = true
+
+[orchestrator.sampling]
+# Per-rollout generation limit. Python snippets can get longer than you'd think.
+max_tokens = 768
+temperature = 0.7
+top_p = 0.95
+
+[orchestrator.buffer]
+type = "online-difficulty"
+oversampling_factor = 2.0
+
+[[orchestrator.env]]
+# If you have uploaded to Hub, use "owner/name".
+# If you installed locally editable, you may also be able to use just the env name.
+id = "seconds-0/beautiful-soup-env"
+
+# Forwarded to your load_environment(**kwargs).
+# This is where you set your splits/modes and the executor backend.
+#
+# For training runs:
+# - split="train"
+# - mode="tiered" is a good default for RL signal (overweights harder tasks)
+# - executor_backend="prime" is the "professional" choice (sandboxed)
+[orchestrator.env.args]
 split = "train"
-mode = "all"           # All 52 archetypes
-difficulty = "mixed"   # Mix of easy, medium, hard
-
-[environment.executor]
-backend = "prime"      # Use Prime's sandboxed executor
+mode = "tiered"
+difficulty = "mixed"
+seed = 42
+executor_backend = "prime"
+network_access = true
 timeout_s = 30.0
 max_output_chars = 10000
-network_access = true  # Required to pip install bs4/lxml in default image
-# Set to false only if using a prebuilt image with dependencies
 
-[training]
-# Recommended training hyperparameters
-batch_size = 32
-learning_rate = 1e-5
-max_tool_calls = 10
-seed = 42
-
-[evaluation]
-# Use bench split for consistent evaluation
-split = "bench"
-mode = "mvp"           # 29 core archetypes
-num_examples = 100
+[inference.model]
+# Tool calling settings (important for your env because it relies on tools).
+enable_auto_tool_choice = true
+tool_call_parser = "hermes"

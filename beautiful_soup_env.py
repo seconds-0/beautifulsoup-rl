@@ -103,7 +103,8 @@ __all__ = [
 ]
 
 # Package metadata - read version from pyproject.toml via importlib.metadata
-from importlib.metadata import PackageNotFoundError, version as _get_version
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _get_version
 
 try:
     __version__ = _get_version("beautiful-soup-env")

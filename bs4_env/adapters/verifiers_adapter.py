@@ -206,10 +206,15 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any, **env_kwargs: Any) -> 
         html = state.get("html", "")
 
         # Count tool calls and extract code samples from completion history
+        # Default to None (not 0) so we don't falsely enforce anti-hacking
+        # when completion format is unexpected (string instead of list)
         all_tool_calls = []  # Collect all tool calls for weighted counting
-        run_python_calls = 0
+        run_python_calls: int | None = None
         code_samples = []
         if isinstance(completion, list):
+            # Only set to 0 when we've confirmed completion is a list
+            # This way we can distinguish "no run_python calls" from "unknown format"
+            run_python_calls = 0
             for msg in completion:
                 if isinstance(msg, dict) and msg.get("role") == "assistant":
                     tool_calls = msg.get("tool_calls", [])
@@ -450,6 +455,7 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any, **env_kwargs: Any) -> 
             output: str,
             example: dict,
             tool_call_count: int | None = None,
+            run_python_calls: int | None = None,
             code_samples: list[str] | None = None,
         ) -> tuple[float, dict]:
             """Grade a model output (for eval scripts).
@@ -457,8 +463,9 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any, **env_kwargs: Any) -> 
             Args:
                 output: The raw model output string.
                 example: The example dictionary.
-                tool_call_count: Number of tool calls made.
-                code_samples: List of code strings executed.
+                tool_call_count: Number of tool calls made (for efficiency penalty).
+                run_python_calls: Number of run_python calls made (for anti-hacking).
+                code_samples: List of code strings executed (for BS4 usage penalty).
 
             Returns:
                 Tuple of (reward, metrics).
@@ -470,6 +477,7 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any, **env_kwargs: Any) -> 
                 task_info=example["info"],
                 html=example["html"],
                 tool_call_count=tool_call_count,
+                run_python_calls=run_python_calls,
                 code_samples=code_samples,
             )
 
@@ -492,7 +500,7 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any, **env_kwargs: Any) -> 
     env.add_tool(navigate, args_to_skip=["pages_json"])
 
     # Attach executor for cleanup
-    env._executor = executor
+    env._executor = executor  # type: ignore[attr-defined]
 
     return env
 

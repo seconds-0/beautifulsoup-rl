@@ -213,8 +213,8 @@ print(json.dumps(result))
         compile(script, "<test>", "exec")
 
         # Execute the script and verify values
-        import subprocess
         import json as json_module
+        import subprocess
 
         result = subprocess.run(
             ["python3", "-c", script],

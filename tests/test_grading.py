@@ -400,8 +400,8 @@ class TestKeyAliasing:
             "answer_schema": {"type": "object"},
         }
         reward, metrics = compute_reward(raw, task_info)
-        # 1 of 2 keys correct -> 0.5 partial credit -> 0.5 * 0.3 = 0.15
-        assert reward == 0.15
+        # 1 of 2 keys correct -> 0.5 partial credit -> 0.5 * 0.1 = 0.05
+        assert reward == 0.05
         assert not metrics["correct"]
         assert metrics.get("partial_credit") == 0.5
 
