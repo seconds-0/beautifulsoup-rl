@@ -423,6 +423,7 @@ class TestSetupStateInfoAccess:
         (with forwarding to state["info"]), not in kwargs. This test ensures
         we don't regress to the broken behavior of looking for kwargs["row"].
         """
+
         # Create a mock state that simulates verifiers State behavior
         # The State class forwards state["info"] to state["input"]["info"]
         class MockState(dict):

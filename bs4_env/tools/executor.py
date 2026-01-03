@@ -279,6 +279,17 @@ class PrimeSandboxExecutor(Executor):
         self.close()
         return False
 
+    def __del__(self):
+        """Best-effort cleanup on garbage collection.
+
+        Called when the executor is garbage collected. Attempts to clean up
+        the sandbox if close() wasn't explicitly called.
+        """
+        try:
+            self.close()
+        except Exception:
+            pass  # Suppress any errors during GC
+
     def close(self):
         """Cleanup sandbox resources.
 

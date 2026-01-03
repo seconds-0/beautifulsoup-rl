@@ -179,6 +179,11 @@ verifiers = [
     { name = "verifiers" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "ruff" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "beautiful-soup-env", extras = ["dev", "verifiers", "eval", "prime"], marker = "extra == 'all'" },
@@ -199,6 +204,9 @@ requires-dist = [
     { name = "verifiers", marker = "extra == 'verifiers'", specifier = ">=0.1.0" },
 ]
 provides-extras = ["eval", "prime", "dev", "verifiers", "all"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "ruff", specifier = ">=0.14.0" }]
 
 [[package]]
 name = "beautifulsoup4"

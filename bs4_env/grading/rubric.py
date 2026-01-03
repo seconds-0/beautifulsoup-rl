@@ -26,24 +26,37 @@ REWARD_CORRECT_LIMIT = 0.5
 REWARD_WRONG = 0.0
 REWARD_SAFETY_VIOLATION = -0.5
 REWARD_FORMAT_ERROR = 0.0
+REWARD_PARTIAL_MAX = (
+    0.1  # Maximum reward for partially correct structured outputs (kept low to prevent farming)
+)
 
 # Efficiency settings
 MAX_TOOL_CALLS = 10  # Hard cutoff - more than this is considered failure
 EFFICIENCY_PENALTY_PER_CALL = 0.1  # -10% per additional call after first
 EFFICIENCY_FLOOR = 0.2  # Minimum multiplier before hard cutoff
 
+# Tool call weights - navigate is structurally required for multi-step tasks
+# so it's penalized less than general-purpose tool calls
+TOOL_WEIGHTS = {
+    "run_python": 1.0,  # Full cost - main tool
+    "navigate": 0.2,  # Low cost - required for multi-step tasks
+    "lint_json": 0.0,  # Helper tool - no cost
+    "get_task_metadata": 0.0,  # Helper tool - no cost
+}
+
 # BS4 usage settings - creates gradient toward BS4 usage without rejecting alternatives
 BS4_USAGE_PENALTY = 0.15  # Penalty for not using BeautifulSoup
 
 
-def compute_efficiency_multiplier(tool_call_count: int) -> float:
+def compute_efficiency_multiplier(tool_call_count: float) -> float:
     """Compute efficiency multiplier based on tool call count.
 
     Rewards efficient solutions that solve in fewer calls.
     Creates gradient signal for RL to optimize efficiency, not just correctness.
 
     Args:
-        tool_call_count: Number of tool calls made during the episode.
+        tool_call_count: Number of (weighted) tool calls made during the episode.
+            Can be a float if weighted tool counting is used.
 
     Returns:
         Multiplier in range [0.0, 1.0]:
@@ -59,6 +72,37 @@ def compute_efficiency_multiplier(tool_call_count: int) -> float:
     if tool_call_count <= 1:
         return 1.0
     return max(EFFICIENCY_FLOOR, 1.0 - EFFICIENCY_PENALTY_PER_CALL * (tool_call_count - 1))
+
+
+def compute_weighted_tool_count(tool_calls: list[dict]) -> float:
+    """Compute weighted tool call count based on tool types.
+
+    Different tools have different weights:
+    - run_python: 1.0 (full cost)
+    - navigate: 0.2 (low cost - structurally required for multi-step)
+    - helper tools: 0.0 (no cost)
+
+    This allows multi-step tasks to use navigate calls without heavy penalty.
+
+    Args:
+        tool_calls: List of tool call dicts with 'function.name' or 'name' key.
+            Only actual tool calls are counted - tool results and metadata are skipped.
+
+    Returns:
+        Weighted total of tool calls (can be fractional).
+    """
+    total = 0.0
+    for tc in tool_calls:
+        if isinstance(tc, dict):
+            # Extract tool name from various formats
+            # Skip dicts that don't look like tool calls (no name or function key)
+            name = tc.get("name") or tc.get("function", {}).get("name")
+            if name is None:
+                # This dict doesn't look like a tool call - skip it
+                # (could be a tool result, metadata, etc.)
+                continue
+            total += TOOL_WEIGHTS.get(name, 1.0)
+    return total
 
 
 def _check_bs4_usage_ast(code: str) -> bool:
@@ -205,11 +249,75 @@ def compute_bs4_penalty(code_samples: list[str] | None) -> tuple[float, bool]:
         return BS4_USAGE_PENALTY, False
 
 
+def _f1_multiset(a: list, b: list) -> float:
+    """Compute F1 score over two lists treated as multisets.
+
+    This is used for partial credit on array-type answers. Items are
+    compared by their string representation for consistent comparison.
+
+    Args:
+        a: First list (e.g., model's answer).
+        b: Second list (e.g., ground truth).
+
+    Returns:
+        F1 score in range [0.0, 1.0].
+    """
+    if not a and not b:
+        return 1.0
+    if not a or not b:
+        return 0.0
+
+    from collections import Counter
+
+    ca = Counter(str(x) for x in a)
+    cb = Counter(str(x) for x in b)
+    common = sum((ca & cb).values())
+
+    precision = common / max(len(a), 1)
+    recall = common / max(len(b), 1)
+
+    if precision + recall == 0:
+        return 0.0
+    return 2 * precision * recall / (precision + recall)
+
+
+def _partial_credit(answer: Any, truth: Any, answer_schema: dict) -> float:
+    """Compute partial credit score for structured outputs.
+
+    For object types: percentage of correctly matched key-value pairs.
+    For array types: F1 score over items (handles duplicates).
+
+    Args:
+        answer: The model's answer.
+        truth: The expected ground truth.
+        answer_schema: The JSON schema for the answer.
+
+    Returns:
+        Partial credit score in range [0.0, 1.0].
+    """
+    schema_type = answer_schema.get("type")
+
+    # Object partial credit: count matching key-value pairs
+    if schema_type == "object" and isinstance(answer, dict) and isinstance(truth, dict):
+        if not truth:
+            return 0.0
+        correct = sum(1 for k in truth if k in answer and answer[k] == truth[k])
+        return correct / len(truth)
+
+    # Array partial credit: F1 score over items
+    if schema_type == "array" and isinstance(answer, list) and isinstance(truth, list):
+        return _f1_multiset(answer, truth)
+
+    # No partial credit for other types
+    return 0.0
+
+
 def compute_reward(
     raw_output: str,
     task_info: dict,
     html: str | None = None,
     tool_call_count: int | None = None,
+    run_python_calls: int | None = None,
     code_samples: list[str] | None = None,
 ) -> tuple[float, dict[str, Any]]:
     """Compute reward for a model output.
@@ -217,9 +325,10 @@ def compute_reward(
     This is the main grading entry point that:
     1. Validates output format
     2. Checks for safety violations
-    3. Computes correctness based on task type
-    4. Applies efficiency multiplier based on tool call count
-    5. Applies BS4 usage penalty if solution doesn't use BeautifulSoup
+    3. Enforces run_python usage (anti-reward-hacking)
+    4. Computes correctness based on task type
+    5. Applies efficiency multiplier based on tool call count
+    6. Applies BS4 usage penalty if solution doesn't use BeautifulSoup
 
     Args:
         raw_output: The raw string output from the model.
@@ -227,6 +336,8 @@ def compute_reward(
         html: The original HTML (for safety checking and evidence verification).
         tool_call_count: Number of tool calls made. If provided, applies efficiency
             multiplier to reward (fewer calls = higher reward).
+        run_python_calls: Number of run_python tool calls made. If provided and <= 0,
+            returns zero reward (anti-reward-hacking: prevents guessing without parsing).
         code_samples: List of code strings executed during the episode. If provided,
             applies BS4 usage penalty for solutions that don't use BeautifulSoup.
 
@@ -243,6 +354,7 @@ def compute_reward(
         "errors": [],
         "warnings": [],
         "tool_calls": tool_call_count,
+        "run_python_calls": run_python_calls,
         "efficiency_multiplier": None,
         "bs4_used": None,
         "bs4_penalty": None,
@@ -284,7 +396,19 @@ def compute_reward(
 
     metrics["safety_ok"] = True
 
-    # Step 3: Compute correctness based on status
+    # Step 3: Enforce run_python usage (anti-reward-hacking)
+    # If run_python_calls tracking is enabled and model didn't use run_python,
+    # refuse to award any positive reward. HTML is hidden from prompt, so the only
+    # legitimate way to solve tasks is by parsing with run_python.
+    if run_python_calls is not None and run_python_calls <= 0:
+        metrics["errors"].append(
+            "No run_python tool calls were made; refusing to award non-zero reward. "
+            "Use run_python to parse the HTML and extract data."
+        )
+        metrics["correct"] = False
+        return REWARD_WRONG, metrics
+
+    # Step 4: Compute correctness based on status
     status = output.get("status")
     solvable = task_info.get("solvable", True)
 
@@ -296,7 +420,7 @@ def compute_reward(
         metrics["errors"].append(f"Unknown status: {status}")
         return REWARD_FORMAT_ERROR, metrics
 
-    # Step 4: Apply efficiency multiplier (only for positive rewards on solvable tasks)
+    # Step 5: Apply efficiency multiplier (only for positive rewards on solvable tasks)
     # NOTE: We don't apply efficiency penalty to limit responses because:
     # 1. Models legitimately need to explore before recognizing a limitation
     # 2. The base limit reward (0.5) is already lower than extraction reward (1.0)
@@ -320,7 +444,7 @@ def compute_reward(
         metrics["efficiency_multiplier"] = efficiency
         metrics["limit_efficiency_exemption"] = True
 
-    # Step 5: Apply BS4 usage penalty (only for positive rewards on solvable tasks)
+    # Step 6: Apply BS4 usage penalty (only for positive rewards on solvable tasks)
     # This creates a gradient toward BS4 usage without rejecting alternatives
     solvable = task_info.get("solvable", True)
     if code_samples is not None and final_reward > 0 and solvable:
@@ -490,6 +614,13 @@ def _grade_ok_response(
             "answer_raw": str(answer)[:100],
             "truth_raw": str(ground_truth)[:100],
         }
+
+        # Check for partial credit on structured outputs (objects, arrays)
+        partial = _partial_credit(coerced_answer, coerced_truth, answer_schema)
+        if partial > 0:
+            metrics["partial_credit"] = partial
+            return REWARD_PARTIAL_MAX * partial, metrics
+
         return REWARD_WRONG, metrics
 
 

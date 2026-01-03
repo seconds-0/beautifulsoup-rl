@@ -23,16 +23,17 @@ logger = logging.getLogger(__name__)
 
 from bs4_env.config import EnvConfig, TaskConstraints
 from bs4_env.dataset import build_dataset
-from bs4_env.grading.rubric import compute_reward
+from bs4_env.grading.rubric import compute_reward, compute_weighted_tool_count
 from bs4_env.tools.executor import get_executor
 from bs4_env.tools.tool_defs import create_tool_registry
 
 
-def build_verifiers_environment(config: EnvConfig) -> Any:
+def build_verifiers_environment(config: EnvConfig, **env_kwargs: Any) -> Any:
     """Build a Verifiers-compatible environment.
 
     Args:
         config: Environment configuration.
+        **env_kwargs: Additional arguments passed to BeautifulSoupEnv (e.g., max_turns).
 
     Returns:
         A vf.Environment if verifiers is installed, otherwise MinimalEnv.
@@ -47,17 +48,18 @@ def build_verifiers_environment(config: EnvConfig) -> Any:
             "Install with: pip install -e '.[verifiers]'",
             stacklevel=2,
         )
-        return MinimalEnv(config)
+        return MinimalEnv(config, **env_kwargs)
 
-    return _build_real_verifiers_env(config, vf)
+    return _build_real_verifiers_env(config, vf, **env_kwargs)
 
 
-def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
+def _build_real_verifiers_env(config: EnvConfig, vf: Any, **env_kwargs: Any) -> Any:
     """Build a real Verifiers environment.
 
     Args:
         config: Environment configuration.
         vf: The verifiers module.
+        **env_kwargs: Additional arguments passed to BeautifulSoupEnv (e.g., max_turns).
 
     Returns:
         A vf.StatefulToolEnv instance.
@@ -204,19 +206,26 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
         html = state.get("html", "")
 
         # Count tool calls and extract code samples from completion history
-        tool_call_count = 0
+        # Default to None (not 0) so we don't falsely enforce anti-hacking
+        # when completion format is unexpected (string instead of list)
+        all_tool_calls = []  # Collect all tool calls for weighted counting
+        run_python_calls: int | None = None
         code_samples = []
         if isinstance(completion, list):
+            # Only set to 0 when we've confirmed completion is a list
+            # This way we can distinguish "no run_python calls" from "unknown format"
+            run_python_calls = 0
             for msg in completion:
                 if isinstance(msg, dict) and msg.get("role") == "assistant":
                     tool_calls = msg.get("tool_calls", [])
                     if tool_calls:
-                        tool_call_count += len(tool_calls)
+                        all_tool_calls.extend(tool_calls)
                         # Extract code from run_python tool calls
                         for tc in tool_calls:
                             if isinstance(tc, dict):
                                 func = tc.get("function", {})
                                 if func.get("name") == "run_python":
+                                    run_python_calls += 1
                                     args = func.get("arguments", "{}")
                                     try:
                                         args_dict = (
@@ -230,6 +239,9 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
                                             f"Failed to parse tool arguments: {e}. "
                                             f"Args preview: {str(args)[:100]}"
                                         )
+
+        # Compute weighted tool call count (navigate costs less than run_python)
+        weighted_tool_count = compute_weighted_tool_count(all_tool_calls)
 
         # Extract string content from completion
         if isinstance(completion, list):
@@ -255,7 +267,8 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
             raw_output=raw_output,
             task_info=task_info,
             html=html,
-            tool_call_count=tool_call_count if tool_call_count > 0 else None,
+            tool_call_count=weighted_tool_count if weighted_tool_count > 0 else None,
+            run_python_calls=run_python_calls,
             code_samples=code_samples if code_samples else None,
         )
         return reward
@@ -366,6 +379,25 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
             """Return number of examples in dataset."""
             return len(self.dataset)
 
+        def close(self) -> None:
+            """Close any underlying executor resources.
+
+            Safe to call multiple times. Best-effort cleanup.
+            """
+            ex = getattr(self, "_executor", None)
+            if ex is not None and hasattr(ex, "close"):
+                try:
+                    ex.close()
+                except Exception:
+                    pass
+
+        def __del__(self) -> None:
+            """Best-effort cleanup on garbage collection."""
+            try:
+                self.close()
+            except Exception:
+                pass
+
         def get_example(self, idx: int = 0) -> dict:
             """Get a specific example for eval scripts.
 
@@ -407,16 +439,14 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
 
             pages = example["info"].get("pages", {})
 
+            # Use the executor and config from enclosing scope instead of hardcoding
             return create_tool_registry(
-                executor=get_executor(
-                    backend="local",
-                    max_output_chars=10000,
-                ),
+                executor=executor,
                 html=example["html"],
                 query=example["query"],
                 constraints=constraints.__dict__,
                 task_info=example["info"],
-                timeout_s=30.0,
+                timeout_s=config.timeout_s,
                 pages=pages if pages else None,
             )
 
@@ -425,6 +455,7 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
             output: str,
             example: dict,
             tool_call_count: int | None = None,
+            run_python_calls: int | None = None,
             code_samples: list[str] | None = None,
         ) -> tuple[float, dict]:
             """Grade a model output (for eval scripts).
@@ -432,8 +463,9 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
             Args:
                 output: The raw model output string.
                 example: The example dictionary.
-                tool_call_count: Number of tool calls made.
-                code_samples: List of code strings executed.
+                tool_call_count: Number of tool calls made (for efficiency penalty).
+                run_python_calls: Number of run_python calls made (for anti-hacking).
+                code_samples: List of code strings executed (for BS4 usage penalty).
 
             Returns:
                 Tuple of (reward, metrics).
@@ -445,15 +477,19 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
                 task_info=example["info"],
                 html=example["html"],
                 tool_call_count=tool_call_count,
+                run_python_calls=run_python_calls,
                 code_samples=code_samples,
             )
 
     # Create environment and add tools
+    # Extract max_turns from env_kwargs, defaulting to 10
+    max_turns = int(env_kwargs.pop("max_turns", 10))
     env = BeautifulSoupEnv(
         dataset=dataset,
         tools=[],  # Add tools after construction
-        max_turns=10,
+        max_turns=max_turns,
         rubric=rubric,
+        **env_kwargs,
     )
 
     # Add the run_python tool, skipping state-injected args from schema
@@ -462,6 +498,9 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
     # Add navigate tool, skipping state-injected args from schema
     # Note: navigate is always available, but only works if pages exist in the task
     env.add_tool(navigate, args_to_skip=["pages_json"])
+
+    # Attach executor for cleanup
+    env._executor = executor  # type: ignore[attr-defined]
 
     return env
 
@@ -472,16 +511,38 @@ class MinimalEnv:
     This provides just enough interface to test the full pipeline locally.
     """
 
-    def __init__(self, config: EnvConfig):
+    def __init__(self, config: EnvConfig, **env_kwargs: Any):
         """Initialize the minimal environment.
 
         Args:
             config: Environment configuration.
+            **env_kwargs: Additional arguments (e.g., max_turns).
         """
         self.config = config
+        self.max_turns = int(env_kwargs.pop("max_turns", 10))
+        self._env_kwargs = env_kwargs  # Store for potential future use
         self._dataset = None
         self._executor = None
         self._current_idx = 0
+
+    def close(self) -> None:
+        """Close any underlying executor resources.
+
+        Safe to call multiple times. Best-effort cleanup.
+        """
+        if self._executor is not None and hasattr(self._executor, "close"):
+            try:
+                self._executor.close()
+            except Exception:
+                pass
+            self._executor = None
+
+    def __del__(self) -> None:
+        """Best-effort cleanup on garbage collection."""
+        try:
+            self.close()
+        except Exception:
+            pass
 
     @property
     def dataset(self):
@@ -588,6 +649,7 @@ class MinimalEnv:
         output: str,
         example: dict,
         tool_call_count: int | None = None,
+        run_python_calls: int | None = None,
         code_samples: list[str] | None = None,
     ) -> tuple[float, dict]:
         """Grade a model output.
@@ -596,6 +658,7 @@ class MinimalEnv:
             output: The raw model output string.
             example: The example dictionary.
             tool_call_count: Number of tool calls made (for efficiency penalty).
+            run_python_calls: Number of run_python calls made (for anti-hacking).
             code_samples: List of code strings executed (for BS4 usage penalty).
 
         Returns:
@@ -606,6 +669,7 @@ class MinimalEnv:
             task_info=example["info"],
             html=example["html"],
             tool_call_count=tool_call_count,
+            run_python_calls=run_python_calls,
             code_samples=code_samples,
         )
 
@@ -631,12 +695,20 @@ class MinimalEnv:
         final_output, tool_history = agent_fn(example["prompt"], tool_registry)
 
         # Extract code samples from tool history for BS4 penalty
+        # Also count run_python calls for anti-hacking check
         code_samples = []
+        run_python_calls = 0
         for call in tool_history:
             if isinstance(call, dict):
+                # Check if this is a run_python call
+                tool_name = call.get("name") or call.get("function", {}).get("name", "")
+                is_run_python = tool_name == "run_python"
+
                 # Direct code key (our format)
                 if "code" in call:
                     code_samples.append(call["code"])
+                    if is_run_python or not tool_name:  # Assume run_python if has code
+                        run_python_calls += 1
                 # OpenAI-style tool call format
                 elif "arguments" in call:
                     args = call.get("arguments", {})
@@ -645,12 +717,18 @@ class MinimalEnv:
                             args = json.loads(args)
                     if isinstance(args, dict) and "code" in args:
                         code_samples.append(args["code"])
+                        if is_run_python:
+                            run_python_calls += 1
+
+        # Compute weighted tool call count (navigate costs less than run_python)
+        weighted_tool_count = compute_weighted_tool_count(tool_history)
 
         # Grade output with tool call metrics for efficiency and BS4 penalties
         reward, metrics = self.grade(
             final_output,
             example,
-            tool_call_count=len(tool_history),
+            tool_call_count=weighted_tool_count,
+            run_python_calls=run_python_calls,
             code_samples=code_samples if code_samples else None,
         )
 

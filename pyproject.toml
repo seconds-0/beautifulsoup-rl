@@ -66,6 +66,7 @@ include = ["bs4_env/data/*.json"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "beautiful_soup_env.py" = "beautiful_soup_env.py"
+"pyproject.toml" = "pyproject.toml"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -90,10 +91,16 @@ warn_unused_configs = true
 ignore_missing_imports = true
 
 [tool.verifiers.eval]
-# Default evaluation settings for this environment
-default_model = "gpt-4"
-default_num_examples = 100
-default_rollouts = 1
-# Environment-specific defaults
+# Default evaluation settings for vf-eval (keys match Verifiers docs)
+num_examples = 100
+rollouts_per_example = 1
+
+# Environment-specific defaults (custom namespace)
+[tool.beautiful_soup_env.defaults]
 split = "bench"
 mode = "mvp"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.0",
+]

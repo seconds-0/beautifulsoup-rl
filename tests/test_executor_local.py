@@ -169,9 +169,9 @@ class TestRunnerScript:
         test_cases = [
             '<div class="test">content</div>',  # Basic quotes
             '<div>"""triple quotes"""</div>',  # Triple quotes
-            '<div>\\backslash\\</div>',  # Backslashes
-            '<div>日本語</div>',  # Unicode
-            '<div>\n\t\r</div>',  # Whitespace
+            "<div>\\backslash\\</div>",  # Backslashes
+            "<div>日本語</div>",  # Unicode
+            "<div>\n\t\r</div>",  # Whitespace
         ]
 
         for html in test_cases:
@@ -213,8 +213,8 @@ print(json.dumps(result))
         compile(script, "<test>", "exec")
 
         # Execute the script and verify values
-        import subprocess
         import json as json_module
+        import subprocess
 
         result = subprocess.run(
             ["python3", "-c", script],
