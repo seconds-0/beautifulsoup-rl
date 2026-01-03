@@ -46,10 +46,10 @@ class TestSoupCreationWithHtmlAST:
         """BeautifulSoup(HTML, ...) in if False block still detected by AST."""
         # Note: AST detection doesn't do control flow analysis - this is a known limitation
         # but acceptable since we're checking structural patterns, not execution
-        code = '''
+        code = """
 if False:
     soup = BeautifulSoup(HTML, "html.parser")
-'''
+"""
         assert _check_soup_creation_with_html_ast(code) is True
 
     def test_no_beautifulsoup(self):
@@ -78,12 +78,12 @@ if False:
 
     def test_make_soup_in_full_pipeline(self):
         """make_soup() works in complete code example."""
-        code = '''
+        code = """
 from bs4 import BeautifulSoup
 soup = make_soup()
 element = soup.find("div")
 result = element.text
-'''
+"""
         assert _check_soup_creation_with_html_ast(code) is True
 
 
@@ -117,7 +117,7 @@ class TestSelectionMethodAST:
 
     def test_no_selection_method(self):
         """Code without selection methods is not detected."""
-        code = 'result = soup.text'
+        code = "result = soup.text"
         assert _check_selection_method_ast(code) is False
 
     def test_syntax_error_returns_false(self):
@@ -170,12 +170,12 @@ class TestComputeProcessPartialCredit:
 
     def test_full_pipeline_all_tiers(self):
         """Code with all tiers gets full partial credit."""
-        code = '''
+        code = """
 from bs4 import BeautifulSoup
 soup = BeautifulSoup(HTML, "html.parser")
 element = soup.find("div", class_="target")
 result = element.text
-'''
+"""
         reward, breakdown = compute_process_partial_credit(
             code_samples=[code],
             status="ok",
@@ -226,10 +226,10 @@ result = element.text
 
     def test_tier_3_without_tier_2_not_credited(self):
         """Selection method without soup creation doesn't get credit."""
-        code = '''
+        code = """
 from bs4 import BeautifulSoup
 element = soup.find("div")
-'''
+"""
         reward, breakdown = compute_process_partial_credit(
             code_samples=[code],
             status="ok",
@@ -245,11 +245,11 @@ element = soup.find("div")
 
     def test_gate_limit_on_solvable_blocked(self):
         """Claiming limit on solvable task blocks partial credit."""
-        code = '''
+        code = """
 from bs4 import BeautifulSoup
 soup = BeautifulSoup(HTML, "html.parser")
 element = soup.find("div")
-'''
+"""
         reward, breakdown = compute_process_partial_credit(
             code_samples=[code],
             status="limit",  # Claiming limit
@@ -280,12 +280,12 @@ element = soup.find("div")
         On unsolvable tasks, models should recognize the limitation and claim "limit",
         not attempt to solve with BS4 patterns.
         """
-        code = '''
+        code = """
 from bs4 import BeautifulSoup
 soup = BeautifulSoup(HTML, "html.parser")
 element = soup.find("div")
 result = element.text
-'''
+"""
         reward, breakdown = compute_process_partial_credit(
             code_samples=[code],
             status="ok",  # Wrong status for unsolvable
@@ -302,10 +302,10 @@ result = element.text
         Limit responses on unsolvable tasks are handled by the normal grading
         flow (REWARD_CORRECT_LIMIT), not process partial credit.
         """
-        code = '''
+        code = """
 from bs4 import BeautifulSoup
 soup = BeautifulSoup(HTML, "html.parser")
-'''
+"""
         reward, breakdown = compute_process_partial_credit(
             code_samples=[code],
             status="limit",
@@ -330,12 +330,12 @@ soup = BeautifulSoup(HTML, "html.parser")
 
     def test_cap_at_max(self):
         """Reward is capped at PROCESS_PARTIAL_CREDIT_CAP."""
-        code = '''
+        code = """
 from bs4 import BeautifulSoup
 soup = BeautifulSoup(HTML, "html.parser")
 element = soup.find("div", class_="target")
 result = element.text
-'''
+"""
         reward, _ = compute_process_partial_credit(
             code_samples=[code],
             status="ok",
@@ -381,12 +381,12 @@ class TestProcessPartialCreditIntegration:
     def test_wrong_answer_gets_partial_credit(self, task_info):
         """Wrong answer with good code structure gets partial credit."""
         output = '{"status": "ok", "answer": "wrong_answer"}'
-        code = '''
+        code = """
 from bs4 import BeautifulSoup
 soup = BeautifulSoup(HTML, "html.parser")
 element = soup.find("div")
 result = element.text
-'''
+"""
         reward, metrics = compute_reward(
             raw_output=output,
             task_info=task_info,
@@ -420,11 +420,11 @@ result = element.text
     def test_correct_answer_no_partial_credit(self, task_info):
         """Correct answer gets full credit, not partial credit."""
         output = '{"status": "ok", "answer": "expected_answer"}'
-        code = '''
+        code = """
 from bs4 import BeautifulSoup
 soup = BeautifulSoup(HTML, "html.parser")
 result = soup.text
-'''
+"""
         reward, metrics = compute_reward(
             raw_output=output,
             task_info=task_info,
@@ -454,12 +454,12 @@ result = soup.text
         # Model outputs {"key1": "a", "key2": "WRONG"} - 50% correct
         # This would give extraction partial credit of 0.1 * 0.5 = 0.05
         output = '{"status": "ok", "answer": {"key1": "a", "key2": "WRONG"}}'
-        code = '''
+        code = """
 from bs4 import BeautifulSoup
 soup = BeautifulSoup(HTML, "html.parser")
 element = soup.find("div")
 result = element.text
-'''
+"""
         reward, metrics = compute_reward(
             raw_output=output,
             task_info=task_info,
@@ -478,11 +478,11 @@ result = element.text
     def test_wrong_answer_limit_on_solvable_no_credit(self, task_info):
         """Limit claim on solvable task gets no partial credit."""
         output = '{"status": "limit", "answer": null, "limit": {"reason": "js_required", "evidence": "<script>"}}'
-        code = '''
+        code = """
 from bs4 import BeautifulSoup
 soup = BeautifulSoup(HTML, "html.parser")
 element = soup.find("div")
-'''
+"""
         reward, metrics = compute_reward(
             raw_output=output,
             task_info=task_info,
@@ -502,12 +502,12 @@ element = soup.find("div")
     def test_process_credit_skips_bs4_penalty(self, task_info):
         """Process partial credit doesn't get additional BS4 penalty."""
         output = '{"status": "ok", "answer": "wrong_answer"}'
-        code = '''
+        code = """
 from bs4 import BeautifulSoup
 soup = BeautifulSoup(HTML, "html.parser")
 element = soup.find("div")
 result = element.text
-'''
+"""
         reward, metrics = compute_reward(
             raw_output=output,
             task_info=task_info,
@@ -566,12 +566,12 @@ class TestPartialCreditEnabledConfig:
     def test_disabled_via_parameter(self, task_info):
         """partial_credit_enabled=False disables process credit."""
         output = '{"status": "ok", "answer": "wrong_answer"}'
-        code = '''
+        code = """
 from bs4 import BeautifulSoup
 soup = BeautifulSoup(HTML, "html.parser")
 element = soup.find("div")
 result = element.text
-'''
+"""
         reward, metrics = compute_reward(
             raw_output=output,
             task_info=task_info,
@@ -588,12 +588,12 @@ result = element.text
     def test_enabled_via_parameter(self, task_info):
         """partial_credit_enabled=True enables process credit."""
         output = '{"status": "ok", "answer": "wrong_answer"}'
-        code = '''
+        code = """
 from bs4 import BeautifulSoup
 soup = BeautifulSoup(HTML, "html.parser")
 element = soup.find("div")
 result = element.text
-'''
+"""
         reward, metrics = compute_reward(
             raw_output=output,
             task_info=task_info,
@@ -609,11 +609,11 @@ result = element.text
 
     def test_compute_process_partial_credit_disabled(self):
         """compute_process_partial_credit respects partial_credit_enabled=False."""
-        code = '''
+        code = """
 from bs4 import BeautifulSoup
 soup = BeautifulSoup(HTML, "html.parser")
 element = soup.find("div")
-'''
+"""
         reward, breakdown = compute_process_partial_credit(
             code_samples=[code],
             status="ok",
@@ -628,12 +628,12 @@ element = soup.find("div")
     def test_default_uses_module_constant(self, task_info):
         """Omitting partial_credit_enabled uses module constant (True by default)."""
         output = '{"status": "ok", "answer": "wrong_answer"}'
-        code = '''
+        code = """
 from bs4 import BeautifulSoup
 soup = BeautifulSoup(HTML, "html.parser")
 element = soup.find("div")
 result = element.text
-'''
+"""
         # Don't pass partial_credit_enabled - should use module default
         reward, metrics = compute_reward(
             raw_output=output,
