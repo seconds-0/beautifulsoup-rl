@@ -48,6 +48,20 @@ TOOL_WEIGHTS = {
 # BS4 usage settings - creates gradient toward BS4 usage without rejecting alternatives
 BS4_USAGE_PENALTY = 0.15  # Penalty for not using BeautifulSoup
 
+# Process partial credit settings for 0% model bootstrapping
+# These reward correct tool-use patterns even when the final answer is wrong
+# This provides gradient signal for models learning the basic action template
+PROCESS_PARTIAL_CREDIT_ENABLED = True  # Set to False for strict benchmarks
+PROCESS_PARTIAL_CREDIT_CAP = 0.30  # Max partial credit (below REWARD_CORRECT_LIMIT)
+
+# Tier rewards for process partial credit (must use injected HTML variable)
+PROCESS_TIER_REWARDS = {
+    "bs4_imported": 0.05,  # Credit for importing BS4
+    "soup_created_with_html": 0.10,  # Credit for BeautifulSoup(HTML, ...)
+    "selection_method": 0.10,  # Credit for using .find(), .select(), etc.
+    "content_access": 0.05,  # Credit for accessing .text, .get_text(), etc.
+}
+
 
 def compute_efficiency_multiplier(tool_call_count: float) -> float:
     """Compute efficiency multiplier based on tool call count.
@@ -250,6 +264,209 @@ def compute_bs4_penalty(code_samples: list[str] | None) -> tuple[float, bool]:
         return BS4_USAGE_PENALTY, False
 
 
+def _check_soup_creation_with_html_ast(code: str) -> bool:
+    """AST check for BeautifulSoup(HTML, ...) - must use the injected HTML variable.
+
+    This is stricter than general BS4 detection - we require the model to
+    actually use the HTML variable we injected, not just create a soup
+    from a dummy string or other source.
+
+    Args:
+        code: Python code to analyze.
+
+    Returns:
+        True if BeautifulSoup is called with the HTML variable.
+    """
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        return False
+
+    class HTMLSoupVisitor(ast.NodeVisitor):
+        """Visitor to detect BeautifulSoup(HTML, ...) calls."""
+
+        def __init__(self):
+            self.found = False
+
+        def visit_Call(self, node):
+            # Check for BeautifulSoup(...) or bs4.BeautifulSoup(...)
+            func_name = None
+            if isinstance(node.func, ast.Name):
+                func_name = node.func.id
+            elif isinstance(node.func, ast.Attribute):
+                func_name = node.func.attr
+
+            if func_name == "BeautifulSoup":
+                # Check first argument is the HTML variable
+                if node.args and isinstance(node.args[0], ast.Name):
+                    if node.args[0].id == "HTML":
+                        self.found = True
+            self.generic_visit(node)
+
+    visitor = HTMLSoupVisitor()
+    visitor.visit(tree)
+    return visitor.found
+
+
+def _check_selection_method_ast(code: str) -> bool:
+    """AST check for BS4 selection methods (.find, .find_all, .select, .select_one).
+
+    Args:
+        code: Python code to analyze.
+
+    Returns:
+        True if any BS4 selection method is called.
+    """
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        return False
+
+    selection_methods = {"find", "find_all", "select", "select_one"}
+
+    class SelectionVisitor(ast.NodeVisitor):
+        """Visitor to detect selection method calls."""
+
+        def __init__(self):
+            self.found = False
+
+        def visit_Call(self, node):
+            if isinstance(node.func, ast.Attribute):
+                if node.func.attr in selection_methods:
+                    self.found = True
+            self.generic_visit(node)
+
+    visitor = SelectionVisitor()
+    visitor.visit(tree)
+    return visitor.found
+
+
+def _check_content_access_ast(code: str) -> bool:
+    """AST check for content access (.text, .get_text(), .string).
+
+    Args:
+        code: Python code to analyze.
+
+    Returns:
+        True if any content access pattern is detected.
+    """
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        return False
+
+    # Content access attributes
+    content_attrs = {"text", "string", "strings", "stripped_strings"}
+    # Content access methods
+    content_methods = {"get_text"}
+
+    class ContentVisitor(ast.NodeVisitor):
+        """Visitor to detect content access."""
+
+        def __init__(self):
+            self.found = False
+
+        def visit_Attribute(self, node):
+            if node.attr in content_attrs:
+                self.found = True
+            self.generic_visit(node)
+
+        def visit_Call(self, node):
+            if isinstance(node.func, ast.Attribute):
+                if node.func.attr in content_methods:
+                    self.found = True
+            self.generic_visit(node)
+
+    visitor = ContentVisitor()
+    visitor.visit(tree)
+    return visitor.found
+
+
+def compute_process_partial_credit(
+    code_samples: list[str],
+    status: str,
+    solvable: bool,
+    run_python_calls: int | None = None,
+    partial_credit_enabled: bool | None = None,
+) -> tuple[float, dict[str, Any]]:
+    """Compute tiered partial credit based on code structure.
+
+    This rewards correct tool-use patterns even when the final answer is wrong,
+    providing gradient signal for 0% models learning the basic action template.
+
+    Uses AST analysis to detect actual code patterns, not just string matching.
+    Enforces tier dependencies: later tiers require earlier tiers.
+
+    Anti-hacking safeguards:
+    - Requires run_python to be called (not just importing BS4)
+    - Requires BeautifulSoup(HTML, ...) - must use injected variable
+    - Blocks limit-claiming on solvable tasks
+    - Capped at PROCESS_PARTIAL_CREDIT_CAP (0.30)
+
+    Args:
+        code_samples: List of code strings executed during the episode.
+        status: The response status ("ok" or "limit").
+        solvable: Whether the task is solvable.
+        run_python_calls: Number of run_python calls made.
+        partial_credit_enabled: Whether to enable process partial credit.
+            Defaults to module constant PROCESS_PARTIAL_CREDIT_ENABLED.
+
+    Returns:
+        Tuple of (reward, breakdown_dict) for debugging/metrics.
+    """
+    # Use parameter if provided, otherwise fall back to module constant
+    enabled = partial_credit_enabled if partial_credit_enabled is not None else PROCESS_PARTIAL_CREDIT_ENABLED
+    if not enabled:
+        return 0.0, {"disabled": True}
+
+    # Gate 1: Don't reward limit-claiming on solvable tasks (anti-hacking)
+    if status == "limit" and solvable:
+        return 0.0, {"blocked": "limit_on_solvable"}
+
+    # Gate 2: Don't reward on unsolvable tasks (process credit is for learning tool-use)
+    # Process partial credit is designed to teach the basic action template on solvable tasks.
+    # On unsolvable tasks, the model should recognize the limitation and claim "limit",
+    # not attempt to solve with BS4. Rewarding BS4 patterns here would be counterproductive.
+    if not solvable:
+        return 0.0, {"blocked": "unsolvable_task"}
+
+    # Gate 3: Require run_python to be called
+    if run_python_calls is not None and run_python_calls <= 0:
+        return 0.0, {"blocked": "no_run_python"}
+
+    if not code_samples:
+        return 0.0, {"no_code": True}
+
+    breakdown: dict[str, Any] = {}
+    reward = 0.0
+
+    # Tier 1: BS4 import (reuse existing detection)
+    bs4_imported = any(_check_bs4_usage_ast(c) for c in code_samples)
+    if bs4_imported:
+        reward += PROCESS_TIER_REWARDS["bs4_imported"]
+        breakdown["bs4_imported"] = True
+
+    # Tier 2: Soup creation with HTML variable (dependency: requires import)
+    soup_created_with_html = any(_check_soup_creation_with_html_ast(c) for c in code_samples)
+    if soup_created_with_html and bs4_imported:
+        reward += PROCESS_TIER_REWARDS["soup_created_with_html"]
+        breakdown["soup_created_with_html"] = True
+
+        # Tier 3: Selection method (dependency: requires soup)
+        selection_used = any(_check_selection_method_ast(c) for c in code_samples)
+        if selection_used:
+            reward += PROCESS_TIER_REWARDS["selection_method"]
+            breakdown["selection_method"] = True
+
+            # Tier 4: Content access (dependency: requires selection)
+            content_accessed = any(_check_content_access_ast(c) for c in code_samples)
+            if content_accessed:
+                reward += PROCESS_TIER_REWARDS["content_access"]
+                breakdown["content_access"] = True
+
+    return min(reward, PROCESS_PARTIAL_CREDIT_CAP), breakdown
+
+
 def _f1_multiset(a: list, b: list) -> float:
     """Compute F1 score over two lists treated as multisets.
 
@@ -320,6 +537,7 @@ def compute_reward(
     tool_call_count: int | None = None,
     run_python_calls: int | None = None,
     code_samples: list[str] | None = None,
+    partial_credit_enabled: bool | None = None,
 ) -> tuple[float, dict[str, Any]]:
     """Compute reward for a model output.
 
@@ -341,6 +559,8 @@ def compute_reward(
             returns zero reward (anti-reward-hacking: prevents guessing without parsing).
         code_samples: List of code strings executed during the episode. If provided,
             applies BS4 usage penalty for solutions that don't use BeautifulSoup.
+        partial_credit_enabled: Whether to enable process partial credit for 0% models.
+            Defaults to module constant PROCESS_PARTIAL_CREDIT_ENABLED.
 
     Returns:
         Tuple of (reward, metrics). Metrics include detailed breakdown of
@@ -421,7 +641,23 @@ def compute_reward(
         metrics["errors"].append(f"Unknown status: {status}")
         return REWARD_FORMAT_ERROR, metrics
 
-    # Step 5: Apply efficiency multiplier (only for positive rewards on solvable tasks)
+    # Step 5: Apply process partial credit for wrong answers (0% model bootstrapping)
+    # If the answer is wrong but the model used correct tool-use patterns,
+    # award partial credit to provide gradient signal for learning
+    if base_reward == REWARD_WRONG and code_samples is not None:
+        process_reward, process_breakdown = compute_process_partial_credit(
+            code_samples=code_samples,
+            status=status,
+            solvable=solvable,
+            run_python_calls=run_python_calls,
+            partial_credit_enabled=partial_credit_enabled,
+        )
+        if process_reward > 0:
+            base_reward = process_reward
+            metrics["process_partial_credit"] = process_breakdown
+            metrics["partial_credit_source"] = "process"
+
+    # Step 6: Apply efficiency multiplier (only for positive rewards on solvable tasks)
     # NOTE: We don't apply efficiency penalty to limit responses because:
     # 1. Models legitimately need to explore before recognizing a limitation
     # 2. The base limit reward (0.5) is already lower than extraction reward (1.0)
@@ -445,10 +681,11 @@ def compute_reward(
         metrics["efficiency_multiplier"] = efficiency
         metrics["limit_efficiency_exemption"] = True
 
-    # Step 6: Apply BS4 usage penalty (only for positive rewards on solvable tasks)
+    # Step 7: Apply BS4 usage penalty (only for positive rewards on solvable tasks)
     # This creates a gradient toward BS4 usage without rejecting alternatives
-    solvable = task_info.get("solvable", True)
-    if code_samples is not None and final_reward > 0 and solvable:
+    # NOTE: Skip BS4 penalty for process partial credit (already rewarding BS4 usage)
+    is_process_credit = metrics.get("partial_credit_source") == "process"
+    if code_samples is not None and final_reward > 0 and solvable and not is_process_credit:
         bs4_penalty, bs4_used = compute_bs4_penalty(code_samples)
         metrics["bs4_used"] = bs4_used
         metrics["bs4_penalty"] = bs4_penalty
