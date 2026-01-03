@@ -843,9 +843,7 @@ class SvgGeometryExtractionGenerator(Generator):
             x = 50 + i * 60
             height = value * 2
             y = 200 - height
-            bars.append(
-                f'<rect x="{x}" y="{y}" width="40" height="{height}" fill="#4a90d9"/>'
-            )
+            bars.append(f'<rect x="{x}" y="{y}" width="40" height="{height}" fill="#4a90d9"/>')
 
         html = f"""<!DOCTYPE html>
 <html>

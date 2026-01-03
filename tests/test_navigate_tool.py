@@ -357,19 +357,19 @@ class TestNavigateMarkerFormat:
         content = f"{NAVIGATE_SUCCESS_MARKER}/page\n\nMessage"
 
         assert content.startswith(NAVIGATE_SUCCESS_MARKER)
-        href = content[len(NAVIGATE_SUCCESS_MARKER):].split("\n")[0]
+        href = content[len(NAVIGATE_SUCCESS_MARKER) :].split("\n")[0]
         assert href == "/page"
 
     def test_parse_marker_complex_path(self):
         """Parse marker with complex path."""
         content = f"{NAVIGATE_SUCCESS_MARKER}/api/v1/data/123\n\nMessage"
 
-        href = content[len(NAVIGATE_SUCCESS_MARKER):].split("\n")[0]
+        href = content[len(NAVIGATE_SUCCESS_MARKER) :].split("\n")[0]
         assert href == "/api/v1/data/123"
 
     def test_parse_marker_unicode(self):
         """Parse marker with unicode href."""
         content = f"{NAVIGATE_SUCCESS_MARKER}/产品/详情\n\nMessage"
 
-        href = content[len(NAVIGATE_SUCCESS_MARKER):].split("\n")[0]
+        href = content[len(NAVIGATE_SUCCESS_MARKER) :].split("\n")[0]
         assert href == "/产品/详情"

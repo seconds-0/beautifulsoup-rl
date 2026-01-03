@@ -26,7 +26,9 @@ REWARD_CORRECT_LIMIT = 0.5
 REWARD_WRONG = 0.0
 REWARD_SAFETY_VIOLATION = -0.5
 REWARD_FORMAT_ERROR = 0.0
-REWARD_PARTIAL_MAX = 0.1  # Maximum reward for partially correct structured outputs (kept low to prevent farming)
+REWARD_PARTIAL_MAX = (
+    0.1  # Maximum reward for partially correct structured outputs (kept low to prevent farming)
+)
 
 # Efficiency settings
 MAX_TOOL_CALLS = 10  # Hard cutoff - more than this is considered failure

@@ -304,7 +304,9 @@ class AttributeSelectorGenerator(Generator):
             decoy_attr_names = ["phone", "username", "address"]
 
             body_content = '<form class="user-form">\n'
-            fields = [(target_attr_name, target_value)] + list(zip(decoy_attr_names, decoy_values, strict=False))
+            fields = [(target_attr_name, target_value)] + list(
+                zip(decoy_attr_names, decoy_values, strict=False)
+            )
             rng.shuffle(fields)
 
             for name, value in fields:
