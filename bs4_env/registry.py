@@ -22,7 +22,7 @@ class ArchetypeSpec:
         archetype_id: Unique identifier for the archetype (e.g., "mvp.extract_text_by_id").
         generator_class: The Generator class that produces task instances.
         category: High-level category (e.g., "core_extraction", "table_parsing").
-        difficulty: Default difficulty level.
+        difficulty: Default difficulty level. "primer" is for ultra-simple bootstrap tasks.
         solvable: Whether tasks from this archetype are solvable with BS4.
             False for limitation detection tasks.
         description: Human-readable description of what this archetype tests.
@@ -36,7 +36,7 @@ class ArchetypeSpec:
     archetype_id: str
     generator_class: type[Generator]
     category: str
-    difficulty: Literal["easy", "medium", "hard"]
+    difficulty: Literal["primer", "easy", "medium", "hard"]
     solvable: bool = True
     description: str = ""
     tags: list[str] = field(default_factory=list)
@@ -53,7 +53,7 @@ _REGISTRY: dict[str, ArchetypeSpec] = {}
 def register(
     archetype_id: str,
     category: str,
-    difficulty: Literal["easy", "medium", "hard"] = "medium",
+    difficulty: Literal["primer", "easy", "medium", "hard"] = "medium",
     solvable: bool = True,
     description: str = "",
     tags: list[str] | None = None,
@@ -195,7 +195,7 @@ def get_registry_stats() -> dict[str, Any]:
     stats: dict[str, Any] = {
         "total": len(_REGISTRY),
         "by_category": {},
-        "by_difficulty": {"easy": 0, "medium": 0, "hard": 0},
+        "by_difficulty": {"primer": 0, "easy": 0, "medium": 0, "hard": 0},
         "by_phase": {1: 0, 2: 0},
         "solvable": 0,
         "limitation": 0,

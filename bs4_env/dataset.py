@@ -151,10 +151,16 @@ def generate_dataset_rows(config: EnvConfig) -> Iterator[dict[str, Any]]:
     # For tiered mode, compute weighted examples per archetype
     if config.mode == "tiered":
         # Group archetypes by difficulty
-        archetypes_by_difficulty: dict[str, list[str]] = {"easy": [], "medium": [], "hard": []}
+        archetypes_by_difficulty: dict[str, list[str]] = {
+            "primer": [],
+            "easy": [],
+            "medium": [],
+            "hard": [],
+        }
         for archetype_id in archetype_ids:
             spec = get_archetype(archetype_id)
-            archetypes_by_difficulty[spec.difficulty].append(archetype_id)
+            if spec.difficulty in archetypes_by_difficulty:
+                archetypes_by_difficulty[spec.difficulty].append(archetype_id)
 
         # Compute examples per difficulty level based on weights
         total_weight = sum(config.difficulty_weights.values())
@@ -287,6 +293,11 @@ def _get_archetype_ids_for_config(config: EnvConfig) -> list[str]:
     elif config.mode == "hard_only":
         # Only hard difficulty archetypes from all phases
         specs = list_archetypes(difficulty="hard")
+    elif config.mode == "bootstrap":
+        # Primer + easy archetypes for 0% model onboarding
+        primer_specs = list_archetypes(difficulty="primer")
+        easy_specs = list_archetypes(difficulty="easy")
+        specs = primer_specs + easy_specs
     elif config.mode == "tiered":
         # All archetypes (weighted sampling is handled in generate_dataset_rows)
         specs = list_archetypes()

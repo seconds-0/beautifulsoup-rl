@@ -110,6 +110,79 @@ Baseline evaluation results on 52 archetypes (1040 bench examples). See [TEST_RE
 
 **Key Insight:** 0% → 50% → 75% progression shows clear learning signal for RL training. Small models (3-4B) start at 0% but have function calling support, making them ideal RL training targets.
 
+### Training 0% Baseline Models (Bootstrap Mode)
+
+Models scoring 0% on the benchmark face a cold-start problem: pure RL fails because there's no gradient signal. We provide a **bootstrap workflow** to warm up these models:
+
+#### Step 0: Primer Tasks (Tool-Use Template)
+
+Primer archetypes are ultra-simple tasks with minimal HTML that teach the basic action template:
+
+```python
+# Ultra-banal HTML - no ambiguity
+html = '<span id="target">Hello</span>'
+query = "Extract the text from the element with id='target'."
+answer = "Hello"
+```
+
+```python
+env = load_environment(
+    mode="bootstrap",           # Includes primer + easy archetypes
+    difficulty="primer",        # Optional: primer-only tasks
+)
+```
+
+**5 Primer Archetypes:**
+- `primer.extract_by_id` - Extract text by element ID
+- `primer.extract_by_class` - Extract text by class name
+- `primer.extract_by_tag` - Extract text by tag name (h1)
+- `primer.extract_attribute` - Extract href from a link
+- `primer.count_elements` - Count list items
+
+#### Process Partial Credit
+
+Wrong answers with correct tool-use patterns receive partial credit (capped at 0.30):
+
+| Tier | Pattern | Credit |
+|------|---------|--------|
+| 1 | BS4 import | +0.05 |
+| 2 | `BeautifulSoup(HTML, ...)` | +0.10 |
+| 3 | Selection method (`.find()`, `.select()`) | +0.10 |
+| 4 | Content access (`.text`, `.get_text()`) | +0.05 |
+
+**Anti-hacking safeguards:**
+- Requires `BeautifulSoup(HTML, ...)` with the injected HTML variable
+- Tiers are cumulative (tier 3 requires tier 2)
+- Capped at 0.30 (below limitation reward of 0.50)
+- Blocked for `status="limit"` on solvable tasks
+
+#### Recommended Training Flow
+
+```
+1. Start with primer tasks (mode="bootstrap", difficulty="primer")
+   Target: 0% → 10%+
+
+2. Progress to bootstrap mode (mode="bootstrap")
+   Target: 10% → 30%+
+
+3. Use tiered sampling (mode="tiered")
+   Target: 30% → 50%+
+
+4. Full curriculum (mode="all")
+   Target: 50% → 65%+
+```
+
+#### Prime-RL Configuration
+
+```toml
+# For 0% models, use online-difficulty buffer
+[orchestrator.buffer]
+type = "online-difficulty"
+oversampling_factor = 2.0
+```
+
+The difficulty field in task info (`info["difficulty"]`) enables Prime's online-difficulty buffer to automatically filter zero-signal tasks.
+
 ### Archetype Difficulty Distribution
 
 | Category | Example Archetypes | 3B Pass Rate |
@@ -158,6 +231,7 @@ env = load_environment(
 | `"all"` | 52 | All archetypes, uniform sampling |
 | `"tiered"` | 52 | All archetypes with difficulty-weighted sampling |
 | `"hard_only"` | 18 | Only hard difficulty archetypes |
+| `"bootstrap"` | ~15 | Primer + easy archetypes for 0% models |
 
 ### Bench Split Behavior
 
@@ -267,14 +341,14 @@ This environment trains agents to use BeautifulSoup (BS4), Python's most popular
 
 | Metric | Count |
 |--------|-------|
-| **Total Archetypes** | 52 |
-| **Solvable Tasks** | 48 |
+| **Total Archetypes** | 57 |
+| **Solvable Tasks** | 53 |
 | **Limitation Tasks** | 4 |
 
 **By Difficulty:**
-| Easy | Medium | Hard |
-|------|--------|------|
-| 10 | 24 | 18 |
+| Primer | Easy | Medium | Hard |
+|--------|------|--------|------|
+| 5 | 10 | 24 | 18 |
 
 **By Category:**
 | Category | Count | Description |
@@ -283,6 +357,7 @@ This environment trains agents to use BeautifulSoup (BS4), Python's most popular
 | advanced | 8 | Advanced BS4 features and edge cases |
 | forms | 6 | Form parsing and input extraction |
 | core_extraction | 5 | Basic text and attribute extraction |
+| primer | 5 | Ultra-simple tasks for 0% model bootstrap |
 | limitations | 4 | Tasks requiring abstention with evidence |
 | table_parsing | 4 | Table structure and cell extraction |
 | i18n | 3 | Internationalization and encoding |

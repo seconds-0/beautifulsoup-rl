@@ -27,6 +27,7 @@ def ensure_registered() -> None:
     # Import generator modules to trigger @register decorators
     # Add new generator modules here as they are created
 
+    # Primer archetypes (ultra-simple bootstrap tasks for 0% models)
     # MVP Phase 1 generators
     # MVP Phase 2 generators (advanced difficulty)
     # BS4 Gotcha generators (from documentation research)
@@ -47,6 +48,7 @@ def ensure_registered() -> None:
         mvp_navigablestring,
         mvp_tables,
         mvp_whitespace_sibling,
+        primer,
     )
 
     _REGISTERED = True
