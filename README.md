@@ -279,7 +279,7 @@ This environment trains agents to use BeautifulSoup (BS4), Python's most popular
 **By Category:**
 | Category | Count | Description |
 |----------|-------|-------------|
-| hard | 10 | Complex extraction requiring multiple techniques |
+| hard | 11 | Complex extraction requiring multiple techniques |
 | advanced | 8 | Advanced BS4 features and edge cases |
 | forms | 6 | Form parsing and input extraction |
 | core_extraction | 5 | Basic text and attribute extraction |
