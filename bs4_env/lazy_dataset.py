@@ -31,7 +31,12 @@ import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from datasets import Dataset
+
+    from bs4_env.config import EnvConfig
 
 logger = logging.getLogger(__name__)
 
@@ -160,9 +165,9 @@ class LazyBS4Dataset(Sequence):
     @classmethod
     def from_config(
         cls,
-        config: "EnvConfig",  # type: ignore[name-defined]
+        config: EnvConfig,
         cache_size: int = 0,
-    ) -> "LazyBS4Dataset":
+    ) -> LazyBS4Dataset:
         """Build lazy dataset from configuration.
 
         This is the primary factory method. It computes the list of
@@ -178,7 +183,6 @@ class LazyBS4Dataset(Sequence):
         # Import here to avoid circular imports
         from bs4_env import auto_import  # noqa: F401
         from bs4_env.dataset import (
-            DEFAULT_EXAMPLES_PER_ARCHETYPE,
             SEED_RANGES,
             _get_archetype_ids_for_config,
             _select_seeds_for_archetype,
@@ -263,7 +267,7 @@ class LazyBS4Dataset(Sequence):
 
     @staticmethod
     def _get_examples_per_archetype(
-        config: "EnvConfig",  # type: ignore[name-defined]
+        config: EnvConfig,
         archetype_ids: list[str],
     ) -> int:
         """Get examples per archetype for this config."""
@@ -274,7 +278,7 @@ class LazyBS4Dataset(Sequence):
 
         return DEFAULT_EXAMPLES_PER_ARCHETYPE.get(config.split, 100)
 
-    def to_hf_dataset(self) -> "Dataset":  # type: ignore[name-defined]
+    def to_hf_dataset(self) -> Dataset:
         """Convert to HuggingFace Dataset (forces eager evaluation).
 
         Use this only when HuggingFace Dataset compatibility is required.
@@ -312,7 +316,7 @@ class LazyBS4Dataset(Sequence):
 
 
 def build_lazy_dataset(
-    config: "EnvConfig",  # type: ignore[name-defined]
+    config: EnvConfig,
     cache_size: int = 0,
 ) -> LazyBS4Dataset:
     """Build a lazy dataset that generates HTML on-demand.

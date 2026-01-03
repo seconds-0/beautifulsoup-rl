@@ -10,8 +10,6 @@ These tests verify that _safe_bounded_price correctly handles:
 import random
 import re
 
-import pytest
-
 from bs4_env.generators.base import (
     HtmlStyle,
     _safe_bounded_price,
