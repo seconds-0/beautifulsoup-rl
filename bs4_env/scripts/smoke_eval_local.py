@@ -210,7 +210,10 @@ print(json.dumps(result))
 def run_smoke_test(env, idx: int) -> dict:
     """Run a single smoke test on an example."""
     example = env.get_example(idx)
-    info = example["info"]
+    info = example.get("info_parsed", example["info"])
+    # Handle case where info is still a string
+    if isinstance(info, str):
+        info = json.loads(info)
 
     # Create tool registry
     tool_registry = env.create_tool_registry(example)

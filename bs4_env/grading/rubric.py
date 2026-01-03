@@ -7,6 +7,7 @@ The reward function must be deterministic and follow the anti-hacking rules.
 """
 
 import ast
+import json
 import re
 from typing import Any
 
@@ -589,7 +590,18 @@ def _grade_ok_response(
 
     # Get answer and ground truth
     answer = output.get("answer")
-    ground_truth = task_info.get("ground_truth")
+    ground_truth_raw = task_info.get("ground_truth")
+    # ground_truth is JSON-serialized in the dataset to ensure consistent types
+    # across archetypes (preventing PyArrow errors). Try to parse as JSON,
+    # but fall back to raw value for backward compatibility (tests, direct calls).
+    if isinstance(ground_truth_raw, str):
+        try:
+            ground_truth = json.loads(ground_truth_raw)
+        except json.JSONDecodeError:
+            # Not valid JSON, use as-is (backward compat for tests)
+            ground_truth = ground_truth_raw
+    else:
+        ground_truth = ground_truth_raw
     answer_schema = task_info.get("answer_schema", {})
     normalization = task_info.get("normalization", {})
 

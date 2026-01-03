@@ -23,7 +23,10 @@ def truncate(s: str, max_len: int = 500) -> str:
 
 def preview_example(example: dict, idx: int) -> None:
     """Print a formatted preview of an example."""
-    info = example["info"]
+    info = example.get("info_parsed", example["info"])
+    # Handle case where info is still a string
+    if isinstance(info, str):
+        info = json.loads(info)
 
     print(f"\n{'=' * 60}")
     print(f"Example {idx}: {info.get('archetype_id', 'unknown')}")
