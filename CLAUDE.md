@@ -144,9 +144,10 @@ Target **small/weak models** for testing - they benefit most from RL training.
 
 ```bash
 # Baseline evaluation
-prime env eval --env beautiful_soup_env \
-  --env-args '{"split":"bench","mode":"mvp"}' \
-  --model <model-name>
+prime env eval seconds-0/beautiful-soup-env \
+  -a '{"split":"bench","mode":"mvp"}' \
+  -m <model-name> \
+  -n 100
 
 # Push to Hub
 prime env push
