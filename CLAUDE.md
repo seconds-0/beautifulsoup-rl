@@ -178,19 +178,6 @@ prime env push
 - HuggingFace datasets are lazy → force evaluation in tests
 - Subprocess execution needs timeout handling
 
-## Dependencies
-
-Core:
-- `beautifulsoup4` - The library we're training on
-- `lxml` - Fast parser backend
-- `html5lib` - Lenient parser backend
-- `verifiers` - Prime's environment framework
-- `datasets` - HuggingFace datasets
-
-Dev:
-- `pytest` - Testing
-- `pytest-cov` - Coverage
-
 ## Git Workflow
 
 ### Git Author (REQUIRED)
