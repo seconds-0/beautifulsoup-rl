@@ -62,6 +62,30 @@ if False:
         code = "this is not valid python {"
         assert _check_soup_creation_with_html_ast(code) is False
 
+    def test_make_soup_no_args(self):
+        """make_soup() helper (no args) is detected.
+
+        The prompt recommends `soup = make_soup()` without arguments,
+        as the helper internally uses the HTML variable.
+        """
+        code = "soup = make_soup()"
+        assert _check_soup_creation_with_html_ast(code) is True
+
+    def test_make_soup_with_html_arg(self):
+        """make_soup(HTML) is detected (legacy pattern)."""
+        code = 'soup = make_soup(HTML, "html.parser")'
+        assert _check_soup_creation_with_html_ast(code) is True
+
+    def test_make_soup_in_full_pipeline(self):
+        """make_soup() works in complete code example."""
+        code = '''
+from bs4 import BeautifulSoup
+soup = make_soup()
+element = soup.find("div")
+result = element.text
+'''
+        assert _check_soup_creation_with_html_ast(code) is True
+
 
 class TestSelectionMethodAST:
     """Tests for _check_selection_method_ast."""
@@ -413,6 +437,44 @@ result = soup.text
         assert "process_partial_credit" not in metrics
         assert metrics["correct"] is True
 
+    def test_no_incentive_inversion(self):
+        """Process credit beats extraction partial credit when higher.
+
+        This prevents incentive inversion where getting 50% of keys correct
+        (0.05 reward) would be worse than getting 0% correct with good BS4
+        code (0.30 reward). The max of the two should be taken.
+        """
+        # Task expects {"key1": "a", "key2": "b"}
+        task_info = {
+            "ground_truth": '{"key1": "a", "key2": "b"}',
+            "solvable": True,
+            "answer_schema": {"type": "object"},
+        }
+
+        # Model outputs {"key1": "a", "key2": "WRONG"} - 50% correct
+        # This would give extraction partial credit of 0.1 * 0.5 = 0.05
+        output = '{"status": "ok", "answer": {"key1": "a", "key2": "WRONG"}}'
+        code = '''
+from bs4 import BeautifulSoup
+soup = BeautifulSoup(HTML, "html.parser")
+element = soup.find("div")
+result = element.text
+'''
+        reward, metrics = compute_reward(
+            raw_output=output,
+            task_info=task_info,
+            code_samples=[code],
+            run_python_calls=1,
+        )
+
+        # Process credit (0.30) should beat extraction partial (0.05)
+        assert reward > 0.05  # Higher than extraction partial
+        assert reward <= PROCESS_PARTIAL_CREDIT_CAP
+        assert metrics.get("partial_credit_source") == "process"
+        # Original extraction partial credit should be recorded
+        assert "extraction_partial_credit" in metrics
+        assert metrics["extraction_partial_credit"] == pytest.approx(0.05)
+
     def test_wrong_answer_limit_on_solvable_no_credit(self, task_info):
         """Limit claim on solvable task gets no partial credit."""
         output = '{"status": "limit", "answer": null, "limit": {"reason": "js_required", "evidence": "<script>"}}'
@@ -583,3 +645,30 @@ result = element.text
         # Module constant is True, so should get partial credit
         assert reward > REWARD_WRONG
         assert "process_partial_credit" in metrics
+
+
+class TestBootstrapModeConfig:
+    """Tests for bootstrap mode auto-enabling partial credit."""
+
+    def test_bootstrap_mode_auto_enables_partial_credit(self):
+        """mode='bootstrap' auto-enables partial_credit_enabled."""
+        from bs4_env.config import EnvConfig
+
+        config = EnvConfig(mode="bootstrap")
+        assert config.partial_credit_enabled is True
+
+    def test_mvp_mode_partial_credit_disabled_by_default(self):
+        """mode='mvp' (default) has partial_credit_enabled=False."""
+        from bs4_env.config import EnvConfig
+
+        config = EnvConfig(mode="mvp")
+        assert config.partial_credit_enabled is False
+
+    def test_explicit_disable_in_bootstrap_mode_works(self):
+        """Can explicitly disable partial credit in bootstrap mode."""
+        from bs4_env.config import EnvConfig
+
+        # User explicitly disables after construction
+        config = EnvConfig(mode="bootstrap")
+        config.partial_credit_enabled = False
+        assert config.partial_credit_enabled is False

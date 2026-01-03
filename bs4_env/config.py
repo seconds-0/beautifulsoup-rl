@@ -59,7 +59,8 @@ class EnvConfig:
         }
     )
     # Enable process-based partial credit for 0% models learning the tool-use pattern
-    partial_credit_enabled: bool = True
+    # Defaults to False for standard benchmarks; mode="bootstrap" auto-enables it
+    partial_credit_enabled: bool = False
     num_examples: int | None = None
     seed: int = 42
     executor_backend: Literal["local", "prime", "pooled"] = "local"
@@ -81,6 +82,10 @@ class EnvConfig:
             raise ValueError(f"max_output_chars must be positive, got {self.max_output_chars}")
         if self.num_examples is not None and self.num_examples <= 0:
             raise ValueError(f"num_examples must be positive or None, got {self.num_examples}")
+
+        # Auto-enable partial credit for bootstrap mode (designed for 0% models)
+        if self.mode == "bootstrap" and not self.partial_credit_enabled:
+            self.partial_credit_enabled = True
 
 
 @dataclass
