@@ -265,17 +265,20 @@ def compute_bs4_penalty(code_samples: list[str] | None) -> tuple[float, bool]:
 
 
 def _check_soup_creation_with_html_ast(code: str) -> bool:
-    """AST check for BeautifulSoup(HTML, ...) - must use the injected HTML variable.
+    """AST check for soup creation using the injected HTML variable.
 
-    This is stricter than general BS4 detection - we require the model to
-    actually use the HTML variable we injected, not just create a soup
-    from a dummy string or other source.
+    Matches both patterns:
+    1. BeautifulSoup(HTML, ...) - direct construction with HTML variable
+    2. make_soup() or make_soup(HTML, ...) - helper function (recommended)
+
+    The make_soup() helper is documented to use the HTML variable internally,
+    so calling it with no args is valid (actually preferred per prompt).
 
     Args:
         code: Python code to analyze.
 
     Returns:
-        True if BeautifulSoup is called with the HTML variable.
+        True if BeautifulSoup or make_soup is called appropriately.
     """
     try:
         tree = ast.parse(code)
@@ -283,7 +286,7 @@ def _check_soup_creation_with_html_ast(code: str) -> bool:
         return False
 
     class HTMLSoupVisitor(ast.NodeVisitor):
-        """Visitor to detect BeautifulSoup(HTML, ...) calls."""
+        """Visitor to detect soup creation calls."""
 
         def __init__(self):
             self.found = False
@@ -301,6 +304,10 @@ def _check_soup_creation_with_html_ast(code: str) -> bool:
                 if node.args and isinstance(node.args[0], ast.Name):
                     if node.args[0].id == "HTML":
                         self.found = True
+            elif func_name == "make_soup":
+                # make_soup() helper uses HTML internally, so any call is valid
+                # (with or without args - no-arg is actually the preferred pattern)
+                self.found = True
             self.generic_visit(node)
 
     visitor = HTMLSoupVisitor()
@@ -641,10 +648,11 @@ def compute_reward(
         metrics["errors"].append(f"Unknown status: {status}")
         return REWARD_FORMAT_ERROR, metrics
 
-    # Step 5: Apply process partial credit for wrong answers (0% model bootstrapping)
-    # If the answer is wrong but the model used correct tool-use patterns,
-    # award partial credit to provide gradient signal for learning
-    if base_reward == REWARD_WRONG and code_samples is not None:
+    # Step 5: Apply process partial credit (0% model bootstrapping)
+    # Compute process credit for wrong/partial answers and take the maximum.
+    # This avoids incentive inversion where getting 50% of keys correct (0.05)
+    # would be worse than getting 0% correct with good BS4 code (0.30).
+    if base_reward < REWARD_CORRECT and code_samples is not None:
         process_reward, process_breakdown = compute_process_partial_credit(
             code_samples=code_samples,
             status=status,
@@ -652,7 +660,8 @@ def compute_reward(
             run_python_calls=run_python_calls,
             partial_credit_enabled=partial_credit_enabled,
         )
-        if process_reward > 0:
+        if process_reward > base_reward:
+            metrics["extraction_partial_credit"] = base_reward  # Record original
             base_reward = process_reward
             metrics["process_partial_credit"] = process_breakdown
             metrics["partial_credit_source"] = "process"
