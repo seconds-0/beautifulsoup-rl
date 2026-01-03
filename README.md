@@ -1,9 +1,9 @@
 # BeautifulSoup RL Environment
 
-An RL environment for training and evaluating agents on BeautifulSoup HTML parsing tasks. Built for [Prime Intellect's Environments Hub](https://docs.primeintellect.ai/verifiers/environments).
+An RL environment for training and evaluating agents on BeautifulSoup HTML parsing tasks. Built for [Prime Intellect's Environments Hub](https://docs.primeintellect.ai/verifiers/source/environments).
 
 **Naming:**
-- **Hub name**: `primeintellect/beautiful-soup-env` (use in `prime env eval`)
+- **Hub name**: `seconds-0/beautiful-soup-env` (use in `prime env eval`)
 - **Python module**: `beautiful_soup_env` (use in `from beautiful_soup_env import ...`)
 
 ## Overview
@@ -181,10 +181,10 @@ python -m bs4_env.scripts.smoke_eval_local
 ### Prime Evaluation
 ```bash
 # Run benchmark evaluation
-prime env eval primeintellect/beautiful-soup-env -m meta-llama/llama-3.1-70b-instruct -n 100
+prime env eval seconds-0/beautiful-soup-env -m meta-llama/llama-3.1-70b-instruct -n 100
 
 # With specific environment config
-prime env eval primeintellect/beautiful-soup-env \
+prime env eval seconds-0/beautiful-soup-env \
   -a '{"split":"bench","mode":"mvp"}' \
   -m <model-name> \
   -n 100

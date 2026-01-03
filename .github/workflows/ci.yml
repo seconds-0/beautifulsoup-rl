@@ -47,3 +47,39 @@ jobs:
 
       - name: Run tests
         run: uv run pytest tests/ -v --tb=short --timeout=300
+
+  wheel-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Build wheel
+        run: uv build
+
+      - name: Verify wheel contents
+        run: |
+          python - <<'PY'
+          import glob
+          import zipfile
+
+          whls = glob.glob("dist/*.whl")
+          assert whls, "No wheel built"
+
+          z = zipfile.ZipFile(whls[0])
+          names = set(z.namelist())
+
+          # Verify required files are present
+          assert any("pyproject.toml" in n for n in names), "pyproject.toml missing from wheel"
+          assert any("beautiful_soup_env.py" in n for n in names), "beautiful_soup_env.py missing from wheel"
+
+          print("Wheel validation passed")
+          print(f"Contents: {sorted(names)[:20]}...")
+          PY

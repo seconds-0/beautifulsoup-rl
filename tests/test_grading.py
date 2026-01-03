@@ -389,8 +389,8 @@ class TestKeyAliasing:
         assert reward == REWARD_CORRECT
         assert metrics["correct"]
 
-    def test_wrong_value_still_fails(self):
-        """Aliased key with wrong value should still fail."""
+    def test_wrong_value_gets_partial_credit(self):
+        """Aliased key with wrong value should get partial credit for correct key."""
         raw = (
             '{"status": "ok", "answer": {"cheaper_product": "WRONG", "price_difference": "$10.00"}}'
         )
@@ -400,7 +400,10 @@ class TestKeyAliasing:
             "answer_schema": {"type": "object"},
         }
         reward, metrics = compute_reward(raw, task_info)
-        assert reward == REWARD_WRONG
+        # 1 of 2 keys correct -> 0.5 partial credit -> 0.5 * 0.3 = 0.15
+        assert reward == 0.15
+        assert not metrics["correct"]
+        assert metrics.get("partial_credit") == 0.5
 
 
 class TestPriceNormalization:

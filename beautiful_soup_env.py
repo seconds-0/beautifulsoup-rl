@@ -92,7 +92,7 @@ def load_environment(
         timeout_minutes=timeout_minutes,
     )
 
-    return build_verifiers_environment(config)
+    return build_verifiers_environment(config, **kwargs)
 
 
 # Convenience exports
@@ -102,7 +102,13 @@ __all__ = [
     "MinimalEnv",
 ]
 
-# Package metadata
-__version__ = "0.1.0"
+# Package metadata - read version from pyproject.toml via importlib.metadata
+from importlib.metadata import PackageNotFoundError, version as _get_version
+
+try:
+    __version__ = _get_version("beautiful-soup-env")
+except PackageNotFoundError:
+    __version__ = "0.0.0"  # Fallback for development without install
+
 __author__ = "Alex"
 __description__ = "RL environment for BeautifulSoup HTML parsing tasks"
