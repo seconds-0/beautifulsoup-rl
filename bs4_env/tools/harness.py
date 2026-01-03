@@ -43,8 +43,13 @@ def compress_html(html: str) -> str:
 def decompress_html(compressed: str) -> str:
     """Decompress HTML that was compressed with compress_html.
 
+    Security Note:
+        This function is intended for internal dataset loading only.
+        It does NOT validate input size or set decompression limits.
+        Do not use with untrusted/external input (decompression bomb risk).
+
     Args:
-        compressed: Base64-encoded zlib-compressed string.
+        compressed: Base64-encoded zlib-compressed string from compress_html.
 
     Returns:
         Original HTML string.
