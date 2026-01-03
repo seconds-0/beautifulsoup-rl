@@ -34,7 +34,6 @@ def ensure_registered() -> None:
     # Hard archetypes (semantic reasoning, aggregation, multi-hop)
     # Multi-step archetypes (navigation between pages)
     from bs4_env.generators import (  # noqa: F401
-        primer,
         mvp_advanced,
         mvp_core_extraction,
         mvp_core_remaining,
@@ -49,6 +48,7 @@ def ensure_registered() -> None:
         mvp_navigablestring,
         mvp_tables,
         mvp_whitespace_sibling,
+        primer,
     )
 
     _REGISTERED = True
