@@ -13,9 +13,12 @@ import random
 import warnings
 from collections.abc import Iterator
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from datasets import Dataset
+
+if TYPE_CHECKING:
+    from bs4_env.lazy_dataset import LazyBS4Dataset
 
 logger = logging.getLogger(__name__)
 
@@ -404,7 +407,7 @@ def load_bench_manifest() -> list[tuple[str, int]]:
 def build_lazy_dataset(
     config: EnvConfig,
     cache_size: int = 0,
-) -> "LazyBS4Dataset":  # type: ignore[name-defined]
+) -> LazyBS4Dataset:
     """Build a lazy dataset that generates HTML on-demand.
 
     This is more memory-efficient than build_dataset() for large datasets.
