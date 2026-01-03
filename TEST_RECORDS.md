@@ -100,12 +100,13 @@ affect their ground truth.
 
 ### 2026-01-01: New Limitation Archetypes Baseline (Ministral 3B)
 
-**Environment Update:** Added 5 limitation archetypes (PR #3):
+**Environment Update:** Added limitation archetypes (PR #3):
 - `limit_canvas_text` - Text rendered in HTML5 canvas
-- `limit_svg_path_data` - Data only in SVG path/shape elements
 - `limit_pdf_embed` - Content in embedded PDF documents
 - `limit_js_required` - JavaScript-rendered content (existing)
 - `limit_image_text` - Text only in images (existing)
+
+*Note: `limit_svg_path_data` was later converted to `mvp.extract_svg_geometry` (solvable=True) per PR #5 review feedback, as SVG data IS recoverable via BeautifulSoup.*
 
 **Model:** `mistralai/ministral-3b-2512`
 **Config:** split=bench, limitation archetypes only (100 examples)
@@ -114,7 +115,6 @@ affect their ground truth.
 |-----------|-----------|------------|-------|
 | limit_pdf_embed | **40%** | 0.200 | Easiest to detect |
 | limit_js_required | **30%** | 0.150 | Familiar pattern |
-| limit_svg_path_data | **20%** | 0.100 | Path data opaque |
 | limit_canvas_text | **5%** | 0.025 | Canvas API hidden |
 | limit_image_text | **5%** | 0.025 | Hardest to recognize |
 

@@ -1,4 +1,4 @@
-Below is a full rewrite of your PRD with the concrete modifications we discussed, including (a) a sharply specified environment contract, (b) reward anti-hacking rules, (c) a curated **Top‑50 MVP scenario set**, and (d) a **Phase 2** plan for the remaining archetypes.
+Below is a full rewrite of your PRD with the concrete modifications we discussed, including (a) a sharply specified environment contract, (b) reward anti-hacking rules, (c) a curated **52-archetype scenario set**, and (d) implementation details.
 
 After the PRD, you will find a step‑by‑step technical design and implementation plan that is intended to be sufficient for an implementing engineer or implementing AI agent to execute end‑to‑end: scaffolding, toolchain selection, environment configuration, architecture/dataflow, testing strategy, development verification loops, benchmark mode and cross‑model benchmarking, and finally the MVP milestone where you can run reinforcement learning (RL) training and show meaningful improvement.
 
@@ -11,7 +11,7 @@ After the PRD, you will find a step‑by‑step technical design and implementat
 **Author:** Alex
 **Status:** Planning → Implementation
 **Target:** Prime Intellect Environments Hub Bounty (Software Library Evals: BeautifulSoup)
-**Last Updated:** December 12, 2025
+**Last Updated:** January 3, 2026
 
 ---
 
@@ -191,7 +191,7 @@ The MVP set is designed to be:
 * Diverse enough to produce meaningful RL training signal.
 * Practical to implement quickly with deterministic graders.
 
-### 6.2 The Curated Top‑50 List (MVP)
+### 6.2 The Curated Archetype List (MVP, now 52 archetypes)
 
 Each scenario below is an archetype that produces unlimited seeded instances.
 
@@ -350,9 +350,9 @@ We consider the training demonstration successful when the trained model:
 * We generate a template environment module using `vf-init` or the Prime template, and we ensure `load_environment` returns a `vf.Environment` object. ([Prime Intellect Docs][1])
 * We add a minimal test suite so Hub Actions passes from the first push. ([Prime Intellect Docs][4])
 
-### Phase 1: MVP Generators + Verifiers + Bench Mode (Top‑50)
+### Phase 1: MVP Generators + Verifiers + Bench Mode
 
-* We implement the Top‑50 archetype generators with deterministic seeds and stable ground truth.
+* We implement all archetype generators with deterministic seeds and stable ground truth.
 * We implement the JSON output contract and a strict grader.
 * We implement sandbox execution tools and a safe default (no network).
 * We implement Bench Mode and baseline evaluations across several models using `prime env eval`. ([Prime Intellect Docs][8])
@@ -646,7 +646,7 @@ You should implement unit tests that run fast and deterministically in Hub Actio
 2. **Schema tests** must confirm that graders reject malformed JSON and accept valid JSON.
 3. **Normalization tests** must confirm that whitespace and ordering rules behave as expected.
 4. **Safety tests** must confirm that leaking forbidden strings triggers negative reward.
-5. **Archetype coverage tests** must confirm that all Top‑50 generators register and can produce at least one instance.
+5. **Archetype coverage tests** must confirm that all generators register and can produce at least one instance.
 
 ### I.2 Integration Tests
 
@@ -732,7 +732,7 @@ This produces the “context” evidence reviewers expect: how hard is this envi
 
 You have reached MVP when:
 
-* The Top‑50 archetypes exist with deterministic grading.
+* All archetypes exist with deterministic grading.
 * Bench Mode exists and produces stable baseline numbers.
 * Sandbox execution works (at minimum via local executor, and ideally via Prime sandbox for the real demonstration).
 * You can run a short RL job and see a measurable lift on held-out seeds.
@@ -794,7 +794,7 @@ Phase 2 should be executed in batches that preserve grading integrity:
 
 
 
-[1]: https://docs.primeintellect.ai/verifiers/environments "Environments - Prime Intellect Docs"
+[1]: https://docs.primeintellect.ai/tutorials-environments/environments "Environments - Prime Intellect Docs"
 [2]: https://docs.primeintellect.ai/sandboxes/overview "Sandboxes Overview - Prime Intellect Docs"
 [3]: https://primeintellect.mintlify.app/reinforcement-fine-tuning "Reinforcement Fine-Tuning (Beta) - Prime Intellect Docs"
 [4]: https://docs.primeintellect.ai/tutorials-environments/environment-actions "Environment Actions - Prime Intellect Docs"

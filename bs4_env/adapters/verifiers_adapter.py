@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """Verifiers framework integration for BeautifulSoup RL environment.
 
-# API verified against verifiers 0.x - check before modifying overrides
+# API verified against verifiers 0.1.8 - check before modifying overrides
 
 This module provides the adapter that wires our environment to Verifiers,
 Prime's RL environment framework.
