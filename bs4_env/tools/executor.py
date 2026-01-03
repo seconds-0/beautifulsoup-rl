@@ -613,11 +613,27 @@ def _execute_in_worker(
     )
 
 
-def get_executor(backend: str = "local", **kwargs) -> Executor:
+def get_executor(
+    backend: str = "local",
+    max_output_chars: int = 10000,
+    network_access: bool = False,
+    # Prime sandbox-specific settings
+    docker_image: str | None = None,
+    cpu_cores: int = 1,
+    memory_gb: int = 2,
+    timeout_minutes: int = 30,
+    **kwargs,
+) -> Executor:
     """Factory function to get an executor by backend name.
 
     Args:
         backend: Either "local", "prime", or "pooled".
+        max_output_chars: Maximum characters to capture from stdout/stderr.
+        network_access: Whether to allow network access (Prime sandbox only).
+        docker_image: Docker image for Prime sandbox (default: python:3.11-slim).
+        cpu_cores: CPU cores for Prime sandbox (default: 1).
+        memory_gb: Memory in GB for Prime sandbox (default: 2).
+        timeout_minutes: Sandbox lifecycle timeout in minutes (default: 30).
         **kwargs: Additional arguments passed to executor constructor.
 
     Returns:
@@ -627,10 +643,30 @@ def get_executor(backend: str = "local", **kwargs) -> Executor:
         ValueError: If backend is unknown.
     """
     if backend == "local":
-        return LocalSubprocessExecutor(**kwargs)
+        return LocalSubprocessExecutor(
+            max_output_chars=max_output_chars,
+            network_access=network_access,
+            **kwargs,
+        )
     elif backend == "prime":
-        return PrimeSandboxExecutor(**kwargs)
+        # Build kwargs for PrimeSandboxExecutor
+        prime_kwargs = {
+            "max_output_chars": max_output_chars,
+            "network_access": network_access,
+            "cpu_cores": cpu_cores,
+            "memory_gb": memory_gb,
+            "timeout_minutes": timeout_minutes,
+            **kwargs,
+        }
+        # Only pass docker_image if explicitly set (otherwise use executor's default)
+        if docker_image is not None:
+            prime_kwargs["docker_image"] = docker_image
+        return PrimeSandboxExecutor(**prime_kwargs)
     elif backend == "pooled":
-        return PooledSubprocessExecutor(**kwargs)
+        return PooledSubprocessExecutor(
+            max_output_chars=max_output_chars,
+            network_access=network_access,
+            **kwargs,
+        )
     else:
         raise ValueError(f"Unknown executor backend: {backend}")

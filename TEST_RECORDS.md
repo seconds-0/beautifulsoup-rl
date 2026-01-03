@@ -743,18 +743,18 @@ Tested cheaper alternatives to GPT-5.2 from Chinese providers.
 
 ## Notes
 
-- Environment has **53 archetypes** total (1060 bench examples)
+- Environment has **52 archetypes** total (1040 bench examples)
   - Core extraction: 10 archetypes
   - Advanced/gotcha: 8 archetypes
   - Multi-step navigation: 5 archetypes (link_chain, search_then_detail, etc.)
   - Semantic challenges: 4 archetypes
   - i18n: 3 archetypes
-  - **Limitations: 5 archetypes** (canvas_text, svg_path_data, pdf_embed, js_required, image_text)
+  - **Limitations: 4 archetypes** (canvas_text, pdf_embed, js_required, image_text)
   - Aggregation/counting: 2 archetypes
   - Forms: 6 archetypes
   - Tables: 4 archetypes
   - Error bait: 3 archetypes
-  - Hard: 3 archetypes
+  - Hard: 4 archetypes (includes extract_svg_geometry - formerly a limitation archetype)
 - Bench split uses seeds 110000-111000 (20 per archetype)
 - Efficiency penalty: -10% per extra tool call, floor at 0.2, cutoff at 11+
 - Run benchmarks on cloud via `.github/workflows/bench.yml` (Namespace runners)

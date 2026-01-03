@@ -14,7 +14,6 @@ from bs4_env.generators.mvp_limitations import (
     ImageTextGenerator,
     JSRequiredGenerator,
     PdfEmbedGenerator,
-    SvgPathDataGenerator,
 )
 
 
@@ -151,69 +150,6 @@ class TestCanvasText:
         assert matched, "No evidence pattern matched the HTML"
 
 
-class TestSvgPathData:
-    """Tests for the svg_path_data limitation archetype."""
-
-    def test_determinism(self):
-        """Same seed produces same output."""
-        gen = SvgPathDataGenerator()
-        task1 = gen.generate(seed=42)
-        task2 = gen.generate(seed=42)
-
-        assert task1.html == task2.html
-
-    def test_different_seeds_different_output(self):
-        """Different seeds produce different output."""
-        gen = SvgPathDataGenerator()
-        task1 = gen.generate(seed=42)
-        task2 = gen.generate(seed=43)
-
-        assert task1.metadata["actual_data"] != task2.metadata["actual_data"]
-
-    def test_is_unsolvable(self):
-        """Task should be marked as unsolvable."""
-        gen = SvgPathDataGenerator()
-        task = gen.generate(seed=42)
-
-        assert task.solvable is False
-        assert task.ground_truth is None
-
-    def test_has_limit_info(self):
-        """Task should have proper limit_info."""
-        gen = SvgPathDataGenerator()
-        task = gen.generate(seed=42)
-
-        assert "allowed_reasons" in task.limit_info
-        assert "svg_path_data" in task.limit_info["allowed_reasons"]
-
-    def test_has_svg_element(self):
-        """HTML should contain an SVG element."""
-        gen = SvgPathDataGenerator()
-        task = gen.generate(seed=42)
-
-        assert "<svg" in task.html
-
-    def test_has_data_in_metadata(self):
-        """Metadata should contain the actual data values."""
-        gen = SvgPathDataGenerator()
-        task = gen.generate(seed=42)
-
-        assert "actual_data" in task.metadata
-        assert len(task.metadata["actual_data"]) == 5
-
-    def test_evidence_in_html(self):
-        """Evidence patterns should match content in HTML."""
-        gen = SvgPathDataGenerator()
-        task = gen.generate(seed=42)
-
-        matched = False
-        for pattern in task.limit_info["evidence_patterns"]:
-            if re.search(pattern, task.html):
-                matched = True
-                break
-        assert matched, "No evidence pattern matched the HTML"
-
-
 class TestPdfEmbed:
     """Tests for the pdf_embed limitation archetype."""
 
@@ -290,11 +226,12 @@ class TestLimitationRegistration:
         archetype_ids = [spec.archetype_id for spec in limitation_archetypes]
 
         # Check all expected archetypes are registered
+        # Note: mvp.limit_svg_path_data was converted to mvp.extract_svg_geometry
+        # (a solvable extraction task) and moved to hard archetypes
         expected = [
             "mvp.limit_js_required",
             "mvp.limit_image_text",
             "mvp.limit_canvas_text",
-            "mvp.limit_svg_path_data",
             "mvp.limit_pdf_embed",
         ]
         for expected_id in expected:
@@ -374,34 +311,6 @@ class TestNoAnswerLeakage:
             assert price not in html, (
                 f"CanvasText leaks actual_price='{price}' in HTML (seed={seed})"
             )
-
-    def test_svg_path_data_no_leak(self):
-        """SvgPathDataGenerator should not leak data points as string literals.
-
-        Note: SvgPathDataGenerator encodes values via coordinate transformations,
-        which is considered safe. Short numeric values (like "98") may coincidentally
-        appear in hex colors (e.g., "#3498db") - this is not a leak.
-        We verify that the exact formatted data string doesn't appear.
-        """
-        gen = SvgPathDataGenerator()
-        for seed in [42, 123, 999]:
-            task = gen.generate(seed=seed)
-            html = task.html
-            data_points = task.metadata["actual_data"]
-
-            # Check formatted list doesn't appear (guards against obvious dumps)
-            formatted_list = str(data_points)
-            assert formatted_list not in html, (
-                f"SvgPath leaks data list '{formatted_list}' in HTML (seed={seed})"
-            )
-            # Check JSON-style arrays don't appear
-            json_list = ", ".join(str(p) for p in data_points)
-            assert json_list not in html, (
-                f"SvgPath leaks data as JSON-style list in HTML (seed={seed})"
-            )
-            # Note: Individual short numbers may coincidentally appear in hex colors
-            # or SVG coordinates, but that's not exploitable - the transformations
-            # used to convert data to path coordinates are not reversible by the model
 
     def test_pdf_embed_no_leak(self):
         """PdfEmbedGenerator should not leak the key value (answer) in HTML.

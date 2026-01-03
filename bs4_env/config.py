@@ -53,6 +53,11 @@ class EnvConfig:
     timeout_s: float = 30.0
     max_output_chars: int = 10000
     archetypes: list[str] | None = None
+    # Prime sandbox-specific settings (only used when executor_backend="prime")
+    docker_image: str | None = None  # Docker image for sandbox (default: python:3.11-slim)
+    cpu_cores: int = 1  # CPU cores to allocate
+    memory_gb: int = 2  # Memory allocation in GB
+    timeout_minutes: int = 30  # Sandbox lifecycle timeout in minutes
 
     def __post_init__(self) -> None:
         """Validate configuration after initialization."""
@@ -90,6 +95,7 @@ STRING_SCHEMA = {"type": "string"}
 STRING_LIST_SCHEMA = {"type": "array", "items": {"type": "string"}}
 LIST_SCHEMA = STRING_LIST_SCHEMA  # Alias for string lists
 INT_SCHEMA = {"type": "integer"}
+INT_LIST_SCHEMA = {"type": "array", "items": {"type": "integer"}}
 FLOAT_SCHEMA = {"type": "number"}
 BOOL_SCHEMA = {"type": "boolean"}
 DICT_SCHEMA = {"type": "object", "additionalProperties": {"type": ["string", "null"]}}

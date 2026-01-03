@@ -92,6 +92,33 @@ Some content is intentionally unparseable (JS-rendered, image-based, etc.). The 
 | Wrong answer | 0.0 |
 | Safety violation | -0.5 |
 
+## Model Training Results
+
+Baseline evaluation results on 52 archetypes (1040 bench examples). See [TEST_RECORDS.md](TEST_RECORDS.md) for full details.
+
+### Benchmark Calibration
+
+| Tier | Model | Pass Rate | Perfect Rate | RL Target? |
+|------|-------|-----------|--------------|------------|
+| Small | Qwen3-4B | 0% | 0% | Ideal |
+| Small | Llama 3.2-3B | 0% | 0% | Ideal |
+| Medium | Ministral-3B | 50.6% | 19.7% | Good |
+| Medium | Qwen3-8B | 43.1% | 26.6% | Good |
+| Medium | Ministral-8B | 68.4% | 57.9% | Validation |
+| Large | Kimi K2 | 72.8% | 45.0% | Ceiling |
+| Large | GLM-4.7 | 74.7% | 45.1% | Ceiling |
+
+**Key Insight:** 0% → 50% → 75% progression shows clear learning signal for RL training. Small models (3-4B) start at 0% but have function calling support, making them ideal RL training targets.
+
+### Archetype Difficulty Distribution
+
+| Category | Example Archetypes | 3B Pass Rate |
+|----------|-------------------|--------------|
+| Easy | `extract_images`, `extract_links`, `select_options` | 90%+ |
+| Medium | `json_ld_extraction`, `table_column_by_header` | 50-80% |
+| Hard | `semantic_decoy`, `aggregation_min_max` | 20-50% |
+| Very Hard | Multi-step navigation, limitation detection | 0-20% |
+
 ## PRIME-RL Training Configuration
 
 ### Recommended Training Config

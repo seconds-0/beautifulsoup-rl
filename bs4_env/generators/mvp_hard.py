@@ -14,6 +14,7 @@ These archetypes are designed to:
 """
 
 from bs4_env.config import (
+    INT_LIST_SCHEMA,
     INT_SCHEMA,
     STRING_SCHEMA,
 )
@@ -759,3 +760,133 @@ class SemanticDecoyExtremeGenerator(Generator):
                 "html_style": style.value,
             },
         )
+
+
+# =============================================================================
+# SVG Geometry Extraction Archetype
+# =============================================================================
+
+
+@register(
+    archetype_id="mvp.extract_svg_geometry",
+    category="hard",
+    difficulty="hard",
+    solvable=True,
+    description="Extract data values from SVG chart geometry (bar heights, line coordinates)",
+    tags=["extraction", "svg", "geometry", "math", "chart"],
+    phase=2,
+    answer_schema=INT_LIST_SCHEMA,
+)
+class SvgGeometryExtractionGenerator(Generator):
+    """Generate tasks to extract data from SVG chart geometry.
+
+    This is a challenging extraction task where data values are encoded in
+    SVG element attributes (rect heights, path coordinates) using simple
+    mathematical transformations.
+
+    The model must:
+    1. Parse SVG elements using BeautifulSoup
+    2. Extract relevant numeric attributes
+    3. Apply the inverse transformation to recover original values
+
+    Chart types and their formulas:
+    - Bar chart: height = value * 2, so value = height / 2
+    - Line chart: y = 180 - value * 1.5, so value = (180 - y) / 1.5
+
+    This tests both parsing skills and mathematical reasoning.
+    """
+
+    def generate(self, seed: int) -> TaskInstance:
+        rng = make_rng(self.archetype_id, seed)
+
+        # Generate chart data (5 integer values between 10-100)
+        data_points = [rng.randint(10, 100) for _ in range(5)]
+
+        # Choose between bar chart and line chart (both are solvable)
+        # Pie chart is excluded as it requires more complex trigonometry
+        patterns = [
+            self._bar_chart_pattern,
+            self._line_chart_pattern,
+        ]
+        pattern_fn = rng.choice(patterns)
+        html, hint = pattern_fn(rng, data_points)
+
+        query = (
+            "Extract the original data values from this SVG chart. "
+            "The chart encodes numeric values in its geometry. "
+            f"Hint: {hint} "
+            "Return a list of 5 integers representing the data values."
+        )
+
+        return TaskInstance(
+            html=html,
+            query=query,
+            ground_truth=data_points,  # The original values
+            archetype_id=self.archetype_id,
+            seed=seed,
+            solvable=True,
+            answer_schema=INT_LIST_SCHEMA,
+            normalization={
+                "sort_lists": False,  # Order matters
+            },
+            metadata={
+                "data_points": data_points,
+                "chart_type": pattern_fn.__name__.replace("_pattern", ""),
+                "transformation_hint": hint,
+            },
+        )
+
+    def _bar_chart_pattern(self, rng, data_points: list[int]) -> tuple[str, str]:
+        """Generate SVG bar chart where value = height / 2."""
+        bars = []
+        for i, value in enumerate(data_points):
+            x = 50 + i * 60
+            height = value * 2
+            y = 200 - height
+            bars.append(
+                f'<rect x="{x}" y="{y}" width="40" height="{height}" fill="#4a90d9"/>'
+            )
+
+        html = f"""<!DOCTYPE html>
+<html>
+<head><title>Sales Report</title></head>
+<body>
+<h2>Quarterly Sales Data</h2>
+<svg width="400" height="250" viewBox="0 0 400 250">
+    <line x1="40" y1="200" x2="360" y2="200" stroke="#333" stroke-width="2"/>
+    <line x1="40" y1="0" x2="40" y2="200" stroke="#333" stroke-width="2"/>
+    {"".join(bars)}
+</svg>
+<p>Data visualization - extract values from bar heights</p>
+</body>
+</html>"""
+        hint = "For bar charts, each bar's height = value * 2"
+        return html, hint
+
+    def _line_chart_pattern(self, rng, data_points: list[int]) -> tuple[str, str]:
+        """Generate SVG line chart where value = (180 - y) / 1.5."""
+        points = []
+        for i, value in enumerate(data_points):
+            x = 50 + i * 70
+            y = 180 - value * 1.5
+            points.append(f"{x},{y}")
+
+        path_d = "M " + " L ".join(points)
+
+        html = f"""<!DOCTYPE html>
+<html>
+<head><title>Performance Metrics</title></head>
+<body>
+<div class="chart-container">
+    <h3>Performance Over Time</h3>
+    <svg width="400" height="220" viewBox="0 0 400 220">
+        <path d="{path_d}" fill="none" stroke="#e74c3c" stroke-width="3"/>
+        <path d="{path_d} L {50 + (len(data_points) - 1) * 70},180 L 50,180 Z"
+              fill="rgba(231,76,60,0.2)" stroke="none"/>
+    </svg>
+</div>
+<p>Line chart - extract values from path coordinates</p>
+</body>
+</html>"""
+        hint = "For line charts, each point's y-coordinate: y = 180 - value * 1.5"
+        return html, hint

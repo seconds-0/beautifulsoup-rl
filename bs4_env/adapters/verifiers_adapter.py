@@ -76,6 +76,10 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any) -> Any:
         backend=config.executor_backend,
         max_output_chars=config.max_output_chars,
         network_access=config.network_access,
+        docker_image=config.docker_image,
+        cpu_cores=config.cpu_cores,
+        memory_gb=config.memory_gb,
+        timeout_minutes=config.timeout_minutes,
     )
 
     # Define the run_python tool
@@ -494,6 +498,10 @@ class MinimalEnv:
                 backend=self.config.executor_backend,
                 max_output_chars=self.config.max_output_chars,
                 network_access=self.config.network_access,
+                docker_image=self.config.docker_image,
+                cpu_cores=self.config.cpu_cores,
+                memory_gb=self.config.memory_gb,
+                timeout_minutes=self.config.timeout_minutes,
             )
         return self._executor
 
