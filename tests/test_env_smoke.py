@@ -412,6 +412,128 @@ class TestVerifiersEnvResponse:
             assert normalized_href == expected, f"Failed for href: {href}"
 
 
+class TestMalformedToolArguments:
+    """Tests for handling malformed tool arguments from models."""
+
+    @pytest.mark.asyncio
+    async def test_env_response_handles_none_arguments(self):
+        """Regression test: env_response must handle arguments=None without crashing.
+
+        Some models send tool calls with null/None arguments instead of "{}".
+        Our env_response must convert None to "{}" before verifiers tries json.loads().
+        """
+        # Skip if verifiers not installed
+        try:
+            import verifiers as vf
+        except ImportError:
+            pytest.skip("verifiers not installed")
+
+        from unittest.mock import AsyncMock, patch
+
+        from bs4_env.adapters.verifiers_adapter import _build_real_verifiers_env
+        from bs4_env.config import EnvConfig
+
+        config = EnvConfig(split="train", mode="mvp", num_examples=1)
+        env = _build_real_verifiers_env(config, vf)
+
+        state = {
+            "html": "<html>Test</html>",
+            "query": "Find something",
+            "constraints": {},
+            "task_info": {},
+            "pages": {},
+            "navigation_history": [],
+        }
+
+        # Simulate a tool call with None arguments (the bug we're fixing)
+        messages = [
+            {
+                "role": "assistant",
+                "tool_calls": [
+                    {
+                        "id": "call_123",
+                        "type": "function",
+                        "function": {
+                            "name": "run_python",
+                            "arguments": None,  # This is the bug case!
+                        },
+                    }
+                ],
+            },
+        ]
+
+        # Mock parent's env_response to avoid actual execution
+        with patch.object(
+            vf.StatefulToolEnv, "env_response", new_callable=AsyncMock
+        ) as mock_parent:
+            mock_parent.return_value = []
+
+            # This should NOT crash with "TypeError: JSON object must be str, not NoneType"
+            await env.env_response(messages, state)
+
+        # Verify the arguments were converted to "{}"
+        assert messages[0]["tool_calls"][0]["function"]["arguments"] == "{}"
+
+    @pytest.mark.asyncio
+    async def test_env_response_handles_empty_string_arguments(self):
+        """Regression test: env_response must handle arguments="" without crashing.
+
+        Some models send tool calls with empty string arguments instead of "{}".
+        Our env_response must convert "" to "{}" before verifiers tries json.loads().
+        """
+        # Skip if verifiers not installed
+        try:
+            import verifiers as vf
+        except ImportError:
+            pytest.skip("verifiers not installed")
+
+        from unittest.mock import AsyncMock, patch
+
+        from bs4_env.adapters.verifiers_adapter import _build_real_verifiers_env
+        from bs4_env.config import EnvConfig
+
+        config = EnvConfig(split="train", mode="mvp", num_examples=1)
+        env = _build_real_verifiers_env(config, vf)
+
+        state = {
+            "html": "<html>Test</html>",
+            "query": "Find something",
+            "constraints": {},
+            "task_info": {},
+            "pages": {},
+            "navigation_history": [],
+        }
+
+        # Simulate a tool call with empty string arguments (the bug we're fixing)
+        messages = [
+            {
+                "role": "assistant",
+                "tool_calls": [
+                    {
+                        "id": "call_456",
+                        "type": "function",
+                        "function": {
+                            "name": "run_python",
+                            "arguments": "",  # Empty string - causes json.loads("") to crash
+                        },
+                    }
+                ],
+            },
+        ]
+
+        # Mock parent's env_response to avoid actual execution
+        with patch.object(
+            vf.StatefulToolEnv, "env_response", new_callable=AsyncMock
+        ) as mock_parent:
+            mock_parent.return_value = []
+
+            # This should NOT crash with "JSONDecodeError: Expecting value"
+            await env.env_response(messages, state)
+
+        # Verify the arguments were converted to "{}"
+        assert messages[0]["tool_calls"][0]["function"]["arguments"] == "{}"
+
+
 class TestSetupStateInfoAccess:
     """Test that setup_state correctly accesses info from state."""
 

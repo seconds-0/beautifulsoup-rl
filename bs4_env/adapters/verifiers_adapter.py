@@ -448,8 +448,13 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any, **env_kwargs: Any) -> 
                 for tc in tool_calls:
                     if isinstance(tc, dict):
                         func = tc.get("function", {})
-                        args_str = func.get("arguments", "")
-                        if args_str and isinstance(args_str, str):
+                        args_str = func.get("arguments")
+                        # Handle None, missing, or empty arguments - some models send null or ""
+                        if args_str is None or args_str == "":
+                            func["arguments"] = "{}"
+                            logger.debug("Tool arguments was None/empty, using empty object")
+                            continue
+                        if isinstance(args_str, str):
                             try:
                                 # Try to parse - if it works, great
                                 json.loads(args_str)
