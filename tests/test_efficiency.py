@@ -5,16 +5,19 @@ These tests verify that:
 2. Hard cutoff works (>10 calls = 0.0)
 3. Wrong answers aren't affected by efficiency
 4. Integration with compute_reward works
+5. Per-task max_tool_calls constraints are honored
 """
 
 import pytest
 
 from bs4_env.grading.rubric import (
+    DEFAULT_MAX_TOOL_CALLS,
     EFFICIENCY_FLOOR,
     EFFICIENCY_PENALTY_PER_CALL,
     MAX_TOOL_CALLS,
     compute_efficiency_multiplier,
     compute_reward,
+    get_max_tool_calls,
 )
 
 
@@ -222,3 +225,134 @@ class TestRawVsWeightedToolCounts:
         )
         assert metrics["tool_calls"] == 3.0
         assert metrics["tool_calls_raw"] == 5
+
+
+class TestGetMaxToolCalls:
+    """Tests for get_max_tool_calls helper function."""
+
+    def test_returns_default_for_none(self):
+        """None task_info returns default."""
+        assert get_max_tool_calls(None) == DEFAULT_MAX_TOOL_CALLS
+
+    def test_returns_default_for_empty_dict(self):
+        """Empty task_info returns default."""
+        assert get_max_tool_calls({}) == DEFAULT_MAX_TOOL_CALLS
+
+    def test_returns_default_when_no_constraints(self):
+        """Task without constraints returns default."""
+        task_info = {"metadata": {"some_key": "value"}}
+        assert get_max_tool_calls(task_info) == DEFAULT_MAX_TOOL_CALLS
+
+    def test_reads_from_metadata_constraints(self):
+        """Reads max_tool_calls from metadata.constraints."""
+        task_info = {
+            "metadata": {"constraints": {"max_tool_calls": 15}}
+        }
+        assert get_max_tool_calls(task_info) == 15
+
+    def test_handles_json_serialized_metadata(self):
+        """Handles metadata as JSON string (from dataset)."""
+        import json
+        task_info = {
+            "metadata": json.dumps({"constraints": {"max_tool_calls": 20}})
+        }
+        assert get_max_tool_calls(task_info) == 20
+
+    def test_returns_default_for_invalid_json_metadata(self):
+        """Returns default when metadata is invalid JSON."""
+        task_info = {"metadata": "not valid json {"}
+        assert get_max_tool_calls(task_info) == DEFAULT_MAX_TOOL_CALLS
+
+
+class TestArchetypeAwareEfficiency:
+    """Tests for per-task max_tool_calls constraints."""
+
+    @pytest.fixture
+    def correct_output(self):
+        return '{"status": "ok", "answer": "test"}'
+
+    @pytest.fixture
+    def base_task_info(self):
+        return {
+            "ground_truth": "test",
+            "solvable": True,
+            "answer_schema": {"type": "string"},
+        }
+
+    def test_default_limit_applied(self, correct_output, base_task_info):
+        """Default limit is applied when no constraints specified."""
+        # 11 calls exceeds default of 10
+        reward, metrics = compute_reward(
+            correct_output,
+            base_task_info,
+            tool_call_count=11,
+            tool_call_count_raw=11,
+        )
+        assert reward == 0.0
+        assert metrics["max_tool_calls"] == DEFAULT_MAX_TOOL_CALLS
+        assert "Exceeded max tool calls" in str(metrics["errors"])
+
+    def test_custom_limit_allows_more_calls(self, correct_output, base_task_info):
+        """Custom higher limit allows more tool calls."""
+        base_task_info["metadata"] = {"constraints": {"max_tool_calls": 15}}
+
+        # 12 calls is within custom limit of 15
+        reward, metrics = compute_reward(
+            correct_output,
+            base_task_info,
+            tool_call_count=12,
+            tool_call_count_raw=12,
+        )
+        assert reward > 0  # Should not be zero
+        assert metrics["max_tool_calls"] == 15
+        assert "Exceeded max tool calls" not in str(metrics.get("errors", []))
+
+    def test_custom_limit_enforced(self, correct_output, base_task_info):
+        """Custom limit is enforced when exceeded."""
+        base_task_info["metadata"] = {"constraints": {"max_tool_calls": 15}}
+
+        # 16 calls exceeds custom limit of 15
+        reward, metrics = compute_reward(
+            correct_output,
+            base_task_info,
+            tool_call_count=16,
+            tool_call_count_raw=16,
+        )
+        assert reward == 0.0
+        assert metrics["max_tool_calls"] == 15
+        assert "16 > 15" in str(metrics["errors"])
+
+    def test_stricter_custom_limit(self, correct_output, base_task_info):
+        """Custom stricter limit is enforced."""
+        base_task_info["metadata"] = {"constraints": {"max_tool_calls": 5}}
+
+        # 6 calls exceeds stricter limit of 5
+        reward, metrics = compute_reward(
+            correct_output,
+            base_task_info,
+            tool_call_count=6,
+            tool_call_count_raw=6,
+        )
+        assert reward == 0.0
+        assert metrics["max_tool_calls"] == 5
+
+    def test_metrics_include_max_tool_calls(self, correct_output, base_task_info):
+        """Metrics always include the max_tool_calls limit used."""
+        _, metrics = compute_reward(correct_output, base_task_info, tool_call_count=1)
+        assert "max_tool_calls" in metrics
+        assert metrics["max_tool_calls"] == DEFAULT_MAX_TOOL_CALLS
+
+    def test_json_serialized_metadata_constraints(self, correct_output, base_task_info):
+        """Handles JSON-serialized metadata from datasets."""
+        import json
+        base_task_info["metadata"] = json.dumps({"constraints": {"max_tool_calls": 20}})
+
+        # 15 calls is within limit of 20
+        reward, metrics = compute_reward(
+            correct_output,
+            base_task_info,
+            tool_call_count=15,
+            tool_call_count_raw=15,
+        )
+        assert reward > 0
+        assert metrics["max_tool_calls"] == 20

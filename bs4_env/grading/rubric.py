@@ -32,7 +32,8 @@ REWARD_PARTIAL_MAX = (
 )
 
 # Efficiency settings
-MAX_TOOL_CALLS = 10  # Hard cutoff - more than this is considered failure
+DEFAULT_MAX_TOOL_CALLS = 10  # Default hard cutoff - more than this is considered failure
+MAX_TOOL_CALLS = DEFAULT_MAX_TOOL_CALLS  # Alias for backward compatibility
 EFFICIENCY_PENALTY_PER_CALL = 0.1  # -10% per additional call after first
 EFFICIENCY_FLOOR = 0.2  # Minimum multiplier before hard cutoff
 
@@ -63,7 +64,39 @@ PROCESS_TIER_REWARDS = {
 }
 
 
-def compute_efficiency_multiplier(tool_call_count: float) -> float:
+def get_max_tool_calls(task_info: dict | None) -> int:
+    """Get the max tool calls limit for a task.
+
+    Reads from task constraints if available, otherwise returns the default.
+    This allows archetypes to specify custom limits (e.g., multi-step tasks
+    that legitimately need more tool calls).
+
+    Args:
+        task_info: The task info dictionary, or None.
+
+    Returns:
+        Maximum allowed tool calls before hard cutoff.
+    """
+    if task_info is None:
+        return DEFAULT_MAX_TOOL_CALLS
+
+    # Try to read from metadata.constraints.max_tool_calls
+    metadata = task_info.get("metadata", {})
+    # metadata might be JSON-serialized string in dataset
+    if isinstance(metadata, str):
+        try:
+            metadata = json.loads(metadata)
+        except (json.JSONDecodeError, TypeError):
+            metadata = {}
+
+    constraints = metadata.get("constraints", {})
+    return constraints.get("max_tool_calls", DEFAULT_MAX_TOOL_CALLS)
+
+
+def compute_efficiency_multiplier(
+    tool_call_count: float,
+    max_tool_calls: int | None = None,
+) -> float:
     """Compute efficiency multiplier based on tool call count.
 
     Rewards efficient solutions that solve in fewer calls.
@@ -72,6 +105,9 @@ def compute_efficiency_multiplier(tool_call_count: float) -> float:
     Args:
         tool_call_count: Number of (weighted) tool calls made during the episode.
             Can be a float if weighted tool counting is used.
+        max_tool_calls: Maximum allowed tool calls for hard cutoff.
+            Defaults to DEFAULT_MAX_TOOL_CALLS if not specified.
+            This allows per-task limits (e.g., multi-step tasks may allow more).
 
     Returns:
         Multiplier in range [0.0, 1.0]:
@@ -82,7 +118,8 @@ def compute_efficiency_multiplier(tool_call_count: float) -> float:
         - 9-10 calls: 0.2 (floor)
         - 11+ calls: 0.0 (hard cutoff - treated as failure)
     """
-    if tool_call_count > MAX_TOOL_CALLS:
+    limit = max_tool_calls if max_tool_calls is not None else DEFAULT_MAX_TOOL_CALLS
+    if tool_call_count > limit:
         return 0.0  # Hard cutoff - brute force isn't skill
     if tool_call_count <= 1:
         return 1.0
@@ -717,24 +754,28 @@ def compute_reward(
     # Use raw count for hard cap, fall back to weighted if not provided
     hard_cap_count = tool_call_count_raw if tool_call_count_raw is not None else tool_call_count
 
+    # Get task-specific max tool calls (allows archetypes to override default)
+    max_tool_calls = get_max_tool_calls(task_info)
+    metrics["max_tool_calls"] = max_tool_calls
+
     if tool_call_count is not None and base_reward > 0 and not is_limit_response:
         # Check hard cap first using raw count
-        if hard_cap_count is not None and hard_cap_count > MAX_TOOL_CALLS:
+        if hard_cap_count is not None and hard_cap_count > max_tool_calls:
             metrics["efficiency_multiplier"] = 0.0
             metrics["errors"].append(
-                f"Exceeded max tool calls ({hard_cap_count} > {MAX_TOOL_CALLS})"
+                f"Exceeded max tool calls ({hard_cap_count} > {max_tool_calls})"
             )
             metrics["correct"] = False
             final_reward = 0.0
         else:
             # Apply soft efficiency gradient using weighted count
-            efficiency = compute_efficiency_multiplier(tool_call_count)
+            efficiency = compute_efficiency_multiplier(tool_call_count, max_tool_calls)
             metrics["efficiency_multiplier"] = efficiency
             final_reward = base_reward * efficiency
     elif is_limit_response and tool_call_count is not None:
         # Still record efficiency for limit responses but don't penalize
         # (useful for analysis - did model recognize limit quickly or slowly?)
-        efficiency = compute_efficiency_multiplier(tool_call_count)
+        efficiency = compute_efficiency_multiplier(tool_call_count, max_tool_calls)
         metrics["efficiency_multiplier"] = efficiency
         metrics["limit_efficiency_exemption"] = True
 
