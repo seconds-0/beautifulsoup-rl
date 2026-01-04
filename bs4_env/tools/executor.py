@@ -250,6 +250,7 @@ class PrimeSandboxExecutor(Executor):
         self.network_access = network_access
         self._sandbox_id: str | None = None
         self._deps_installed: bool = False
+        self._deps_verified: bool = False
 
         # Lazy initialization - defer import until needed
         self._api_key = api_key
@@ -303,6 +304,44 @@ class PrimeSandboxExecutor(Executor):
                 pass  # Best effort cleanup
             self._sandbox_id = None
             self._deps_installed = False
+            self._deps_verified = False
+
+    def _verify_dependencies(self) -> None:
+        """Verify required dependencies are available in the sandbox.
+
+        Runs an import check inside the sandbox to ensure bs4, lxml, and html5lib
+        are installed and importable. This catches cases where:
+        - network_access=False and deps weren't preinstalled in the image
+        - pip install failed silently or installed broken packages
+        - wrong Python version in sandbox
+
+        Raises:
+            RuntimeError: If required dependencies are not available.
+        """
+        if self._deps_verified:
+            return
+
+        if self._sandbox_id is None:
+            return  # No sandbox yet, will verify after creation
+
+        client = self._get_sandbox_client()
+        result = client.execute_command(
+            self._sandbox_id,
+            'python3 -c "import bs4, lxml, html5lib; print(\'OK\')"',
+            timeout=30,
+        )
+
+        if result.exit_code != 0:
+            stderr = result.stderr or ""
+            stdout = result.stdout or ""
+            missing_info = stderr if stderr else stdout
+            raise RuntimeError(
+                f"Required dependencies (bs4, lxml, html5lib) not available in sandbox. "
+                f"If using network_access=False, ensure your docker image has these "
+                f"packages preinstalled. Error: {missing_info[:500]}"
+            )
+
+        self._deps_verified = True
 
     def _ensure_sandbox(self) -> str:
         """Create sandbox if not exists, install dependencies, return sandbox ID.
@@ -355,6 +394,9 @@ class PrimeSandboxExecutor(Executor):
                 stderr = result.stderr or ""
                 raise RuntimeError(f"Failed to install dependencies in sandbox: {stderr[:500]}")
             self._deps_installed = True
+
+        # Verify dependencies are importable (catches network_access=False with missing deps)
+        self._verify_dependencies()
 
         return self._sandbox_id
 
