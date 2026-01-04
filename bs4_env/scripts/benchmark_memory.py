@@ -278,7 +278,7 @@ def main():
         disk_peak = disk_results["tracemalloc_peak_mb"]
         reload_peak = reload_results["tracemalloc_peak_mb"]
 
-        print(f"\n  Peak memory (tracemalloc):")
+        print("\n  Peak memory (tracemalloc):")
         print(f"    Eager:         {eager_peak:.2f} MB")
         print(f"    Disk (build):  {disk_peak:.2f} MB")
         print(f"    Disk (reload): {reload_peak:.2f} MB")
@@ -286,7 +286,7 @@ def main():
         if eager_peak > 0:
             reduction_build = ((eager_peak - disk_peak) / eager_peak) * 100
             reduction_reload = ((eager_peak - reload_peak) / eager_peak) * 100
-            print(f"\n  Memory reduction vs eager:")
+            print("\n  Memory reduction vs eager:")
             print(f"    Build: {reduction_build:+.1f}%")
             print(f"    Reload: {reduction_reload:+.1f}%")
 
