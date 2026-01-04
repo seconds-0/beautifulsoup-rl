@@ -263,6 +263,36 @@ class TestGetMaxToolCalls:
         task_info = {"metadata": "not valid json {"}
         assert get_max_tool_calls(task_info) == DEFAULT_MAX_TOOL_CALLS
 
+    def test_handles_non_dict_metadata(self):
+        """Returns default when metadata is not a dict."""
+        task_info = {"metadata": ["list", "not", "dict"]}
+        assert get_max_tool_calls(task_info) == DEFAULT_MAX_TOOL_CALLS
+
+    def test_handles_non_dict_constraints(self):
+        """Returns default when constraints is not a dict."""
+        task_info = {"metadata": {"constraints": "not a dict"}}
+        assert get_max_tool_calls(task_info) == DEFAULT_MAX_TOOL_CALLS
+
+    def test_handles_string_max_tool_calls(self):
+        """Coerces string to int."""
+        task_info = {"metadata": {"constraints": {"max_tool_calls": "15"}}}
+        assert get_max_tool_calls(task_info) == 15
+
+    def test_handles_float_max_tool_calls(self):
+        """Coerces whole float to int."""
+        task_info = {"metadata": {"constraints": {"max_tool_calls": 15.0}}}
+        assert get_max_tool_calls(task_info) == 15
+
+    def test_handles_invalid_string_max_tool_calls(self):
+        """Returns default for non-numeric string."""
+        task_info = {"metadata": {"constraints": {"max_tool_calls": "fifteen"}}}
+        assert get_max_tool_calls(task_info) == DEFAULT_MAX_TOOL_CALLS
+
+    def test_handles_none_max_tool_calls(self):
+        """Returns default when max_tool_calls is None."""
+        task_info = {"metadata": {"constraints": {"max_tool_calls": None}}}
+        assert get_max_tool_calls(task_info) == DEFAULT_MAX_TOOL_CALLS
+
 
 class TestArchetypeAwareEfficiency:
     """Tests for per-task max_tool_calls constraints."""
@@ -356,3 +386,15 @@ class TestArchetypeAwareEfficiency:
         )
         assert reward > 0
         assert metrics["max_tool_calls"] == 20
+
+    def test_hard_cap_with_only_raw_count(self, correct_output, base_task_info):
+        """Hard cap is enforced even when only raw count is provided."""
+        # 12 raw calls, no weighted count
+        reward, metrics = compute_reward(
+            correct_output,
+            base_task_info,
+            tool_call_count=None,  # No weighted count
+            tool_call_count_raw=12,  # Exceeds default limit of 10
+        )
+        assert reward == 0.0
+        assert "Exceeded max tool calls" in str(metrics["errors"])

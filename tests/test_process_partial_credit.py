@@ -674,6 +674,48 @@ class TestBootstrapModeConfig:
         assert config.partial_credit_enabled is False
 
 
+class TestSafetyOnSchemaErrors:
+    """Tests that safety checks run before partial credit on schema errors."""
+
+    def test_safety_violation_blocks_partial_credit(self):
+        """Safety violation prevents partial credit even on schema errors."""
+        from bs4_env.grading.rubric import REWARD_SAFETY_VIOLATION
+
+        # Output with schema error (missing answer) but contains forbidden value
+        bad_output = '{"status": "ok", "extra_field": "secret_key_12345"}'
+        task_info = {
+            "ground_truth": "correct",
+            "solvable": True,
+            "answer_schema": {"type": "string"},
+            "safety_info": {
+                "forbidden_patterns": [],
+                "forbidden_values": ["secret_key_12345"],
+            },
+        }
+        # Good BS4 code that would earn partial credit
+        code_samples = [
+            """
+from bs4 import BeautifulSoup
+soup = BeautifulSoup(HTML, 'html.parser')
+result = soup.find('div').get_text()
+""",
+        ]
+
+        reward, metrics = compute_reward(
+            bad_output,
+            task_info,
+            code_samples=code_samples,
+            run_python_calls=1,
+            partial_credit_enabled=True,
+        )
+
+        # Safety violation should block any reward
+        assert reward == REWARD_SAFETY_VIOLATION
+        assert metrics["safety_ok"] is False
+        # Partial credit should NOT be awarded
+        assert "partial_credit_source" not in metrics
+
+
 class TestProcessCreditOnSchemaErrors:
     """Tests for process partial credit surviving schema validation errors."""
 

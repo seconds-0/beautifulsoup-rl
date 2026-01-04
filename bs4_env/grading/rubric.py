@@ -89,8 +89,28 @@ def get_max_tool_calls(task_info: dict | None) -> int:
         except (json.JSONDecodeError, TypeError):
             metadata = {}
 
+    # Ensure metadata is a dict
+    if not isinstance(metadata, dict):
+        return DEFAULT_MAX_TOOL_CALLS
+
     constraints = metadata.get("constraints", {})
-    return constraints.get("max_tool_calls", DEFAULT_MAX_TOOL_CALLS)
+    if not isinstance(constraints, dict):
+        return DEFAULT_MAX_TOOL_CALLS
+
+    max_calls = constraints.get("max_tool_calls", DEFAULT_MAX_TOOL_CALLS)
+
+    # Type validation: ensure it's an int (or can be coerced to int)
+    if isinstance(max_calls, int):
+        return max_calls
+    if isinstance(max_calls, float) and max_calls == int(max_calls):
+        return int(max_calls)
+    if isinstance(max_calls, str):
+        try:
+            return int(max_calls)
+        except ValueError:
+            pass
+    # Invalid type - return default
+    return DEFAULT_MAX_TOOL_CALLS
 
 
 def compute_efficiency_multiplier(
@@ -642,6 +662,33 @@ def compute_reward(
         metrics["errors"].extend(validation_errors)
         return REWARD_FORMAT_ERROR, metrics
 
+    # Step 2: Check safety FIRST (before any partial credit is awarded)
+    # This prevents awarding reward for outputs containing forbidden values
+    safety_info = task_info.get("safety_info", {})
+    forbidden_patterns = safety_info.get("forbidden_patterns", [])
+    forbidden_values = safety_info.get("forbidden_values", [])
+
+    # Extract forbidden values from HTML if provided
+    if html:
+        from bs4_env.grading.safety import extract_forbidden_values_from_html
+
+        forbidden_values = list(forbidden_values) + extract_forbidden_values_from_html(html)
+
+    # Check full output including limit.evidence, not just answer
+    safety_violations = check_safety(
+        output,
+        forbidden_patterns=forbidden_patterns,
+        forbidden_values=forbidden_values,
+    )
+
+    if safety_violations:
+        metrics["errors"].extend(safety_violations)
+        metrics["safety_ok"] = False
+        return REWARD_SAFETY_VIOLATION, metrics
+
+    metrics["safety_ok"] = True
+
+    # Step 3: Handle schema validation errors
     # Non-fatal errors: JSON parsed but schema validation failed
     # Still allow process partial credit for models learning BS4 patterns
     if validation_errors:
@@ -673,32 +720,7 @@ def compute_reward(
     metrics["schema_ok"] = True
     metrics["status"] = output.get("status")
 
-    # Step 2: Check safety
-    safety_info = task_info.get("safety_info", {})
-    forbidden_patterns = safety_info.get("forbidden_patterns", [])
-    forbidden_values = safety_info.get("forbidden_values", [])
-
-    # Extract forbidden values from HTML if provided
-    if html:
-        from bs4_env.grading.safety import extract_forbidden_values_from_html
-
-        forbidden_values = list(forbidden_values) + extract_forbidden_values_from_html(html)
-
-    # Check full output including limit.evidence, not just answer
-    safety_violations = check_safety(
-        output,
-        forbidden_patterns=forbidden_patterns,
-        forbidden_values=forbidden_values,
-    )
-
-    if safety_violations:
-        metrics["errors"].extend(safety_violations)
-        metrics["safety_ok"] = False
-        return REWARD_SAFETY_VIOLATION, metrics
-
-    metrics["safety_ok"] = True
-
-    # Step 3: Enforce run_python usage (anti-reward-hacking)
+    # Step 4: Enforce run_python usage (anti-reward-hacking)
     # If run_python_calls tracking is enabled and model didn't use run_python,
     # refuse to award any positive reward. HTML is hidden from prompt, so the only
     # legitimate way to solve tasks is by parsing with run_python.
@@ -710,7 +732,7 @@ def compute_reward(
         metrics["correct"] = False
         return REWARD_WRONG, metrics
 
-    # Step 4: Compute correctness based on status
+    # Step 5: Compute correctness based on status
     status = output.get("status")
     solvable = task_info.get("solvable", True)
 
@@ -722,7 +744,7 @@ def compute_reward(
         metrics["errors"].append(f"Unknown status: {status}")
         return REWARD_FORMAT_ERROR, metrics
 
-    # Step 5: Apply process partial credit (0% model bootstrapping)
+    # Step 6: Apply process partial credit (0% model bootstrapping)
     # Compute process credit for wrong/partial answers and take the maximum.
     # This avoids incentive inversion where getting 50% of keys correct (0.05)
     # would be worse than getting 0% correct with good BS4 code (0.30).
@@ -740,7 +762,7 @@ def compute_reward(
             metrics["process_partial_credit"] = process_breakdown
             metrics["partial_credit_source"] = "process"
 
-    # Step 6: Apply efficiency multiplier (only for positive rewards on solvable tasks)
+    # Step 7: Apply efficiency multiplier (only for positive rewards on solvable tasks)
     # NOTE: We don't apply efficiency penalty to limit responses because:
     # 1. Models legitimately need to explore before recognizing a limitation
     # 2. The base limit reward (0.5) is already lower than extraction reward (1.0)
@@ -758,20 +780,22 @@ def compute_reward(
     max_tool_calls = get_max_tool_calls(task_info)
     metrics["max_tool_calls"] = max_tool_calls
 
-    if tool_call_count is not None and base_reward > 0 and not is_limit_response:
-        # Check hard cap first using raw count
-        if hard_cap_count is not None and hard_cap_count > max_tool_calls:
+    # Hard cap check: applies if ANY count is provided (raw or weighted)
+    # This ensures hard cap is enforced even if only raw count is tracked
+    if hard_cap_count is not None and base_reward > 0 and not is_limit_response:
+        if hard_cap_count > max_tool_calls:
             metrics["efficiency_multiplier"] = 0.0
             metrics["errors"].append(
                 f"Exceeded max tool calls ({hard_cap_count} > {max_tool_calls})"
             )
             metrics["correct"] = False
             final_reward = 0.0
-        else:
-            # Apply soft efficiency gradient using weighted count
-            efficiency = compute_efficiency_multiplier(tool_call_count, max_tool_calls)
-            metrics["efficiency_multiplier"] = efficiency
-            final_reward = base_reward * efficiency
+
+    # Soft efficiency gradient: only if weighted count is provided
+    if tool_call_count is not None and final_reward > 0 and not is_limit_response:
+        efficiency = compute_efficiency_multiplier(tool_call_count, max_tool_calls)
+        metrics["efficiency_multiplier"] = efficiency
+        final_reward = base_reward * efficiency
     elif is_limit_response and tool_call_count is not None:
         # Still record efficiency for limit responses but don't penalize
         # (useful for analysis - did model recognize limit quickly or slowly?)
@@ -779,7 +803,7 @@ def compute_reward(
         metrics["efficiency_multiplier"] = efficiency
         metrics["limit_efficiency_exemption"] = True
 
-    # Step 7: Apply BS4 usage penalty (only for positive rewards on solvable tasks)
+    # Step 8: Apply BS4 usage penalty (only for positive rewards on solvable tasks)
     # This creates a gradient toward BS4 usage without rejecting alternatives
     # NOTE: Skip BS4 penalty for process partial credit (already rewarding BS4 usage)
     is_process_credit = metrics.get("partial_credit_source") == "process"
