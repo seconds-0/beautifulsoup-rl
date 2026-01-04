@@ -443,6 +443,8 @@ def _compute_cache_key(config: EnvConfig) -> str:
     Returns:
         SHA-256 hash string (first 16 chars).
     """
+    # Include difficulty_weights for tiered mode cache invalidation
+    weights_str = str(sorted(config.difficulty_weights.items()))
     key_parts = [
         config.split,
         config.mode,
@@ -450,6 +452,7 @@ def _compute_cache_key(config: EnvConfig) -> str:
         str(config.seed),
         str(config.num_examples),
         str(sorted(config.archetypes or [])),
+        weights_str,
         _get_archetype_version_hash(),
     ]
     return hashlib.sha256(":".join(key_parts).encode()).hexdigest()[:16]
@@ -464,6 +467,9 @@ def _get_archetype_version_hash() -> str:
     Returns:
         SHA-256 hash string (first 8 chars).
     """
+    # Import auto_import first to ensure all archetypes are registered
+    from bs4_env import auto_import  # noqa: F401
+
     specs = list_archetypes()
     spec_strings = sorted([f"{s.archetype_id}:{s.difficulty}:{s.phase}" for s in specs])
     return hashlib.sha256(":".join(spec_strings).encode()).hexdigest()[:8]
@@ -518,6 +524,8 @@ def build_disk_cached_dataset(
     logger.info(f"Building dataset to disk cache: {dataset_dir}")
     dataset_dir.mkdir(parents=True, exist_ok=True)
 
+    import tempfile
+
     def gen():
         for idx, row in enumerate(generate_dataset_rows(config)):
             yield {
@@ -529,8 +537,6 @@ def build_disk_cached_dataset(
 
     # Use a temp directory for generation, then save to final location
     # This avoids partial cache files if generation fails
-    import tempfile
-
     with tempfile.TemporaryDirectory() as tmp_dir:
         dataset = Dataset.from_generator(gen, cache_dir=tmp_dir)
         dataset.save_to_disk(str(dataset_dir))

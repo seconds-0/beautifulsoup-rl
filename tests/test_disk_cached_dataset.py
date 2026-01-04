@@ -69,6 +69,24 @@ class TestCacheKeyComputation:
 
         assert key1 != key2
 
+    def test_different_difficulty_weights_different_key(self):
+        """Different difficulty_weights should produce different cache key."""
+        config1 = EnvConfig(
+            split="train",
+            mode="tiered",
+            difficulty_weights={"primer": 0.0, "easy": 0.2, "medium": 0.4, "hard": 0.4},
+        )
+        config2 = EnvConfig(
+            split="train",
+            mode="tiered",
+            difficulty_weights={"primer": 0.1, "easy": 0.3, "medium": 0.3, "hard": 0.3},
+        )
+
+        key1 = _compute_cache_key(config1)
+        key2 = _compute_cache_key(config2)
+
+        assert key1 != key2
+
     def test_cache_key_is_hex_string(self):
         """Cache key should be a hex string."""
         config = EnvConfig(split="train", mode="mvp")
