@@ -156,3 +156,69 @@ class TestEfficiencyEdgeCases:
         """Very large call counts return 0.0."""
         assert compute_efficiency_multiplier(1000) == 0.0
         assert compute_efficiency_multiplier(999999) == 0.0
+
+
+class TestRawVsWeightedToolCounts:
+    """Tests for raw vs weighted tool count semantics."""
+
+    @pytest.fixture
+    def correct_output(self):
+        return '{"status": "ok", "answer": "test"}'
+
+    @pytest.fixture
+    def task_info(self):
+        return {
+            "ground_truth": "test",
+            "solvable": True,
+            "answer_schema": {"type": "string"},
+        }
+
+    def test_raw_count_used_for_hard_cap(self, correct_output, task_info):
+        """Hard cap uses raw count (11 raw calls = zero reward)."""
+        # 11 raw calls but only 5 weighted (imagine many navigate calls)
+        reward, metrics = compute_reward(
+            correct_output,
+            task_info,
+            tool_call_count=5.0,  # Weighted: low
+            tool_call_count_raw=11,  # Raw: over limit
+        )
+        assert reward == 0.0
+        assert metrics["errors"]
+        assert "Exceeded max tool calls" in str(metrics["errors"])
+
+    def test_weighted_count_used_for_soft_penalty(self, correct_output, task_info):
+        """Soft efficiency penalty uses weighted count."""
+        # 8 raw calls but only 3.0 weighted (many navigate calls)
+        reward, metrics = compute_reward(
+            correct_output,
+            task_info,
+            tool_call_count=3.0,  # Weighted
+            tool_call_count_raw=8,  # Raw
+        )
+        # Should use weighted count (3.0) for efficiency: 1.0 - 0.1 * 2 = 0.8
+        assert reward == pytest.approx(0.8)
+        assert metrics["efficiency_multiplier"] == pytest.approx(0.8)
+
+    def test_falls_back_to_weighted_when_raw_not_provided(self, correct_output, task_info):
+        """When tool_call_count_raw is None, uses tool_call_count for hard cap."""
+        # 12 weighted calls, no raw count provided
+        reward, metrics = compute_reward(
+            correct_output,
+            task_info,
+            tool_call_count=12.0,
+            tool_call_count_raw=None,
+        )
+        # Should use weighted count for hard cap too
+        assert reward == 0.0
+        assert "Exceeded max tool calls" in str(metrics["errors"])
+
+    def test_metrics_track_both_counts(self, correct_output, task_info):
+        """Metrics include both raw and weighted counts."""
+        _, metrics = compute_reward(
+            correct_output,
+            task_info,
+            tool_call_count=3.0,
+            tool_call_count_raw=5,
+        )
+        assert metrics["tool_calls"] == 3.0
+        assert metrics["tool_calls_raw"] == 5

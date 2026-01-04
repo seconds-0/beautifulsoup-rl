@@ -546,6 +546,7 @@ def compute_reward(
     task_info: dict,
     html: str | None = None,
     tool_call_count: int | None = None,
+    tool_call_count_raw: int | None = None,
     run_python_calls: int | None = None,
     code_samples: list[str] | None = None,
     partial_credit_enabled: bool | None = None,
@@ -564,8 +565,11 @@ def compute_reward(
         raw_output: The raw string output from the model.
         task_info: The task info dictionary containing ground_truth, etc.
         html: The original HTML (for safety checking and evidence verification).
-        tool_call_count: Number of tool calls made. If provided, applies efficiency
-            multiplier to reward (fewer calls = higher reward).
+        tool_call_count: Weighted tool call count for soft efficiency shaping.
+            Different tools can have different weights (e.g., navigate=0.2).
+        tool_call_count_raw: Raw (unweighted) tool call count for hard caps.
+            Used to match prompt wording about "10+ calls = zero reward".
+            If not provided, falls back to tool_call_count for hard cap.
         run_python_calls: Number of run_python tool calls made. If provided and <= 0,
             returns zero reward (anti-reward-hacking: prevents guessing without parsing).
         code_samples: List of code strings executed during the episode. If provided,
@@ -585,7 +589,8 @@ def compute_reward(
         "status": None,
         "errors": [],
         "warnings": [],
-        "tool_calls": tool_call_count,
+        "tool_calls": tool_call_count,  # Weighted count for efficiency
+        "tool_calls_raw": tool_call_count_raw,  # Raw count for hard caps
         "run_python_calls": run_python_calls,
         "efficiency_multiplier": None,
         "bs4_used": None,
@@ -702,19 +707,30 @@ def compute_reward(
     # NOTE: We don't apply efficiency penalty to limit responses because:
     # 1. Models legitimately need to explore before recognizing a limitation
     # 2. The base limit reward (0.5) is already lower than extraction reward (1.0)
+    #
+    # Tool count semantics:
+    # - tool_call_count_raw: used for hard caps (matches prompt "10+ calls = zero")
+    # - tool_call_count: used for soft efficiency gradient (weighted by tool type)
     final_reward = base_reward
     is_limit_response = status == "limit"
-    if tool_call_count is not None and base_reward > 0 and not is_limit_response:
-        efficiency = compute_efficiency_multiplier(tool_call_count)
-        metrics["efficiency_multiplier"] = efficiency
-        final_reward = base_reward * efficiency
 
-        # If efficiency multiplier is 0 (too many calls), mark as failure
-        if efficiency == 0.0:
+    # Use raw count for hard cap, fall back to weighted if not provided
+    hard_cap_count = tool_call_count_raw if tool_call_count_raw is not None else tool_call_count
+
+    if tool_call_count is not None and base_reward > 0 and not is_limit_response:
+        # Check hard cap first using raw count
+        if hard_cap_count is not None and hard_cap_count > MAX_TOOL_CALLS:
+            metrics["efficiency_multiplier"] = 0.0
             metrics["errors"].append(
-                f"Exceeded max tool calls ({tool_call_count} > {MAX_TOOL_CALLS})"
+                f"Exceeded max tool calls ({hard_cap_count} > {MAX_TOOL_CALLS})"
             )
             metrics["correct"] = False
+            final_reward = 0.0
+        else:
+            # Apply soft efficiency gradient using weighted count
+            efficiency = compute_efficiency_multiplier(tool_call_count)
+            metrics["efficiency_multiplier"] = efficiency
+            final_reward = base_reward * efficiency
     elif is_limit_response and tool_call_count is not None:
         # Still record efficiency for limit responses but don't penalize
         # (useful for analysis - did model recognize limit quickly or slowly?)
