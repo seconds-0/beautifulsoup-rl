@@ -273,21 +273,86 @@ def _check_bs4_usage_ast(code: str) -> bool:
     return visitor.found_bs4
 
 
+def _check_bs4_import_and_constructor_ast(code: str) -> bool:
+    """Check for BOTH BS4 import AND constructor call.
+
+    This is stricter than _check_bs4_usage_ast() because it requires:
+    1. An import statement (import bs4 or from bs4 import BeautifulSoup)
+    2. A BeautifulSoup() constructor call using the imported name
+
+    Supports alias imports: `from bs4 import BeautifulSoup as BS`
+    will correctly detect `BS(...)` calls.
+
+    This prevents spoofing via dummy objects with BS4-like attribute names.
+
+    Args:
+        code: Python code to analyze.
+
+    Returns:
+        True if code imports bs4 AND calls BeautifulSoup constructor.
+    """
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        return False
+
+    class ImportAndConstructorVisitor(ast.NodeVisitor):
+        """Visitor to detect both import and constructor."""
+
+        def __init__(self):
+            self.bs4_names: set[str] = set()  # Names that refer to BeautifulSoup
+            self.has_bs4_import = False  # Whether bs4 module was imported
+            self.has_constructor = False
+
+        def visit_Import(self, node):
+            for alias in node.names:
+                if alias.name == "bs4" or alias.name.startswith("bs4."):
+                    self.has_bs4_import = True
+                    # If aliased: `import bs4 as b` -> b.BeautifulSoup
+                    # If not aliased: `import bs4` -> bs4.BeautifulSoup
+                    # We'll check for attribute access separately
+            self.generic_visit(node)
+
+        def visit_ImportFrom(self, node):
+            if node.module and (node.module == "bs4" or node.module.startswith("bs4.")):
+                self.has_bs4_import = True
+                # Track what names were imported
+                for alias in node.names:
+                    if alias.name == "BeautifulSoup":
+                        # Use asname if provided, otherwise use original name
+                        self.bs4_names.add(alias.asname or "BeautifulSoup")
+            self.generic_visit(node)
+
+        def visit_Call(self, node):
+            # Check for direct call: SomeName(...)
+            if isinstance(node.func, ast.Name):
+                # Either it's BeautifulSoup or an alias we tracked
+                if node.func.id in self.bs4_names or node.func.id == "BeautifulSoup":
+                    self.has_constructor = True
+            # Check for attribute call: bs4.BeautifulSoup(...)
+            elif isinstance(node.func, ast.Attribute):
+                if node.func.attr == "BeautifulSoup":
+                    self.has_constructor = True
+            self.generic_visit(node)
+
+    visitor = ImportAndConstructorVisitor()
+    visitor.visit(tree)
+    return visitor.has_bs4_import and visitor.has_constructor
+
+
 def check_bs4_usage(code_samples: list[str]) -> bool:
-    """Check if any code sample uses BeautifulSoup.
+    """Check if any code sample uses BeautifulSoup in a meaningful way.
 
     This creates a gradient toward BS4 usage without rejecting alternatives.
     Regex and string solutions still work but receive a penalty.
 
-    Uses AST-based detection to identify actual BS4 API usage, ignoring
-    mentions of "BeautifulSoup" in comments or strings. This prevents
-    trivial bypasses like adding a comment mentioning BS4.
+    Uses a hierarchy of detection methods to prevent spoofing:
+    1. Primary: BeautifulSoup(HTML, ...) - verified soup creation with injected variable
+    2. Secondary: make_soup() call - documented helper function
+    3. Tertiary: BS4 import + BeautifulSoup() constructor (requires both)
 
-    The detection looks for:
-    1. Import statements (import bs4, from bs4 import ...)
-    2. Constructor calls (BeautifulSoup(), make_soup(), NavigableString())
-    3. BS4-specific method calls (.find_all(), .select(), .get_text(), etc.)
-    4. BS4-specific attribute access (.next_sibling, .contents, etc.)
+    This is stricter than checking attribute names (which can be spoofed with
+    dummy objects having .attrs, .children, etc.).
 
     Args:
         code_samples: List of code strings executed during the episode.
@@ -298,7 +363,17 @@ def check_bs4_usage(code_samples: list[str]) -> bool:
     if not code_samples:
         return True  # No code = no penalty (e.g., format errors)
 
-    return any(_check_bs4_usage_ast(code) for code in code_samples)
+    for code in code_samples:
+        # Primary: soup creation with HTML variable (strongest signal)
+        # This also catches make_soup() calls via AST
+        if _check_soup_creation_with_html_ast(code):
+            return True
+
+        # Secondary: BS4 import + constructor (requires both, not just attributes)
+        if _check_bs4_import_and_constructor_ast(code):
+            return True
+
+    return False
 
 
 def compute_bs4_penalty(code_samples: list[str] | None) -> tuple[float, bool]:
@@ -602,7 +677,7 @@ def compute_reward(
     raw_output: str,
     task_info: dict,
     html: str | None = None,
-    tool_call_count: int | None = None,
+    tool_call_count: float | None = None,
     tool_call_count_raw: int | None = None,
     run_python_calls: int | None = None,
     code_samples: list[str] | None = None,
@@ -710,6 +785,31 @@ def compute_reward(
                 partial_credit_enabled=partial_credit_enabled,
             )
             if process_reward > 0:
+                # Apply efficiency enforcement to prevent reward-hacking via schema errors
+                # Without this, models could farm process credit with unlimited tool calls
+                # by producing schema-invalid JSON while using correct BS4 patterns.
+                max_tool_calls = get_max_tool_calls(task_info)
+                metrics["max_tool_calls"] = max_tool_calls
+
+                # Use raw count for hard cap, fall back to weighted if not provided
+                hard_cap_count = (
+                    tool_call_count_raw if tool_call_count_raw is not None else tool_call_count
+                )
+
+                # Hard cap enforcement
+                if hard_cap_count is not None and hard_cap_count > max_tool_calls:
+                    metrics["efficiency_multiplier"] = 0.0
+                    metrics["errors"].append(
+                        f"Exceeded max tool calls ({hard_cap_count} > {max_tool_calls})"
+                    )
+                    return 0.0, metrics
+
+                # Soft efficiency multiplier
+                if tool_call_count is not None:
+                    efficiency = compute_efficiency_multiplier(tool_call_count, max_tool_calls)
+                    process_reward *= efficiency
+                    metrics["efficiency_multiplier"] = efficiency
+
                 metrics["process_partial_credit"] = process_breakdown
                 metrics["partial_credit_source"] = "process_on_schema_error"
                 return process_reward, metrics

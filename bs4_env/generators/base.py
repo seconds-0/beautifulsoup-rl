@@ -85,7 +85,7 @@ class TaskInstance:
     safety_info: dict = field(
         default_factory=lambda: {
             "forbidden_patterns": [],
-            "forbidden_fields": [],
+            "forbidden_values": [],
         }
     )
     metadata: dict = field(default_factory=dict)
