@@ -4,18 +4,19 @@ Track all RL training experiments for BeautifulSoup environment.
 
 ## Active Runs
 
-### Run: bs4-rl-qwen2.5-7b-h100 (2026-01-05) - RUNNING ✅
+### Run: bs4-rl-qwen2.5-7b-h100-v4 (2026-01-05) - RUNNING ✅
 
 - **Model**: Qwen/Qwen2.5-7B-Instruct (7B params)
 - **Config**: /tmp/config.toml (remote) - see below
 - **Pod**: 1x H100 80GB SXM5 (DataCrunch spot, $0.99/hr)
 - **Pod ID**: fd6a88cad0f04019841355376d088f5b
-- **Start**: 2026-01-04 23:02 UTC
+- **Start**: 2026-01-04 23:20 UTC
 - **Status**: RUNNING ✅
-- **W&B Run**: https://wandb.ai/seconds-0-domus-magna-inc/beautiful-soup-env/runs/cj36lnhb
+- **W&B Run**: https://wandb.ai/seconds-0-domus-magna-inc/beautiful-soup-env/runs/r4rv5keq
+- **GPU Usage**: 72GB/81GB (88%) with activation checkpointing
 - **Baseline**: N/A (OpenRouter doesn't support tool calling for Qwen2.5-7B)
 
-#### Working Config (H100 Single GPU)
+#### Working Config (H100 Single GPU - Final)
 
 ```toml
 # Key settings for single H100 with shared trainer/inference
@@ -26,23 +27,37 @@ max_steps = 1000
 [model]
 name = "Qwen/Qwen2.5-7B-Instruct"
 
+[trainer.model]
+seq_len = 2048
+
+[trainer.model.ac]
+freq = 1                  # CRITICAL: Full activation checkpointing saves ~20GB
+
 [trainer.model.lora]
 rank = 8
 alpha = 32
 
 [orchestrator]
-batch_size = 32           # Reduced for single GPU
-rollouts_per_example = 4  # Reduced for single GPU
-seq_len = 4096
+batch_size = 8            # Minimal for single GPU
+rollouts_per_example = 2  # Minimal for single GPU
+seq_len = 2048
 
 [inference]
-gpu_memory_utilization = 0.45  # CRITICAL: Leave room for trainer on same GPU
+gpu_memory_utilization = 0.50
 
 [inference.model]
 enable_auto_tool_choice = true
 tool_call_parser = "hermes"
 enforce_eager = true
+max_model_len = 4096
 ```
+
+#### Memory Optimization Journey
+
+1. **First attempt (OOM)**: gpu_memory_utilization = 0.45, no checkpointing → 80GB total, OOM
+2. **Second attempt (device mismatch)**: fsdp_cpu_offload = true → RuntimeError: device mismatch CPU/CUDA
+3. **Third attempt (config error)**: ac = "selective" → ValidationError: expects config object
+4. **Fourth attempt (SUCCESS)**: ac = {freq = 1} → 72GB used, training running!
 
 #### Model Selection (2026-01-05)
 
@@ -55,7 +70,10 @@ enforce_eager = true
 | Qwen3-8B | ❌ 0 calls | 39.6% | ? | Doesn't use tools |
 | gpt-oss-20b | N/A | 49.2% | ❌ vLLM bug | Blocked |
 
-**Key fix:** `[inference] gpu_memory_utilization = 0.45` - required when trainer and inference share the same GPU.
+**Key fixes for single-GPU training:**
+1. `[inference] gpu_memory_utilization = 0.50` - leave room for trainer
+2. `[trainer.model.ac] freq = 1` - activation checkpointing (NOT fsdp_cpu_offload)
+3. Reduced batch_size (8) and rollouts_per_example (2)
 
 ---
 
@@ -296,3 +314,28 @@ The trainer loads first (~30GB for 7B model), then vLLM tries to claim 90% = OOM
 Ministral-3-8B-Instruct-2512 causes `KeyError: 'ministral3'` in transformers:
 - Root cause: Model type not recognized by AutoModelForCausalLM
 - Workaround: Use Qwen2.5-7B-Instruct instead (similar size, vLLM compatible)
+
+### Activation Checkpointing (Recommended for Single-GPU)
+
+Use activation checkpointing instead of CPU offload for single-GPU training:
+
+```toml
+[trainer.model.ac]
+freq = 1  # Full checkpointing, saves ~20GB for 7B model
+```
+
+**Do NOT use `fsdp_cpu_offload = true`** with LoRA - it causes device mismatch errors:
+```
+RuntimeError: Attempted to set the storage of a tensor on device "cpu"
+to a storage on different device "cuda:0"
+```
+
+### Single-GPU RL Training Checklist
+
+For running trainer + vLLM inference on one GPU (e.g., H100 80GB):
+
+1. `[inference] gpu_memory_utilization = 0.50` (or less)
+2. `[trainer.model.ac] freq = 1` (activation checkpointing)
+3. `[trainer.model] seq_len = 2048` (reduce from 4096)
+4. `[orchestrator] batch_size = 8, rollouts_per_example = 2`
+5. `[inference.model] enforce_eager = true, max_model_len = 4096`
