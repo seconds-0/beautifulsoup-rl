@@ -33,7 +33,7 @@ name = "bs4-rl-qwen2.5-7b-lora"
 lr = 1e-5
 weight_decay = 0.0
 
-[trainer.model.experimental.lora]
+[trainer.model.lora]
 # LoRA is the lowest-friction way to get a nice demo quickly.
 rank = 8
 alpha = 32
@@ -55,9 +55,7 @@ batch_size = 128
 rollouts_per_example = 8
 seq_len = 8192
 oversampling_factor = 2.0
-
-mask_truncated_completions = false
-zero_truncated_completions = true
+lora_name = "qwen2.5-7b-bs4-lora"
 
 [orchestrator.sampling]
 # Per-rollout generation limit. Models need enough tokens to:
