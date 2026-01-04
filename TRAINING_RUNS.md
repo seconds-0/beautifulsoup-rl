@@ -4,38 +4,40 @@ Track all RL training experiments for BeautifulSoup environment.
 
 ## Active Runs
 
-### Run: bs4-rl-qwen3-8b-1000steps (2026-01-04)
+### Run: bs4-rl-qwen2.5-7b-1000steps (2026-01-04)
 
-- **Model**: qwen/qwen3-vl-8b-instruct (8B params)
+- **Model**: Qwen/Qwen2.5-7B-Instruct (7B params)
 - **Config**: configs/prime-rl/beautiful-soup-env.toml
 - **Pod**: bs4-rl-training (2x A6000 48GB)
-- **Start**: 2026-01-04 ~20:25 UTC
-- **Status**: LAUNCHING (attempt 5)
+- **Start**: 2026-01-04 ~21:00 UTC
+- **Status**: LAUNCHING (attempt 8)
 - **W&B Project**: beautiful-soup-env
-- **Baseline**: 50% (n=10 smoke test)
+- **Baseline**: TBD (need to run smoke test)
 
-#### Config (v5 - switched to 8B model)
+#### Config (v8 - Qwen2.5-7B)
 ```toml
 max_steps = 1000
 inference_gpu_ids = [0]
 trainer_gpu_ids = [1]
 
 [model]
-name = "qwen/qwen3-vl-8b-instruct"  # Switched from gpt-oss-20b
+name = "Qwen/Qwen2.5-7B-Instruct"  # Widely supported, good tool calling
 
 [trainer.model.experimental.lora]
 rank = 8
 alpha = 32
 
 [orchestrator]
-batch_size = 128        # Increased for 8B model
+batch_size = 128        # 7B model allows larger batches
 rollouts_per_example = 8
 seq_len = 8192
 ```
 
-#### Previous model attempt (gpt-oss-20b)
-- Hit vLLM weight reload bug: `default_weight_loader() got an unexpected keyword argument 'weight_name'`
-- Bug is in vLLM's gpt_oss.py model loader when calling `/reload_weights`
+#### Model Selection Journey
+1. **gpt-oss-20b** - vLLM weight reload bug (`default_weight_loader() got unexpected keyword argument 'weight_name'`)
+2. **qwen/qwen3-vl-8b-instruct** - VL (Vision-Language) model, not supported by AutoModelForCausalLM
+3. **mistralai/mistral-small-3.2-24b-instruct** - Not on HuggingFace Hub
+4. **Qwen/Qwen2.5-7B-Instruct** - ✅ Current choice (7B, text-only, widely supported)
 
 #### Issues Encountered
 
@@ -48,15 +50,29 @@ seq_len = 8192
    - Error: `No API key configured`
    - Fix: Set `offline = true` in config, or configure `/root/.netrc`
 
-3. **CUDA OOM** (attempt 2):
+3. **CUDA OOM with gpt-oss-20b** (attempt 3):
    - Error: `CUDA out of memory. Tried to allocate 2.16 GiB`
    - Root cause: 20B model weights (~40GB BF16) + inference server using 42.83GB on GPU 0
    - Fix: Enable `fsdp_cpu_offload = true`, reduce batch_size to 32, seq_len to 8192
 
-4. **vLLM weight reload bug** (attempt 4):
+4. **vLLM weight reload bug with gpt-oss-20b** (attempt 4):
    - Error: `TypeError: default_weight_loader() got an unexpected keyword argument 'weight_name'`
    - Root cause: `gpt-oss-20b` model loader incompatible with vLLM `/reload_weights` endpoint
-   - Fix: Switch to `qwen/qwen3-vl-8b-instruct` (8B params, 50% baseline)
+   - Fix: Switch to different model
+
+5. **qwen3-vl-8b is Vision-Language model** (attempt 5):
+   - Error: `Unrecognized configuration class Qwen3VLConfig for AutoModelForCausalLM`
+   - Root cause: VL models require different model class (AutoModelForVision2Seq)
+   - Fix: Switch to text-only model
+
+6. **Mistral model not on HuggingFace** (attempt 6):
+   - Error: `mistralai/mistral-small-3.2-24b-instruct is not a valid model identifier`
+   - Root cause: Model only available via Mistral API, not on HF Hub
+   - Fix: Switch to Qwen/Qwen2.5-7B-Instruct
+
+7. **Final model selection** (attempt 7-8):
+   - Qwen/Qwen2.5-7B-Instruct: 7B params, text-only, widely supported, good tool calling
+   - No CPU offloading needed on 2x A6000 (7B fits comfortably)
 
 #### WandB Setup on Pod
 ```bash
