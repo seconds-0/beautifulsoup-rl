@@ -4,7 +4,57 @@ Track all RL training experiments for BeautifulSoup environment.
 
 ## Active Runs
 
-*None currently running*
+### Run: bs4-rl-gpt-oss-20b-1000steps (2026-01-04)
+
+- **Model**: openai/gpt-oss-20b (20B params)
+- **Config**: configs/prime-rl/beautiful-soup-env.toml
+- **Pod**: bs4-rl-training (2x A6000 48GB)
+- **Start**: 2026-01-04 ~20:15 UTC
+- **Status**: LAUNCHING (attempt 3)
+- **W&B Project**: beautiful-soup-env
+
+#### Config (v3 - memory optimized)
+```toml
+max_steps = 1000
+inference_gpu_ids = [0]
+trainer_gpu_ids = [1]
+
+[model]
+name = "openai/gpt-oss-20b"
+fsdp_cpu_offload = true  # Added for 2-GPU setup
+
+[trainer.model.experimental.lora]
+rank = 8
+alpha = 32
+
+[orchestrator]
+batch_size = 32         # Reduced from 256
+rollouts_per_example = 4  # Reduced from 8
+seq_len = 8192          # Reduced from 16384
+```
+
+#### Issues Encountered
+
+1. **Config format errors** (attempt 1):
+   - `seq_len` must be under `[orchestrator]`, not top-level
+   - `top_p` not allowed in `[orchestrator.sampling]`
+   - `[orchestrator.buffer]` uses `online_difficulty_filtering = true`, not `type = "online-difficulty"`
+
+2. **WandB API key missing** (attempt 2):
+   - Error: `No API key configured`
+   - Fix: Set `offline = true` in config, or configure `/root/.netrc`
+
+3. **CUDA OOM** (attempt 2):
+   - Error: `CUDA out of memory. Tried to allocate 2.16 GiB`
+   - Root cause: 20B model weights (~40GB BF16) + inference server using 42.83GB on GPU 0
+   - Fix: Enable `fsdp_cpu_offload = true`, reduce batch_size to 32, seq_len to 8192
+
+#### WandB Setup on Pod
+```bash
+# Configure API key
+echo -e 'machine api.wandb.ai\n  login user\n  password YOUR_KEY' > /root/.netrc
+chmod 600 /root/.netrc
+```
 
 ---
 
@@ -78,9 +128,36 @@ open https://wandb.ai/YOUR_USERNAME/beautiful-soup-env
 
 ## Model Baselines (Pre-Training)
 
-| Model | Baseline | Cost | Training Priority |
-|-------|----------|------|-------------------|
-| openai/gpt-oss-20b | 63.3% | $0.07/$0.30 | **PRIMARY TARGET** |
+| Model | Baseline (n=680) | Cost | Training Priority |
+|-------|------------------|------|-------------------|
+| openai/gpt-oss-20b | **49.2%** | $0.07/$0.30 | **PRIMARY TARGET** |
 | prime-intellect/intellect-3 | ~78% | $0.20/$1.10 | Good but high baseline |
 | qwen/qwen3-235b-a22b-instruct-2507 | 71.2% | $0.22/$0.88 | Good candidate |
 | z-ai/glm-4.5-air | 66.8% | $0.20/$1.10 | Room for improvement |
+
+## Lessons Learned
+
+### 2-GPU Setup (2x A6000 48GB)
+
+1. **Memory**: 20B model (BF16) needs ~40GB. Split inference/trainer across GPUs.
+2. **CPU Offload**: Required for FSDP with limited GPU memory. Add `fsdp_cpu_offload = true` under `[model]`.
+3. **Batch Size**: Start small (32) and increase if memory allows.
+4. **seq_len**: 8192 is safe; 16384 may cause OOM with large models.
+
+### Config Format (prime-rl)
+
+- `seq_len` → under `[orchestrator]`, NOT top-level
+- `top_p` → NOT allowed in sampling config
+- `[orchestrator.buffer]` → use `online_difficulty_filtering = true`
+- `[[orchestrator.env]]` → double brackets, no `name` field needed
+
+### WandB on Pod
+
+```bash
+# Option 1: .netrc file
+echo -e 'machine api.wandb.ai\n  login user\n  password YOUR_KEY' > /root/.netrc
+chmod 600 /root/.netrc
+
+# Option 2: Environment variable
+export WANDB_API_KEY=YOUR_KEY
+```
