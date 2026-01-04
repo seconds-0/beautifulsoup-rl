@@ -588,7 +588,7 @@ class MinimalEnv:
                     self.config,
                     cache_dir=self.config.cache_dir,
                     force_rebuild=self.config.force_rebuild_cache,
-                    env_id="beautiful-soup-env",
+                    env_id=self._env_kwargs.get("env_id", "beautiful-soup-env"),
                 )
             else:
                 self._dataset = build_dataset(self.config)
