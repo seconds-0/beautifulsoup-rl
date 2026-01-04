@@ -4,16 +4,41 @@ Track all RL training experiments for BeautifulSoup environment.
 
 ## Active Runs
 
-### Run: bs4-rl-qwen2.5-7b-1000steps (2026-01-04)
+### Run: bs4-rl-ministral-8b-1000steps (2026-01-05)
+
+- **Model**: mistralai/Ministral-3-8B-Instruct-2512 (8B params)
+- **Config**: configs/prime-rl/beautiful-soup-env.toml
+- **Pod**: 8x A6000 48GB
+- **Start**: TBD
+- **Status**: PENDING ⏳
+- **W&B Project**: beautiful-soup-env
+- **Baseline**: **63.2%** (from results/results_ministral3_8b_full.json, 1148 tool calls)
+
+#### Model Selection (2026-01-05)
+
+**Winner: Ministral-3-8B-Instruct-2512**
+
+| Model | Tool Calls | Baseline | vLLM | Status |
+|-------|------------|----------|------|--------|
+| **Ministral-3-8B** | ✅ 1148 | 63.2% | ✅ Official | **SELECTED** |
+| Qwen2.5-7B | ❌ No OpenRouter tool support | N/A | ✅ | Can't benchmark |
+| Qwen3-8B | ❌ 0 calls | 39.6% | ? | Doesn't use tools |
+| gpt-oss-20b | N/A | 49.2% | ❌ vLLM bug | Blocked |
+
+**Selection criteria (per user requirement):** Functional tool calls > baseline performance.
+
+---
+
+### Run: bs4-rl-qwen2.5-7b-1000steps (2026-01-04) - ABANDONED
 
 - **Model**: Qwen/Qwen2.5-7B-Instruct (7B params)
 - **Config**: configs/prime-rl/beautiful-soup-env.toml
 - **Pod**: bs4-rl-training (2x A6000 48GB)
 - **Start**: 2026-01-04 21:03 UTC
-- **Status**: RUNNING ✅
+- **Status**: ABANDONED ❌ (switched to Ministral-8B)
 - **W&B Project**: beautiful-soup-env
 - **W&B Run**: https://wandb.ai/seconds-0-domus-magna-inc/beautiful-soup-env/runs/aochk8k1
-- **Baseline**: TBD (need to run smoke test)
+- **Baseline**: Could not benchmark (OpenRouter doesn't support tool calling for this model)
 
 #### Config (v8 - Qwen2.5-7B)
 ```toml

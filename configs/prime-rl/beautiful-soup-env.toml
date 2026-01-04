@@ -9,25 +9,26 @@
 # - [[orchestrator.env]].args (train split, mode, executor backend, etc.)
 # - [orchestrator.sampling] (max_tokens / temperature)
 
-# 2-GPU layout: inference on GPU 0, trainer on GPU 1
-inference_gpu_ids = [0]
-trainer_gpu_ids = [1]
+# 8-GPU layout: inference on GPUs 0-3, trainer on GPUs 4-7
+inference_gpu_ids = [0, 1, 2, 3]
+trainer_gpu_ids = [4, 5, 6, 7]
 
 # Total number of optimizer steps.
 # Start small for shakeout runs, then scale.
 max_steps = 1000  # Full training run
 
 [model]
-# Qwen2.5-7B: 7B params, widely supported, good tool calling.
-# Tried: gpt-oss-20b (vLLM bug), qwen3-vl-8b (VL not supported), mistral (not on HF)
-name = "Qwen/Qwen2.5-7B-Instruct"
+# Ministral-3-8B: 8B params, functional tool calls (63.2% baseline, 1148 calls).
+# Selected because it's the ONLY benchmarked model that actually uses tools.
+# Tried: gpt-oss-20b (vLLM bug), qwen2.5-7b (no OpenRouter tool support), qwen3-8b (0 tool calls)
+name = "mistralai/Ministral-3-8B-Instruct-2512"
 
-# 7B model doesn't need CPU offloading on 2x A6000
+# 8B model fits on A6000 (24GB BF16, <12GB quantized)
 
 [wandb]
 # Optional, but highly recommended for tracking.
 project = "beautiful-soup-env"
-name = "bs4-rl-qwen2.5-7b-lora"
+name = "bs4-rl-ministral-8b-lora"
 
 [trainer.optim]
 lr = 1e-5
@@ -53,12 +54,12 @@ target_modules = [
 
 [orchestrator]
 # batch_size is "rollouts per batch" in prime-rl land.
-# 7B model - can use larger batches on 2x A6000
-batch_size = 128
+# 8B model on 8x A6000 - can use larger batches
+batch_size = 256
 rollouts_per_example = 8
 seq_len = 4096  # Must be <= trainer model seq_len (default 2048, but we set trainer seq_len too)
 oversampling_factor = 2.0
-lora_name = "qwen2.5-7b-bs4-lora"
+lora_name = "ministral-8b-bs4-lora"
 
 [orchestrator.sampling]
 # Per-rollout generation limit. Models need enough tokens to:
@@ -94,8 +95,12 @@ timeout_s = 30.0
 max_output_chars = 10000
 
 [inference.model]
-# Tool calling settings (important for your env because it relies on tools).
+# Tool calling settings for Ministral (uses mistral parser, not hermes).
 enable_auto_tool_choice = true
-tool_call_parser = "hermes"
+tool_call_parser = "mistral"
+# Mistral requires special tokenizer/format settings
+tokenizer_mode = "mistral"
+config_format = "mistral"
+load_format = "mistral"
 # Disable CUDA graphs to avoid segfault in Ray workers (common vLLM issue)
 enforce_eager = true
