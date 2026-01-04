@@ -16,7 +16,7 @@ import pytest
 from bs4_env import auto_import  # noqa: F401 - ensures generators registered
 from bs4_env.generators.base import parse_task_info
 from bs4_env.grading.rubric import compute_reward
-from bs4_env.registry import get_archetype, list_archetypes
+from bs4_env.registry import list_archetypes
 
 # Tolerance for reward comparison (per Codex review recommendation)
 # Using >= 0.99 instead of == 1.0 to avoid floating point brittleness
