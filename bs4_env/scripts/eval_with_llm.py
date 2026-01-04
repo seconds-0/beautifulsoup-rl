@@ -90,6 +90,7 @@ def run_llm_agent(
     messages: list[dict],
     tool_registry: Any,
     max_turns: int = 10,
+    max_tokens: int = 4000,
 ) -> tuple[str, list[dict], dict]:
     """Run an LLM agent on a task using proper function calling.
 
@@ -106,6 +107,8 @@ def run_llm_agent(
         messages: Initial messages (system + user).
         tool_registry: Tool registry for executing code.
         max_turns: Maximum conversation turns.
+        max_tokens: Maximum tokens per response. Models with verbose reasoning
+            (e.g., intellect-3) may need 8000+ to reliably emit tool calls.
 
     Returns:
         Tuple of (final_output, tool_history, stats).
@@ -129,7 +132,7 @@ def run_llm_agent(
                     tools=tools,
                     tool_choice="auto",
                     temperature=0.0,
-                    max_tokens=4000,
+                    max_tokens=max_tokens,
                     # Note: response_format not used - conflicts with tools on some providers
                 )
                 # Check for valid response
@@ -253,6 +256,7 @@ def run_evaluation(
     verbose: bool = False,
     output_file: str | None = None,
     checkpoint_interval: int = 10,
+    max_tokens: int = 4000,
 ) -> dict:
     """Run full evaluation.
 
@@ -266,6 +270,8 @@ def run_evaluation(
         verbose: Print detailed output.
         output_file: Path to save results (enables incremental saves).
         checkpoint_interval: Save checkpoint every N examples.
+        max_tokens: Maximum tokens per LLM response. Increase for models with
+            verbose reasoning (e.g., intellect-3 needs 8000+).
 
     Returns:
         Evaluation results dict.
@@ -311,6 +317,7 @@ def run_evaluation(
             model=model,
             messages=example["prompt"],
             tool_registry=tool_registry,
+            max_tokens=max_tokens,
         )
 
         elapsed = time.time() - start_time
@@ -435,6 +442,12 @@ def main():
         "--verbose", "-v", action="store_true", help="Show detailed output for failures"
     )
     parser.add_argument("--output", "-o", type=str, default=None, help="Save results to JSON file")
+    parser.add_argument(
+        "--max-tokens",
+        type=int,
+        default=4000,
+        help="Max tokens per response. Increase for verbose models (e.g., intellect-3 needs 8000+)",
+    )
     args = parser.parse_args()
 
     results = run_evaluation(
@@ -446,6 +459,7 @@ def main():
         difficulty=args.difficulty,
         verbose=args.verbose,
         output_file=args.output,  # Enable incremental saves
+        max_tokens=args.max_tokens,
     )
 
     # Final save (overwrites checkpoint with complete results)
