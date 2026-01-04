@@ -425,6 +425,120 @@ def build_lazy_dataset(
     return LazyBS4Dataset.from_config(config, cache_size=cache_size)
 
 
+# =============================================================================
+# Disk-Cached Dataset (Memory-Efficient for Large Training)
+# =============================================================================
+
+
+def _compute_cache_key(config: EnvConfig) -> str:
+    """Compute deterministic cache key from config + archetype version.
+
+    The key changes when:
+    - Config parameters change (split, mode, difficulty, seed, num_examples, archetypes)
+    - Archetypes are added/removed (version hash)
+
+    Args:
+        config: Environment configuration.
+
+    Returns:
+        SHA-256 hash string (first 16 chars).
+    """
+    key_parts = [
+        config.split,
+        config.mode,
+        config.difficulty,
+        str(config.seed),
+        str(config.num_examples),
+        str(sorted(config.archetypes or [])),
+        _get_archetype_version_hash(),
+    ]
+    return hashlib.sha256(":".join(key_parts).encode()).hexdigest()[:16]
+
+
+def _get_archetype_version_hash() -> str:
+    """Get hash of registered archetypes for cache invalidation.
+
+    When archetypes are added or removed, this hash changes.
+    Note: Does not detect code changes within generators.
+
+    Returns:
+        SHA-256 hash string (first 8 chars).
+    """
+    specs = list_archetypes()
+    spec_strings = sorted([f"{s.archetype_id}:{s.difficulty}:{s.phase}" for s in specs])
+    return hashlib.sha256(":".join(spec_strings).encode()).hexdigest()[:8]
+
+
+def build_disk_cached_dataset(
+    config: EnvConfig,
+    cache_dir: Path | str | None = None,
+    force_rebuild: bool = False,
+    env_id: str = "beautiful-soup-env",
+) -> Dataset:
+    """Build HuggingFace Dataset with disk caching for memory efficiency.
+
+    Uses Dataset.from_generator() to stream rows to disk without loading all
+    HTML into RAM. Pre-populates example_id and task columns so verifiers'
+    format_dataset() skips expensive add_column/map operations.
+
+    This is the recommended approach for training datasets (50K+ examples).
+    For bench splits, use build_dataset() which is simpler and sufficient.
+
+    Args:
+        config: Environment configuration.
+        cache_dir: Directory for Arrow cache files. Defaults to ~/.cache/bs4_env/datasets/
+        force_rebuild: If True, regenerate even if cache exists.
+        env_id: Environment ID for the 'task' column. Defaults to "beautiful-soup-env".
+
+    Returns:
+        Memory-mapped HuggingFace Dataset with columns:
+        - prompt: list of chat messages
+        - info: JSON string with task metadata
+        - example_id: integer index (required by verifiers)
+        - task: string (required by verifiers EnvGroup)
+    """
+    # Determine cache location
+    if cache_dir is None:
+        cache_dir = Path.home() / ".cache" / "bs4_env" / "datasets"
+    else:
+        cache_dir = Path(cache_dir)
+
+    cache_key = _compute_cache_key(config)
+    dataset_dir = cache_dir / cache_key
+
+    # Try loading from cache
+    if dataset_dir.exists() and not force_rebuild:
+        try:
+            logger.info(f"Loading cached dataset from {dataset_dir}")
+            return Dataset.load_from_disk(str(dataset_dir))
+        except Exception as e:
+            logger.warning(f"Cache load failed, rebuilding: {e}")
+
+    # Build from generator (streams to disk, not RAM)
+    logger.info(f"Building dataset to disk cache: {dataset_dir}")
+    dataset_dir.mkdir(parents=True, exist_ok=True)
+
+    def gen():
+        for idx, row in enumerate(generate_dataset_rows(config)):
+            yield {
+                "prompt": row["prompt"],
+                "info": json.dumps(row["info"]) if isinstance(row["info"], dict) else row["info"],
+                "example_id": idx,  # Integer - verifiers skips add_column
+                "task": env_id,  # String - verifiers skips map
+            }
+
+    # Use a temp directory for generation, then save to final location
+    # This avoids partial cache files if generation fails
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        dataset = Dataset.from_generator(gen, cache_dir=tmp_dir)
+        dataset.save_to_disk(str(dataset_dir))
+
+    # Load back with memory mapping
+    return Dataset.load_from_disk(str(dataset_dir))
+
+
 def get_dataset_stats(dataset: Dataset) -> dict[str, Any]:
     """Get statistics about a dataset.
 

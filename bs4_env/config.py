@@ -74,6 +74,13 @@ class EnvConfig:
     memory_gb: int = 2  # Memory allocation in GB
     timeout_minutes: int = 30  # Sandbox lifecycle timeout in minutes
 
+    # Dataset caching for memory efficiency (used with verifiers for large training)
+    # When True, train/eval use disk-cached HuggingFace Datasets (memory-mapped)
+    # When False, all splits use in-memory eager loading
+    cache_datasets: bool = True
+    cache_dir: str | None = None  # Custom cache dir (default: ~/.cache/bs4_env/datasets/)
+    force_rebuild_cache: bool = False  # Force regeneration even if cache exists
+
     def __post_init__(self) -> None:
         """Validate configuration after initialization."""
         if self.timeout_s <= 0:
