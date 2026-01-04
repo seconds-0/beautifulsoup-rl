@@ -17,9 +17,6 @@ trainer_gpu_ids = [1]
 # Start small for shakeout runs, then scale.
 max_steps = 1000  # Full training run
 
-# Context length - MUST be at top level (not under [orchestrator])
-seq_len = 4096
-
 [model]
 # Pick a model that can reliably do tool calling + short Python snippets.
 # gpt-oss-20b: 49.2% baseline (n=680), $0.07/$0.30, good tool calling support.
@@ -54,6 +51,8 @@ target_modules = [
 # For early debugging, keep these modest; then scale up once stable.
 batch_size = 256
 rollouts_per_example = 8
+seq_len = 16384
+oversampling_factor = 2.0
 
 mask_truncated_completions = false
 zero_truncated_completions = true
@@ -66,18 +65,13 @@ zero_truncated_completions = true
 # 768 was too tight - caused truncation before tool calls could be emitted.
 # 10000 gives plenty of headroom for multi-turn tool calling during RL.
 max_tokens = 10000
-temperature = 0.7
-top_p = 0.95
 
 [orchestrator.buffer]
-type = "online-difficulty"
-oversampling_factor = 2.0
+online_difficulty_filtering = true
 
 [[orchestrator.env]]
 # If you have uploaded to Hub, use "owner/name".
-# If you installed locally editable, you may also be able to use just the env name.
 id = "seconds-0/beautiful-soup-env"
-name = "beautiful-soup"  # Required by prime-rl
 
 # Forwarded to your load_environment(**kwargs).
 # This is where you set your splits/modes and the executor backend.
