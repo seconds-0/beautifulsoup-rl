@@ -245,17 +245,14 @@ class TestGetMaxToolCalls:
 
     def test_reads_from_metadata_constraints(self):
         """Reads max_tool_calls from metadata.constraints."""
-        task_info = {
-            "metadata": {"constraints": {"max_tool_calls": 15}}
-        }
+        task_info = {"metadata": {"constraints": {"max_tool_calls": 15}}}
         assert get_max_tool_calls(task_info) == 15
 
     def test_handles_json_serialized_metadata(self):
         """Handles metadata as JSON string (from dataset)."""
         import json
-        task_info = {
-            "metadata": json.dumps({"constraints": {"max_tool_calls": 20}})
-        }
+
+        task_info = {"metadata": json.dumps({"constraints": {"max_tool_calls": 20}})}
         assert get_max_tool_calls(task_info) == 20
 
     def test_returns_default_for_invalid_json_metadata(self):
@@ -375,6 +372,7 @@ class TestArchetypeAwareEfficiency:
     def test_json_serialized_metadata_constraints(self, correct_output, base_task_info):
         """Handles JSON-serialized metadata from datasets."""
         import json
+
         base_task_info["metadata"] = json.dumps({"constraints": {"max_tool_calls": 20}})
 
         # 15 calls is within limit of 20
