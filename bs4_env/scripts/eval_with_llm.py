@@ -249,6 +249,7 @@ def run_evaluation(
     start_index: int = 0,
     split: str = "bench",
     mode: str = "mvp",
+    difficulty: str = "mixed",
     verbose: bool = False,
     output_file: str | None = None,
     checkpoint_interval: int = 10,
@@ -261,6 +262,7 @@ def run_evaluation(
         start_index: Starting index (for resuming).
         split: Dataset split.
         mode: Archetype mode.
+        difficulty: Task difficulty filter.
         verbose: Print detailed output.
         output_file: Path to save results (enables incremental saves).
         checkpoint_interval: Save checkpoint every N examples.
@@ -268,8 +270,8 @@ def run_evaluation(
     Returns:
         Evaluation results dict.
     """
-    print(f"Loading environment: split={split}, mode={mode}")
-    env = load_environment(split=split, mode=mode)
+    print(f"Loading environment: split={split}, mode={mode}, difficulty={difficulty}")
+    env = load_environment(split=split, mode=mode, difficulty=difficulty)
     print(f"Dataset size: {len(env)}")
 
     client = create_openrouter_client()
@@ -418,7 +420,17 @@ def main():
     parser.add_argument("--num", "-n", type=int, default=20, help="Number of examples to evaluate")
     parser.add_argument("--start", "-s", type=int, default=0, help="Starting index (for resuming)")
     parser.add_argument("--split", default="bench", choices=["train", "eval", "bench"])
-    parser.add_argument("--mode", default="mvp", choices=["mvp", "phase2", "all"])
+    parser.add_argument(
+        "--mode",
+        default="mvp",
+        choices=["mvp", "phase2", "all", "hard_only", "tiered", "bootstrap"],
+    )
+    parser.add_argument(
+        "--difficulty",
+        default="mixed",
+        choices=["primer", "easy", "medium", "hard", "mixed"],
+        help="Task difficulty filter",
+    )
     parser.add_argument(
         "--verbose", "-v", action="store_true", help="Show detailed output for failures"
     )
@@ -431,6 +443,7 @@ def main():
         start_index=args.start,
         split=args.split,
         mode=args.mode,
+        difficulty=args.difficulty,
         verbose=args.verbose,
         output_file=args.output,  # Enable incremental saves
     )
