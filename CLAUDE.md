@@ -35,6 +35,8 @@ bs4_env/
   config.py               # EnvConfig dataclass
   registry.py             # @register decorator, archetype specs
   dataset.py              # Build HF dataset with train/eval/bench splits
+  lazy_dataset.py         # Memory-efficient LazyBS4Dataset with LRU caching
+  auto_import.py          # Registry initialization (archetype loading)
   prompt.py               # Format prompts (no label leakage!)
   generators/
     base.py               # Generator protocol, TaskInstance, RNG utils
@@ -43,12 +45,14 @@ bs4_env/
     schema.py             # JSON schema validation
     normalize.py          # Deterministic normalization
     safety.py             # Credential/token detection
-    rubric.py             # Reward computation
+    rubric.py             # Reward computation, efficiency multiplier, process credit
   tools/
-    executor.py           # LocalSubprocessExecutor, PrimeSandboxExecutor
+    executor.py           # LocalSubprocessExecutor, PrimeSandboxExecutor, PooledSubprocessExecutor
     harness.py            # Injected globals (HTML, QUERY, CONSTRAINTS)
   adapters/
     verifiers_adapter.py  # Wire to vf.Environment
+  data/
+    bench_manifest.json   # Fixed 52-archetype bench split for reproducibility
 ```
 
 ## Critical Rules
@@ -161,9 +165,12 @@ prime env push
 | `registry.py` | Archetype registration | Rarely - stable interface |
 | `generators/base.py` | Generator protocol | Rarely - stable interface |
 | `generators/mvp_*.py` | Archetype implementations | Adding new archetypes |
-| `grading/rubric.py` | Reward computation | Adjusting reward logic (CAREFUL) |
+| `grading/rubric.py` | Reward computation, efficiency, process credit | Adjusting reward logic (CAREFUL) |
 | `grading/normalize.py` | Output normalization | Adding normalization rules (CAREFUL) |
 | `adapters/verifiers_adapter.py` | Verifiers integration | Wiring to Prime |
+| `tests/test_solvability.py` | Archetype solvability regression | Add tests for new archetypes |
+| `tests/test_efficiency.py` | Efficiency multiplier tests | Adjust when efficiency rules change |
+| `tests/test_process_partial_credit.py` | Process credit for 0% models | Adjust when credit tiers change |
 
 ## Common Gotchas
 
@@ -177,6 +184,14 @@ prime env push
 - Python's `hash()` is not deterministic across runs (salted) → use SHA-256
 - HuggingFace datasets are lazy → force evaluation in tests
 - Subprocess execution needs timeout handling
+
+### Grading Gotchas
+- **Efficiency multiplier**: Penalizes excessive tool calls (>10 calls = 0.0 reward by default)
+- **Weighted tool counts**: `navigate` costs 0.2x, `run_python` costs 1.0x for soft efficiency gradient
+- **Hard cap uses raw count**: `tool_call_count_raw` for hard caps, `tool_call_count` for soft gradient
+- **Archetype-aware limits**: Check `task_info["metadata"]["constraints"]["max_tool_calls"]`
+- **Process partial credit**: Capped at 0.30, uses AST analysis of code samples
+- **Sandbox dependency check**: `PrimeSandboxExecutor` verifies bs4/lxml/html5lib on first run
 
 ## Git Workflow
 
