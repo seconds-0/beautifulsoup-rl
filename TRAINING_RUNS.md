@@ -4,22 +4,24 @@ Track all RL training experiments for BeautifulSoup environment.
 
 ## Active Runs
 
-### Run: bs4-rl-qwen2.5-7b-h100-v4 (2026-01-05) - RUNNING ✅
+### Run: bs4-rl-qwen2.5-7b-h100-v5 (2026-01-05) - RUNNING ✅
 
 - **Model**: Qwen/Qwen2.5-7B-Instruct (7B params)
 - **Config**: /tmp/config.toml (remote) - see below
 - **Pod**: 1x H100 80GB SXM5 (DataCrunch spot, $0.99/hr)
 - **Pod ID**: fd6a88cad0f04019841355376d088f5b
-- **Start**: 2026-01-04 23:20 UTC
+- **Start**: 2026-01-04 23:50 UTC
 - **Status**: RUNNING ✅
-- **W&B Run**: https://wandb.ai/seconds-0-domus-magna-inc/beautiful-soup-env/runs/r4rv5keq
-- **GPU Usage**: 72GB/81GB (88%) with activation checkpointing
+- **W&B Run**: https://wandb.ai/seconds-0-domus-magna-inc/beautiful-soup-env/runs/t6agrtyb
+- **GPU Usage**: 74GB/81GB (91%) with activation checkpointing
 - **Baseline**: N/A (OpenRouter doesn't support tool calling for Qwen2.5-7B)
+- **First Step**: Reward 0.0238, 287s, 50 tokens/s
 
-#### Working Config (H100 Single GPU - Final)
+#### Working Config (H100 Single GPU - Final v5)
 
 ```toml
 # Key settings for single H100 with shared trainer/inference
+# v5: Fixed max_tokens to fit within max_model_len
 inference_gpu_ids = [0]
 trainer_gpu_ids = [0]
 max_steps = 1000
@@ -42,6 +44,9 @@ batch_size = 8            # Minimal for single GPU
 rollouts_per_example = 2  # Minimal for single GPU
 seq_len = 2048
 
+[orchestrator.sampling]
+max_tokens = 2000         # CRITICAL: Must fit within max_model_len - input_tokens
+
 [inference]
 gpu_memory_utilization = 0.50
 
@@ -57,7 +62,8 @@ max_model_len = 4096
 1. **First attempt (OOM)**: gpu_memory_utilization = 0.45, no checkpointing → 80GB total, OOM
 2. **Second attempt (device mismatch)**: fsdp_cpu_offload = true → RuntimeError: device mismatch CPU/CUDA
 3. **Third attempt (config error)**: ac = "selective" → ValidationError: expects config object
-4. **Fourth attempt (SUCCESS)**: ac = {freq = 1} → 72GB used, training running!
+4. **Fourth attempt (v4 - stuck)**: ac = {freq = 1} → 72GB used, but max_tokens=4000 > available context
+5. **Fifth attempt (v5 - SUCCESS)**: max_tokens = 2000 → Training running!
 
 #### Model Selection (2026-01-05)
 
@@ -339,3 +345,24 @@ For running trainer + vLLM inference on one GPU (e.g., H100 80GB):
 3. `[trainer.model] seq_len = 2048` (reduce from 4096)
 4. `[orchestrator] batch_size = 8, rollouts_per_example = 2`
 5. `[inference.model] enforce_eager = true, max_model_len = 4096`
+6. `[orchestrator.sampling] max_tokens = 2000` (must fit within context!)
+
+### max_tokens vs max_model_len Constraint
+
+`max_tokens` (in `[orchestrator.sampling]`) must leave room for input tokens:
+
+```
+max_tokens + input_tokens <= max_model_len
+```
+
+With `max_model_len = 4096` and typical inputs of ~1300-1500 tokens, use `max_tokens = 2000`.
+
+**Error when this is wrong:**
+```
+ValueError: 'max_tokens' or 'max_completion_tokens' is too large: 4000.
+This model's maximum context length is 4096 tokens and your request has 1297 input tokens
+(4000 > 4096 - 1297).
+```
+
+**Symptom:** Rollout generation hangs indefinitely at "0/8 rollouts" with no errors in main log.
+The actual error appears in the vLLM process logs. Check `/tmp/vllm.log` if rollouts stall.
