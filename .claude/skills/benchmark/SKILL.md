@@ -29,20 +29,32 @@ Run benchmarks, evaluations, and RL training on the BeautifulSoup RL environment
 - "train model", "rl training", "prime rl"
 - "check model performance"
 
-## Preferred Models
+## Preferred Models (Prime Cloud)
 
-### Prime RL Training Targets (0% baseline - maximum RL gain)
-| Model | Baseline | Cost | Notes |
-|-------|----------|------|-------|
-| `allenai/olmo-3-7b-instruct` | 0% | Cheap | Perfect weak baseline on Prime |
-| `meta-llama/llama-4-maverick` | 0% | Unknown | Weak baseline on Prime |
+### Best RL Training Targets
+| Model | Baseline | Cost ($/1M in/out) | Notes |
+|-------|----------|-------------------|-------|
+| `openai/gpt-oss-20b` | **63.3%** | $0.07/$0.30 | **Best target** - cheap, room to grow |
+| `meta-llama/llama-4-maverick` | **65.8%** | $0.27/$0.88 | Good backup target |
 
-### Prime Validation Models (verify training works)
-| Model | Pass Rate | Cost | Notes |
-|-------|-----------|------|-------|
-| `arcee-ai/trinity-mini` | 75.6% | $0.045/$0.15 | Best cheap RL candidate |
-| `prime-intellect/intellect-3` | 67.3% | $0.20/$1.10 | Frontier (106B MoE), needs max_tokens=8000+ |
-| `mistralai/mistral-small-3.2-24b-instruct` | 100% | $0.10/$0.30 | Ceiling validation |
+### Models with Tool-Calling Issues (avoid for RL)
+| Model | Baseline | Issue |
+|-------|----------|-------|
+| `arcee-ai/trinity-mini` | 21-34% | Inconsistent - often skips tools entirely |
+| `allenai/olmo-3-7b-instruct` | 0% | Outputs code as markdown, not tool calls |
+
+### Validation/Ceiling Models
+| Model | Baseline | Cost ($/1M in/out) | Notes |
+|-------|----------|-------------------|-------|
+| `openai/gpt-5-nano` | **98.3%** | $0.05/$0.40 | Ceiling (too good for RL) |
+| `z-ai/glm-4.5-air` | **86.9%** | $0.20/$1.10 | Frontier baseline |
+| `mistralai/mistral-small-3.2-24b-instruct` | **82.6%** | $0.10/$0.25 | Validation ceiling |
+
+### Unavailable Models on Prime (404)
+| Model | Notes |
+|-------|-------|
+| `google/gemma-3-*` | Not available on Prime |
+| `qwen/qwen3-30b-*` | Model ID not found |
 
 ### OpenRouter Evaluation (local testing)
 | Model | Pass Rate | Cost | Notes |
@@ -50,15 +62,6 @@ Run benchmarks, evaluations, and RL training on the BeautifulSoup RL environment
 | `openai/gpt-4o-mini` | ~95% | Cheap | Quick validation |
 | `qwen/qwen3-8b` | 43-90% | $0.028/1M | Good RL candidate |
 | `mistralai/ministral-8b-2512` | 68.4% | Cheap | Best 8B |
-| `openai/gpt-5.2` | 75.6% | Medium | Frontier baseline |
-
-### Blocked Models (avoid)
-| Model | Issue |
-|-------|-------|
-| `google/gemma-3-*` | No function calling |
-| `deepseek/deepseek-r1-*` | No function calling |
-| `meta-llama/llama-3.2-1b-instruct` | No function calling |
-| `qwen/qwen3-30b-a3b-*` | JSON decode errors |
 
 **Model ID Differences:** Prime uses different IDs than OpenRouter. Always verify with `prime inference models` before running evals on Prime.
 
@@ -82,10 +85,76 @@ prime env eval seconds-0/beautiful-soup-env \
   -n 680
 ```
 
+### With Custom max_tokens (for verbose models)
+```bash
+prime env eval seconds-0/beautiful-soup-env \
+  -a '{"split":"bench","mode":"mvp"}' \
+  -m <model-name> \
+  -n 50 \
+  -t 8000
+```
+
 ### Check Available Models
 ```bash
 prime inference models
 ```
+
+## Diagnosing JSON Truncation Issues
+
+**Symptom:** Eval logs show warnings like:
+```
+Malformed tool arguments from model: Unterminated string starting at: line 1 column 10
+Could not repair JSON, using empty args
+```
+
+**Root Cause:** Model's tool call arguments are getting truncated before completion. This happens when:
+1. `max_tokens` is too low for the model's verbosity
+2. Model generates long reasoning/chain-of-thought before emitting JSON
+3. Model generates verbose Python code that exceeds token limit
+
+### Diagnostic Steps
+
+1. **Check the error message pattern:**
+   - "Unterminated string" = JSON string cut off mid-output
+   - "Expecting value: line 1 column 1" = Raw code output instead of JSON
+   - "Invalid \escape" = Broken escape sequences from truncation
+
+2. **Look at the Args preview in logs:**
+   ```
+   Args preview: {"code": "import re\nfrom bs4 import BeautifulSoup\n\nsoup = make_soup()\n\n# Find all price elements...
+   ```
+   If the preview ends abruptly without closing `"}`, it's truncation.
+
+3. **Test with higher max_tokens:**
+   ```bash
+   # Default (may be model-specific, often ~768-2048)
+   prime env eval ... -m <model> -n 10
+
+   # Increased
+   prime env eval ... -m <model> -n 10 -t 4000
+
+   # Very verbose models
+   prime env eval ... -m <model> -n 10 -t 8000
+   ```
+
+4. **Compare results:** If higher max_tokens improves pass rate, that confirms truncation was the issue.
+
+### Token Budget Guidelines
+
+| Model Type | Recommended max_tokens | Notes |
+|------------|----------------------|-------|
+| Small/efficient (gpt-5-nano, glm-4.5) | 2000-4000 | Usually enough |
+| Medium (llama-4-maverick, gpt-oss-20b) | 4000-6000 | May need more for complex tasks |
+| Verbose (intellect-3, trinity-mini) | 8000+ | Generates long reasoning first |
+
+### JSON Repair in Adapter
+
+The environment includes automatic JSON repair in `bs4_env/adapters/verifiers_adapter.py`:
+- Attempts to fix truncated JSON by adding missing braces
+- Falls back to empty args `{}` if unfixable
+- Logs warnings when repair is attempted
+
+This prevents eval crashes but doesn't fix the underlying truncation. **Increasing max_tokens is the real fix.**
 
 ## Local Evaluation (Development)
 
