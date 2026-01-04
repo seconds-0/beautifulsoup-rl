@@ -277,12 +277,12 @@ class TestNoAnswerLeakage:
             product = task.metadata["actual_product"]
             price = task.metadata["actual_price"]
 
-            assert product not in html, (
-                f"JSRequired leaks actual_product='{product}' in HTML (seed={seed})"
-            )
-            assert price not in html, (
-                f"JSRequired leaks actual_price='{price}' in HTML (seed={seed})"
-            )
+            assert (
+                product not in html
+            ), f"JSRequired leaks actual_product='{product}' in HTML (seed={seed})"
+            assert (
+                price not in html
+            ), f"JSRequired leaks actual_price='{price}' in HTML (seed={seed})"
 
     def test_image_text_no_leak(self):
         """ImageTextGenerator should not leak hidden text in HTML."""
@@ -292,9 +292,9 @@ class TestNoAnswerLeakage:
             html = task.html
             hidden_text = task.metadata["actual_text"]
 
-            assert hidden_text not in html, (
-                f"ImageText leaks actual_text='{hidden_text}' in HTML (seed={seed})"
-            )
+            assert (
+                hidden_text not in html
+            ), f"ImageText leaks actual_text='{hidden_text}' in HTML (seed={seed})"
 
     def test_canvas_text_no_leak(self):
         """CanvasTextGenerator should not leak product/price as string literals."""
@@ -305,12 +305,12 @@ class TestNoAnswerLeakage:
             product = task.metadata["actual_product"]
             price = task.metadata["actual_price"]
 
-            assert product not in html, (
-                f"CanvasText leaks actual_product='{product}' in HTML (seed={seed})"
-            )
-            assert price not in html, (
-                f"CanvasText leaks actual_price='{price}' in HTML (seed={seed})"
-            )
+            assert (
+                product not in html
+            ), f"CanvasText leaks actual_product='{product}' in HTML (seed={seed})"
+            assert (
+                price not in html
+            ), f"CanvasText leaks actual_price='{price}' in HTML (seed={seed})"
 
     def test_pdf_embed_no_leak(self):
         """PdfEmbedGenerator should not leak the key value (answer) in HTML.
@@ -324,6 +324,6 @@ class TestNoAnswerLeakage:
             html = task.html
             key_value = task.metadata["actual_value"]
 
-            assert key_value not in html, (
-                f"PdfEmbed leaks actual_value='{key_value}' in HTML (seed={seed})"
-            )
+            assert (
+                key_value not in html
+            ), f"PdfEmbed leaks actual_value='{key_value}' in HTML (seed={seed})"

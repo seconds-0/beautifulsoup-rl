@@ -51,9 +51,9 @@ class TestLazyDatasetInitialization:
 
         # Lazy should be at least 5x faster (usually 100x+)
         # Use generous margin for test stability
-        assert lazy_time < eager_time, (
-            f"Lazy ({lazy_time:.3f}s) should be faster than eager ({eager_time:.3f}s)"
-        )
+        assert (
+            lazy_time < eager_time
+        ), f"Lazy ({lazy_time:.3f}s) should be faster than eager ({eager_time:.3f}s)"
         assert len(lazy) == 20
 
 
@@ -140,9 +140,9 @@ class TestLazyDatasetCaching:
 
         # Cached should be significantly faster (usually 100x+)
         # But be generous for test stability
-        assert cached_time < first_time, (
-            f"Cached ({cached_time:.6f}s) should be faster than first ({first_time:.6f}s)"
-        )
+        assert (
+            cached_time < first_time
+        ), f"Cached ({cached_time:.6f}s) should be faster than first ({first_time:.6f}s)"
 
     def test_no_cache_regenerates(self):
         """With cache_size=0, should regenerate each time (same result)."""
@@ -203,9 +203,9 @@ class TestLazyDatasetParity:
         lazy_info = json.loads(lazy[0]["info"])
         eager_info = json.loads(eager[0]["info"])
 
-        assert set(lazy_info.keys()) == set(eager_info.keys()), (
-            f"Key mismatch: lazy={set(lazy_info.keys())}, eager={set(eager_info.keys())}"
-        )
+        assert set(lazy_info.keys()) == set(
+            eager_info.keys()
+        ), f"Key mismatch: lazy={set(lazy_info.keys())}, eager={set(eager_info.keys())}"
 
 
 class TestLazyDatasetConversion:
