@@ -4,28 +4,58 @@ Track all RL training experiments for BeautifulSoup environment.
 
 ## Active Runs
 
-### Run: bs4-rl-ministral-8b-1000steps (2026-01-05)
+### Run: bs4-rl-qwen2.5-7b-h100 (2026-01-05) - RUNNING ✅
 
-- **Model**: mistralai/Ministral-3-8B-Instruct-2512 (8B params)
-- **Config**: configs/prime-rl/beautiful-soup-env.toml
-- **Pod**: 8x A6000 48GB
-- **Start**: TBD
-- **Status**: PENDING ⏳
-- **W&B Project**: beautiful-soup-env
-- **Baseline**: **63.2%** (from results/results_ministral3_8b_full.json, 1148 tool calls)
+- **Model**: Qwen/Qwen2.5-7B-Instruct (7B params)
+- **Config**: /tmp/config.toml (remote) - see below
+- **Pod**: 1x H100 80GB SXM5 (DataCrunch spot, $0.99/hr)
+- **Pod ID**: fd6a88cad0f04019841355376d088f5b
+- **Start**: 2026-01-04 23:02 UTC
+- **Status**: RUNNING ✅
+- **W&B Run**: https://wandb.ai/seconds-0-domus-magna-inc/beautiful-soup-env/runs/cj36lnhb
+- **Baseline**: N/A (OpenRouter doesn't support tool calling for Qwen2.5-7B)
+
+#### Working Config (H100 Single GPU)
+
+```toml
+# Key settings for single H100 with shared trainer/inference
+inference_gpu_ids = [0]
+trainer_gpu_ids = [0]
+max_steps = 1000
+
+[model]
+name = "Qwen/Qwen2.5-7B-Instruct"
+
+[trainer.model.lora]
+rank = 8
+alpha = 32
+
+[orchestrator]
+batch_size = 32           # Reduced for single GPU
+rollouts_per_example = 4  # Reduced for single GPU
+seq_len = 4096
+
+[inference]
+gpu_memory_utilization = 0.45  # CRITICAL: Leave room for trainer on same GPU
+
+[inference.model]
+enable_auto_tool_choice = true
+tool_call_parser = "hermes"
+enforce_eager = true
+```
 
 #### Model Selection (2026-01-05)
 
-**Winner: Ministral-3-8B-Instruct-2512**
+**Winner: Qwen/Qwen2.5-7B-Instruct** (Ministral failed to load)
 
 | Model | Tool Calls | Baseline | vLLM | Status |
 |-------|------------|----------|------|--------|
-| **Ministral-3-8B** | ✅ 1148 | 63.2% | ✅ Official | **SELECTED** |
-| Qwen2.5-7B | ❌ No OpenRouter tool support | N/A | ✅ | Can't benchmark |
+| Ministral-3-8B | ✅ 1148 | 63.2% | ❌ KeyError | transformers doesn't support |
+| **Qwen2.5-7B** | N/A | N/A | ✅ Works | **SELECTED** |
 | Qwen3-8B | ❌ 0 calls | 39.6% | ? | Doesn't use tools |
 | gpt-oss-20b | N/A | 49.2% | ❌ vLLM bug | Blocked |
 
-**Selection criteria (per user requirement):** Functional tool calls > baseline performance.
+**Key fix:** `[inference] gpu_memory_utilization = 0.45` - required when trainer and inference share the same GPU.
 
 ---
 
@@ -238,3 +268,31 @@ enforce_eager = true
 ```
 
 This disables V1 engine and uses spawn instead of fork for child processes.
+
+### Single-GPU Memory Sharing (Trainer + Inference)
+
+When trainer and inference share the same GPU (e.g., single H100):
+
+```toml
+# CRITICAL: Limit vLLM memory so trainer has room
+[inference]
+gpu_memory_utilization = 0.45  # Default 0.9 will fail
+
+[orchestrator]
+batch_size = 32           # Reduce from 64+
+rollouts_per_example = 4  # Reduce from 8
+```
+
+**Error when this is wrong:**
+```
+ValueError: Free memory on device (48.97/79.18 GiB) on startup is less than
+desired GPU memory utilization (0.9, 71.26 GiB).
+```
+
+The trainer loads first (~30GB for 7B model), then vLLM tries to claim 90% = OOM.
+
+### Ministral Model Compatibility
+
+Ministral-3-8B-Instruct-2512 causes `KeyError: 'ministral3'` in transformers:
+- Root cause: Model type not recognized by AutoModelForCausalLM
+- Workaround: Use Qwen2.5-7B-Instruct instead (similar size, vLLM compatible)
