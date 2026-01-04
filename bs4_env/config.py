@@ -68,6 +68,11 @@ class EnvConfig:
     timeout_s: float = 30.0
     max_output_chars: int = 10000
     archetypes: list[str] | None = None
+    # Dataset backend selection:
+    # - "hf": eager HuggingFace Dataset (generates HTML upfront)
+    # - "lazy": LazyBS4Dataset (generates HTML on-demand; best for training throughput)
+    dataset_backend: Literal["hf", "lazy"] = "lazy"
+    lazy_cache_size: int = 512  # 0 disables caching
     # Prime sandbox-specific settings (only used when executor_backend="prime")
     docker_image: str | None = None  # Docker image for sandbox (default: python:3.11-slim)
     cpu_cores: int = 1  # CPU cores to allocate
@@ -86,6 +91,9 @@ class EnvConfig:
         # Auto-enable partial credit for bootstrap mode (designed for 0% models)
         if self.mode == "bootstrap" and not self.partial_credit_enabled:
             self.partial_credit_enabled = True
+
+        if self.lazy_cache_size < 0:
+            raise ValueError(f"lazy_cache_size must be >= 0, got {self.lazy_cache_size}")
 
 
 @dataclass
