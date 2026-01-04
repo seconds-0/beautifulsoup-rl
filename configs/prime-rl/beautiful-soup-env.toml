@@ -33,6 +33,9 @@ name = "bs4-rl-qwen2.5-7b-lora"
 lr = 1e-5
 weight_decay = 0.0
 
+[trainer.model]
+seq_len = 4096  # Must be >= orchestrator seq_len
+
 [trainer.model.lora]
 # LoRA is the lowest-friction way to get a nice demo quickly.
 rank = 8
@@ -53,7 +56,7 @@ target_modules = [
 # 7B model - can use larger batches on 2x A6000
 batch_size = 128
 rollouts_per_example = 8
-seq_len = 8192
+seq_len = 4096  # Must be <= trainer model seq_len (default 2048, but we set trainer seq_len too)
 oversampling_factor = 2.0
 lora_name = "qwen2.5-7b-bs4-lora"
 
