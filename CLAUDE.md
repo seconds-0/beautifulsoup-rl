@@ -57,14 +57,34 @@ bs4_env/
 
 ## Critical Rules
 
-### 0. Test How You Measure (Production Quality)
-**Local testing must match Prime's production flow exactly.** No shortcuts.
+### 0. Prime-First Testing (Dogfood on Production)
+**Test on Prime's actual infrastructure whenever possible.** Local testing is for rapid iteration only.
 
-- If Prime uses function calling, our local eval uses function calling
-- If Prime uses specific tool schemas, we use the same schemas
-- Our local results should predict actual Prime performance
+**Why Prime-first:**
+- Local eval uses different settings than Prime (e.g., `max_tokens=4000` local vs `768` Prime)
+- Local results may not predict actual Prime performance
+- Subtle differences in tool calling, timeouts, and sandboxing can cause surprises
+- We're building for Prime's RL pipeline, so test there
 
-This ensures we're building production-quality tooling, not approximations that break in deployment.
+**When to use local eval:**
+- Rapid iteration during development (syntax errors, basic logic)
+- When Prime credits are limited
+- Testing specific edge cases with verbose output
+
+**When to use Prime eval (preferred):**
+- Validating model performance (the real metric)
+- Benchmarking before/after changes
+- Final verification before merging
+
+**Config alignment check:**
+```toml
+# configs/prime-rl/beautiful-soup-env.toml
+[orchestrator.sampling]
+max_tokens = 768        # Prime uses this!
+temperature = 0.7
+```
+
+If local eval shows different results than Prime, check config alignment first.
 
 ### 1. Never Derive Ground Truth by Parsing
 Ground truth must come from structured data BEFORE HTML rendering. Never do this:
@@ -97,11 +117,21 @@ Each archetype needs:
 - Determinism test (same seed → same output)
 - Grading test (correct answer → +1.0, wrong answer → 0.0)
 
-### 4. Local-First Development
-Everything must work with `LocalSubprocessExecutor` before testing with Prime:
+### 4. Local Development, Prime Validation
+Use local executor for development, but validate on Prime:
 ```python
+# Development (fast iteration)
 config = EnvConfig(executor_backend="local")
+
+# Validation (matches production)
+prime env eval seconds-0/beautiful-soup-env -m <model> -n 50
 ```
+
+**Local eval limitations:**
+- Uses OpenRouter API (different from Prime's vLLM inference)
+- Default `max_tokens=4000` vs Prime's `768`
+- No sandboxing (security behaviors may differ)
+- Token counting may differ from Prime's tokenizer
 
 ### 5. Normalization is Dangerous
 Start with strict exact-match. Only add normalization when demonstrably needed. Over-normalization enables reward hacking.
@@ -119,8 +149,26 @@ pytest tests/test_grading.py
 pytest --cov=bs4_env
 ```
 
-## Running Local Evaluation
+## Running Evaluations
 
+### Prime Evaluation (Preferred)
+Use Prime for real performance metrics - this is what matters:
+```bash
+# Quick validation (50 examples)
+prime env eval seconds-0/beautiful-soup-env \
+  -a '{"split":"bench","mode":"mvp"}' \
+  -m <model-name> \
+  -n 50
+
+# Full benchmark
+prime env eval seconds-0/beautiful-soup-env \
+  -a '{"split":"bench","mode":"all"}' \
+  -m <model-name> \
+  -n 680
+```
+
+### Local Evaluation (Development Only)
+Use local eval for rapid iteration, not for final metrics:
 ```bash
 # Preview dataset (sanity check)
 python -m bs4_env.scripts.preview_dataset
@@ -128,9 +176,17 @@ python -m bs4_env.scripts.preview_dataset
 # End-to-end local smoke test
 python -m bs4_env.scripts.smoke_eval_local
 
-# LLM evaluation via OpenRouter
+# LLM evaluation via OpenRouter (NOTE: settings differ from Prime!)
 uv run python -m bs4_env.scripts.eval_with_llm --model <model> --num 50
+
+# Match Prime's max_tokens for closer alignment
+uv run python -m bs4_env.scripts.eval_with_llm --model <model> --num 50 --max-tokens 768
 ```
+
+**⚠️ Local vs Prime differences:**
+- Prime uses `max_tokens=768`, local defaults to `4000`
+- Prime uses vLLM inference, local uses OpenRouter
+- Results may not correlate - always validate on Prime
 
 ## Test Records
 
@@ -143,19 +199,6 @@ This file tracks:
 - Environment changes that affect results
 
 Target **small/weak models** for testing - they benefit most from RL training.
-
-## Running Prime Evaluation
-
-```bash
-# Baseline evaluation
-prime env eval seconds-0/beautiful-soup-env \
-  -a '{"split":"bench","mode":"mvp"}' \
-  -m <model-name> \
-  -n 100
-
-# Push to Hub
-prime env push
-```
 
 ## File Ownership
 
