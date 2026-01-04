@@ -439,6 +439,7 @@ def _compute_cache_key(config: EnvConfig, env_id: str) -> str:
     - Config parameters change (split, mode, difficulty, seed, num_examples, archetypes)
     - Archetypes are added/removed (version hash)
     - Package version changes (generator code updates)
+    - Generator code changes (code fingerprint - dev mode safety)
 
     Args:
         config: Environment configuration.
@@ -454,6 +455,7 @@ def _compute_cache_key(config: EnvConfig, env_id: str) -> str:
     weights_str = str(sorted(config.difficulty_weights.items()))
     key_parts = [
         __version__,  # Invalidates when package version bumps
+        _get_code_fingerprint(),  # Invalidates on generator code changes (dev mode safety)
         env_id,  # Critical: prevents cache collision with different env_ids
         config.split,
         config.mode,
@@ -504,6 +506,46 @@ def _cache_lock(lock_path: Path):
         os.close(fd)
 
 
+def _is_cache_ready(dataset_dir: Path) -> bool:
+    """Check if cache was fully written (not partial/crashed).
+
+    A cache is only valid if it contains a _READY marker file,
+    which is written atomically after the dataset is fully saved.
+    This prevents loading partial caches from crashed workers.
+    """
+    return (dataset_dir / "_READY").exists()
+
+
+def _get_code_fingerprint() -> str:
+    """Get code fingerprint for cache invalidation.
+
+    This ensures generator code changes invalidate caches, even in dev mode
+    where __version__ is "0.0.0".
+
+    Priority:
+    1. Git SHA from environment (CI/Prime often injects this)
+    2. Hash of generator source files (dev mode fallback)
+
+    Returns:
+        16-character hex string.
+    """
+    import os
+
+    # Check for CI-injected commit SHA
+    for var in ("GIT_SHA", "COMMIT_SHA", "BS4_ENV_BUILD_ID", "GITHUB_SHA"):
+        sha = os.environ.get(var)
+        if sha:
+            return sha[:16]
+
+    # Fallback: hash generator source files
+    h = hashlib.sha256()
+    generators_dir = Path(__file__).parent / "generators"
+    if generators_dir.exists():
+        for p in sorted(generators_dir.glob("*.py")):
+            h.update(p.read_bytes())
+    return h.hexdigest()[:16]
+
+
 def build_disk_cached_dataset(
     config: EnvConfig,
     cache_dir: Path | str | None = None,
@@ -522,6 +564,9 @@ def build_disk_cached_dataset(
     Thread-safe: Uses file locking to prevent race conditions when multiple
     workers attempt to build the same cache simultaneously.
 
+    Crash-safe: Uses atomic temp directory + rename pattern with READY marker
+    to prevent loading partial caches from crashed workers.
+
     Args:
         config: Environment configuration.
         cache_dir: Directory for Arrow cache files. Defaults to ~/.cache/bs4_env/datasets/
@@ -537,6 +582,9 @@ def build_disk_cached_dataset(
     """
     import shutil
     import tempfile
+    from datetime import datetime, timezone
+
+    from beautiful_soup_env import __version__
 
     # Determine cache location
     if cache_dir is None:
@@ -550,22 +598,23 @@ def build_disk_cached_dataset(
 
     # Use file lock to prevent race conditions on Prime (multiple workers)
     with _cache_lock(lock_file):
-        # Re-check existence inside lock (TOCTOU fix)
-        if dataset_dir.exists() and not force_rebuild:
+        # Only load if READY marker exists (not partial/crashed cache)
+        if dataset_dir.exists() and _is_cache_ready(dataset_dir) and not force_rebuild:
             try:
                 logger.info(f"Loading cached dataset from {dataset_dir}")
                 return Dataset.load_from_disk(str(dataset_dir))
             except Exception as e:
                 logger.warning(f"Cache load failed, will rebuild: {e}")
 
-        # Delete old cache before rebuilding (prevents corrupted/mixed caches)
-        if dataset_dir.exists():
-            logger.info(f"Removing stale cache: {dataset_dir}")
-            shutil.rmtree(dataset_dir, ignore_errors=True)
+        # Build to temp directory first (atomic pattern)
+        tmp_dir = dataset_dir.with_name(dataset_dir.name + ".tmp")
 
-        # Build from generator (streams to disk, not RAM)
+        # Clean up any stale temp or partial directories
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        shutil.rmtree(dataset_dir, ignore_errors=True)
+
         logger.info(f"Building dataset to disk cache: {dataset_dir}")
-        dataset_dir.mkdir(parents=True, exist_ok=True)
+        cache_dir.mkdir(parents=True, exist_ok=True)
 
         def gen():
             for idx, row in enumerate(generate_dataset_rows(config)):
@@ -578,11 +627,37 @@ def build_disk_cached_dataset(
                     "task": env_id,  # String - verifiers skips map
                 }
 
-        # Use a temp directory for generation, then save to final location
-        # This avoids partial cache files if generation fails
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            dataset = Dataset.from_generator(gen, cache_dir=tmp_dir)
-            dataset.save_to_disk(str(dataset_dir))
+        # Generate dataset to temp directory
+        with tempfile.TemporaryDirectory() as arrow_tmp:
+            dataset = Dataset.from_generator(gen, cache_dir=arrow_tmp)
+            dataset.save_to_disk(str(tmp_dir))
+
+        # Write metadata for debugging and validation
+        code_fingerprint = _get_code_fingerprint()
+        metadata = {
+            "cache_key": cache_key,
+            "env_id": env_id,
+            "config": {
+                "split": config.split,
+                "mode": config.mode,
+                "difficulty": config.difficulty,
+                "seed": config.seed,
+                "num_examples": config.num_examples,
+            },
+            "version": __version__,
+            "code_fingerprint": code_fingerprint,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        (tmp_dir / "_metadata.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
+
+        # Write READY marker (signals cache is complete)
+        (tmp_dir / "_READY").write_text(
+            json.dumps({"cache_key": cache_key, "created_at": metadata["created_at"]}),
+            encoding="utf-8",
+        )
+
+        # Atomic rename temp → final
+        tmp_dir.replace(dataset_dir)
 
         # Load back with memory mapping
         return Dataset.load_from_disk(str(dataset_dir))

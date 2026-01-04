@@ -11,6 +11,7 @@ from bs4_env.config import EnvConfig
 from bs4_env.dataset import (
     _compute_cache_key,
     _get_archetype_version_hash,
+    _is_cache_ready,
     build_dataset,
     build_disk_cached_dataset,
 )
@@ -279,3 +280,76 @@ class TestVerifiersCompatibility:
 
         # Simulate verifiers' _ensure_task check
         assert "task" in dataset.column_names
+
+
+class TestCrashSafety:
+    """Tests for crash-safe cache operations."""
+
+    @pytest.fixture
+    def temp_cache_dir(self):
+        """Create a temporary cache directory."""
+        temp_dir = tempfile.mkdtemp()
+        yield Path(temp_dir)
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_partial_cache_triggers_rebuild(self, temp_cache_dir):
+        """Partial cache (missing _READY marker) should trigger rebuild, not load."""
+        config = EnvConfig(split="train", mode="mvp", num_examples=5)
+
+        # Compute cache key to create partial directory in right location
+        cache_key = _compute_cache_key(config, env_id="beautiful-soup-env")
+        partial_dir = temp_cache_dir / cache_key
+        partial_dir.mkdir(parents=True)
+
+        # Create fake data file (simulating crash mid-write)
+        (partial_dir / "fake_data.arrow").write_text("corrupted")
+
+        # Should NOT have READY marker
+        assert not _is_cache_ready(partial_dir)
+
+        # Should rebuild, not crash on load
+        dataset = build_disk_cached_dataset(config, cache_dir=temp_cache_dir)
+        assert len(dataset) > 0
+
+        # Now should have READY marker
+        assert _is_cache_ready(partial_dir)
+
+    def test_ready_marker_created_on_success(self, temp_cache_dir):
+        """_READY marker should be created after successful build."""
+        config = EnvConfig(split="train", mode="mvp", num_examples=5)
+
+        dataset = build_disk_cached_dataset(config, cache_dir=temp_cache_dir, force_rebuild=True)
+
+        # Find the cache directory
+        cache_dirs = [d for d in temp_cache_dir.iterdir() if d.is_dir()]
+        assert len(cache_dirs) == 1
+
+        cache_dir = cache_dirs[0]
+        assert _is_cache_ready(cache_dir)
+
+        # Verify READY marker content
+        ready_content = json.loads((cache_dir / "_READY").read_text())
+        assert "cache_key" in ready_content
+        assert "created_at" in ready_content
+
+    def test_metadata_json_created(self, temp_cache_dir):
+        """_metadata.json should be created with config info."""
+        config = EnvConfig(split="train", mode="mvp", num_examples=5)
+
+        build_disk_cached_dataset(config, cache_dir=temp_cache_dir, force_rebuild=True)
+
+        # Find the cache directory
+        cache_dirs = [d for d in temp_cache_dir.iterdir() if d.is_dir()]
+        assert len(cache_dirs) == 1
+
+        cache_dir = cache_dirs[0]
+        metadata_path = cache_dir / "_metadata.json"
+        assert metadata_path.exists()
+
+        metadata = json.loads(metadata_path.read_text())
+        assert metadata["config"]["split"] == "train"
+        assert metadata["config"]["mode"] == "mvp"
+        assert metadata["config"]["num_examples"] == 5
+        assert "version" in metadata
+        assert "code_fingerprint" in metadata
+        assert "created_at" in metadata
