@@ -595,8 +595,36 @@ def compute_reward(
     # Step 1: Validate output format
     output, validation_errors = validate_output(raw_output, task_info)
 
-    if output is None or validation_errors:
+    # Fatal error: JSON couldn't be parsed at all
+    if output is None:
         metrics["errors"].extend(validation_errors)
+        return REWARD_FORMAT_ERROR, metrics
+
+    # Non-fatal errors: JSON parsed but schema validation failed
+    # Still allow process partial credit for models learning BS4 patterns
+    if validation_errors:
+        metrics["errors"].extend(validation_errors)
+        metrics["format_ok"] = False
+        metrics["schema_ok"] = False
+
+        # Compute process partial credit even on schema errors
+        # This helps models that are learning BS4 patterns but haven't
+        # mastered the output format yet
+        solvable = task_info.get("solvable", True)
+        status = output.get("status", "unknown")
+        if code_samples is not None:
+            process_reward, process_breakdown = compute_process_partial_credit(
+                code_samples=code_samples,
+                status=status,
+                solvable=solvable,
+                run_python_calls=run_python_calls,
+                partial_credit_enabled=partial_credit_enabled,
+            )
+            if process_reward > 0:
+                metrics["process_partial_credit"] = process_breakdown
+                metrics["partial_credit_source"] = "process_on_schema_error"
+                return process_reward, metrics
+
         return REWARD_FORMAT_ERROR, metrics
 
     metrics["format_ok"] = True

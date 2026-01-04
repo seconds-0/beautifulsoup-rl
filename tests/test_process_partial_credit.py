@@ -672,3 +672,84 @@ class TestBootstrapModeConfig:
         config = EnvConfig(mode="bootstrap")
         config.partial_credit_enabled = False
         assert config.partial_credit_enabled is False
+
+
+class TestProcessCreditOnSchemaErrors:
+    """Tests for process partial credit surviving schema validation errors."""
+
+    def test_schema_error_with_good_bs4_code_gets_credit(self):
+        """Model with schema errors but good BS4 code still gets process credit."""
+        # Valid JSON but missing required 'answer' field (schema error)
+        raw_output = '{"status": "ok"}'
+        task_info = {
+            "ground_truth": "test",
+            "solvable": True,
+            "answer_schema": {"type": "string"},
+        }
+        # Code shows full BS4 learning progression
+        code_samples = [
+            """
+from bs4 import BeautifulSoup
+soup = BeautifulSoup(HTML, "html.parser")
+result = soup.find("div").get_text()
+print(result)
+"""
+        ]
+
+        reward, metrics = compute_reward(
+            raw_output=raw_output,
+            task_info=task_info,
+            code_samples=code_samples,
+            run_python_calls=1,
+            partial_credit_enabled=True,
+        )
+
+        # Should get process partial credit instead of 0.0
+        assert reward > 0.0, "Schema error with good BS4 code should get process credit"
+        assert metrics.get("partial_credit_source") == "process_on_schema_error"
+        assert "process_partial_credit" in metrics
+
+    def test_unparseable_json_still_gets_zero(self):
+        """Completely unparseable JSON still returns 0.0."""
+        raw_output = "this is not json at all"
+        task_info = {
+            "ground_truth": "test",
+            "solvable": True,
+            "answer_schema": {"type": "string"},
+        }
+        code_samples = [
+            'soup = BeautifulSoup(HTML, "html.parser")',
+        ]
+
+        reward, metrics = compute_reward(
+            raw_output=raw_output,
+            task_info=task_info,
+            code_samples=code_samples,
+            run_python_calls=1,
+            partial_credit_enabled=True,
+        )
+
+        # Unparseable JSON should still be 0.0
+        assert reward == 0.0
+        # No process credit attempted because JSON couldn't be parsed
+        assert "partial_credit_source" not in metrics
+
+    def test_schema_error_without_code_samples_gets_zero(self):
+        """Schema error without code samples (no process credit possible) gets 0.0."""
+        raw_output = '{"status": "ok"}'  # Missing answer
+        task_info = {
+            "ground_truth": "test",
+            "solvable": True,
+            "answer_schema": {"type": "string"},
+        }
+
+        reward, metrics = compute_reward(
+            raw_output=raw_output,
+            task_info=task_info,
+            code_samples=None,  # No code samples
+            run_python_calls=1,
+            partial_credit_enabled=True,
+        )
+
+        # Without code samples, can't compute process credit
+        assert reward == 0.0
