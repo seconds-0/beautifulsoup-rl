@@ -427,6 +427,137 @@ def _collect_html_derived_names(tree: ast.AST) -> set[str]:
     return derived
 
 
+def _collect_shadowed_callable_names(tree: ast.AST, target_names: set[str]) -> set[str]:
+    """Collect names that shadow injected helper callables.
+
+    We treat a name as shadowed if the user code binds it to something that is
+    unlikely to be the injected/global BS4 helper. This prevents trivial spoofing
+    such as redefining BeautifulSoup or importing it from a non-bs4 module.
+
+    Shadowing mechanisms detected:
+    - Function definitions: `def BeautifulSoup(...):`
+    - Class definitions: `class BeautifulSoup:`
+    - Assignments: `BeautifulSoup = ...`
+    - Non-bs4 imports: `from fake_lib import BeautifulSoup`
+
+    Args:
+        tree: Parsed AST of the code.
+        target_names: Names to check for shadowing (e.g., {"BeautifulSoup", "make_soup"}).
+
+    Returns:
+        Set of names from target_names that are shadowed in the code.
+    """
+    shadowed: set[str] = set()
+
+    class ShadowVisitor(ast.NodeVisitor):
+        def visit_FunctionDef(self, node: ast.FunctionDef) -> Any:
+            if node.name in target_names:
+                shadowed.add(node.name)
+            self.generic_visit(node)
+
+        def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> Any:
+            if node.name in target_names:
+                shadowed.add(node.name)
+            self.generic_visit(node)
+
+        def visit_ClassDef(self, node: ast.ClassDef) -> Any:
+            if node.name in target_names:
+                shadowed.add(node.name)
+            self.generic_visit(node)
+
+        def visit_Assign(self, node: ast.Assign) -> Any:
+            for t in node.targets:
+                for name in _extract_assigned_names(t):
+                    if name in target_names:
+                        shadowed.add(name)
+            self.generic_visit(node)
+
+        def visit_AnnAssign(self, node: ast.AnnAssign) -> Any:
+            for name in _extract_assigned_names(node.target):
+                if name in target_names:
+                    shadowed.add(name)
+            self.generic_visit(node)
+
+        def visit_AugAssign(self, node: ast.AugAssign) -> Any:
+            for name in _extract_assigned_names(node.target):
+                if name in target_names:
+                    shadowed.add(name)
+            self.generic_visit(node)
+
+        def visit_Import(self, node: ast.Import) -> Any:
+            # `import X as BeautifulSoup` shadows the name.
+            for alias in node.names:
+                bound = alias.asname or alias.name.split(".")[-1]
+                if bound in target_names:
+                    shadowed.add(bound)
+            self.generic_visit(node)
+
+        def visit_ImportFrom(self, node: ast.ImportFrom) -> Any:
+            module = node.module or ""
+            for alias in node.names:
+                bound = alias.asname or alias.name
+                if bound not in target_names:
+                    continue
+
+                # `from bs4 import BeautifulSoup` is legitimate BS4 usage, so do NOT shadow.
+                if module == "bs4" or module.startswith("bs4."):
+                    continue
+
+                shadowed.add(bound)
+
+            self.generic_visit(node)
+
+    ShadowVisitor().visit(tree)
+    return shadowed
+
+
+def _collect_bs4_module_aliases(tree: ast.AST) -> set[str]:
+    """Collect imported module names that refer to the `bs4` package.
+
+    Detects patterns like:
+    - `import bs4` -> {"bs4"}
+    - `import bs4 as soup_lib` -> {"soup_lib"}
+    - `import bs4.element` -> {"bs4"}
+
+    Args:
+        tree: Parsed AST of the code.
+
+    Returns:
+        Set of module aliases that refer to bs4.
+    """
+    aliases: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name == "bs4" or alias.name.startswith("bs4."):
+                    aliases.add(alias.asname or "bs4")
+    return aliases
+
+
+def _collect_bs4_constructor_aliases(tree: ast.AST) -> set[str]:
+    """Collect aliases that refer to bs4.BeautifulSoup constructor.
+
+    Detects patterns like:
+    - `from bs4 import BeautifulSoup` -> {"BeautifulSoup"}
+    - `from bs4 import BeautifulSoup as BS` -> {"BS"}
+
+    Args:
+        tree: Parsed AST of the code.
+
+    Returns:
+        Set of names that refer to the BeautifulSoup constructor.
+    """
+    aliases: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            module = node.module or ""
+            if module == "bs4" or module.startswith("bs4."):
+                for alias in node.names:
+                    if alias.name == "BeautifulSoup":
+                        aliases.add(alias.asname or "BeautifulSoup")
+    return aliases
+
+
 def check_bs4_usage(code_samples: list[str]) -> bool:
     """Check if any code sample uses BeautifulSoup in a meaningful way.
 
