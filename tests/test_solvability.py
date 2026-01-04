@@ -273,3 +273,133 @@ class TestAnswerSchemaCompliance:
                 assert isinstance(ground_truth, dict), (
                     f"{spec.archetype_id}: expected dict, got {type(ground_truth)}"
                 )
+
+
+class TestMultiStepArchetypeSolvability:
+    """Tests for multi-step archetype task structure and solvability.
+
+    Multi-step tasks require navigation between pages. These tests verify:
+    1. Tasks generate valid pages dict
+    2. Navigation path from start to answer exists
+    3. Ground truth is accessible via that path
+    """
+
+    def test_search_then_detail_has_pages(self):
+        """SearchThenDetail tasks should have pages dict populated."""
+        from bs4_env.generators.mvp_multistep import SearchThenDetailGenerator
+
+        gen = SearchThenDetailGenerator()
+        task = gen.generate(seed=42)
+
+        # Multi-step task must have pages
+        assert task.pages, "SearchThenDetail task must have pages dict"
+        assert len(task.pages) >= 1, "Must have at least one detail page"
+
+        # Starting HTML exists
+        assert task.html, "Must have starting HTML"
+
+        # Ground truth should be accessible (in some page)
+        all_content = task.html + "".join(task.pages.values())
+        gt = task.ground_truth
+        if isinstance(gt, str):
+            assert gt in all_content, f"Ground truth '{gt[:50]}...' not found in any page content"
+
+    def test_pagination_aggregate_has_pages(self):
+        """PaginationAggregate tasks should have pages dict populated."""
+        from bs4_env.generators.mvp_multistep import PaginationAggregateGenerator
+
+        gen = PaginationAggregateGenerator()
+        task = gen.generate(seed=42)
+
+        # Pagination task must have multiple pages
+        assert task.pages, "PaginationAggregate task must have pages dict"
+        assert len(task.pages) >= 1, "Must have at least one additional page"
+
+        # Starting HTML exists
+        assert task.html, "Must have starting HTML"
+
+    def test_link_chain_has_pages(self):
+        """LinkChain tasks should have pages dict populated."""
+        from bs4_env.generators.mvp_multistep import LinkChainGenerator
+
+        gen = LinkChainGenerator()
+        task = gen.generate(seed=42)
+
+        # Link chain task must have pages
+        assert task.pages, "LinkChain task must have pages dict"
+        assert len(task.pages) >= 2, "Must have at least 2 pages in chain"
+
+        # Ground truth should be in the final page
+        final_page = list(task.pages.values())[-1]
+        gt = task.ground_truth
+        if isinstance(gt, str):
+            assert gt in final_page, f"Ground truth '{gt[:50]}...' should be in final page"
+
+    def test_compare_products_has_pages(self):
+        """CompareProducts tasks should have pages dict populated."""
+        from bs4_env.generators.mvp_multistep import CompareProductsGenerator
+
+        gen = CompareProductsGenerator()
+        task = gen.generate(seed=42)
+
+        # Comparison task must have pages for products
+        assert task.pages, "CompareProducts task must have pages dict"
+        assert len(task.pages) >= 2, "Must have at least 2 product pages"
+
+    @pytest.mark.parametrize("seed", TEST_SEEDS[:2])
+    def test_multistep_archetypes_give_reward_for_ground_truth(self, seed):
+        """Multi-step archetypes should give high reward for correct answer."""
+        from bs4_env.generators.mvp_multistep import (
+            CompareProductsGenerator,
+            LinkChainGenerator,
+            PaginationAggregateGenerator,
+            SearchThenDetailGenerator,
+        )
+
+        generators = [
+            SearchThenDetailGenerator(),
+            PaginationAggregateGenerator(),
+            LinkChainGenerator(),
+            CompareProductsGenerator(),
+        ]
+
+        for gen in generators:
+            task = gen.generate(seed=seed)
+            output = json.dumps({"status": "ok", "answer": task.ground_truth})
+            task_info = parse_task_info(task.to_info_dict())
+
+            reward, metrics = compute_reward(
+                raw_output=output,
+                task_info=task_info,
+                run_python_calls=1,
+            )
+
+            assert reward >= REWARD_TOLERANCE, (
+                f"{gen.__class__.__name__} (seed={seed}): "
+                f"reward={reward:.3f} < {REWARD_TOLERANCE}, metrics={metrics}"
+            )
+
+    def test_multistep_starting_html_contains_navigation_links(self):
+        """Multi-step starting HTML should contain navigation links."""
+        from bs4_env.generators.mvp_multistep import SearchThenDetailGenerator
+
+        gen = SearchThenDetailGenerator()
+        task = gen.generate(seed=42)
+
+        # Starting HTML should have links to detail pages
+        from bs4 import BeautifulSoup
+
+        soup = BeautifulSoup(task.html, "html.parser")
+        links = soup.find_all("a", href=True)
+
+        # At least one link should point to a page in pages dict
+        page_hrefs = set(task.pages.keys())
+        found_nav_link = any(
+            link["href"] in page_hrefs or link["href"].lstrip("/") in page_hrefs for link in links
+        )
+
+        assert found_nav_link, (
+            f"Starting HTML should contain navigation links to pages. "
+            f"Links found: {[link['href'] for link in links]}, "
+            f"Pages available: {list(page_hrefs)}"
+        )
