@@ -24,8 +24,8 @@ class TestCacheKeyComputation:
         config1 = EnvConfig(split="train", mode="mvp", seed=42)
         config2 = EnvConfig(split="train", mode="mvp", seed=42)
 
-        key1 = _compute_cache_key(config1)
-        key2 = _compute_cache_key(config2)
+        key1 = _compute_cache_key(config1, env_id="test-env")
+        key2 = _compute_cache_key(config2, env_id="test-env")
 
         assert key1 == key2
 
@@ -34,8 +34,8 @@ class TestCacheKeyComputation:
         config1 = EnvConfig(split="train", mode="mvp")
         config2 = EnvConfig(split="eval", mode="mvp")
 
-        key1 = _compute_cache_key(config1)
-        key2 = _compute_cache_key(config2)
+        key1 = _compute_cache_key(config1, env_id="test-env")
+        key2 = _compute_cache_key(config2, env_id="test-env")
 
         assert key1 != key2
 
@@ -44,8 +44,8 @@ class TestCacheKeyComputation:
         config1 = EnvConfig(split="train", mode="mvp")
         config2 = EnvConfig(split="train", mode="all")
 
-        key1 = _compute_cache_key(config1)
-        key2 = _compute_cache_key(config2)
+        key1 = _compute_cache_key(config1, env_id="test-env")
+        key2 = _compute_cache_key(config2, env_id="test-env")
 
         assert key1 != key2
 
@@ -54,8 +54,8 @@ class TestCacheKeyComputation:
         config1 = EnvConfig(split="train", mode="mvp", seed=42)
         config2 = EnvConfig(split="train", mode="mvp", seed=123)
 
-        key1 = _compute_cache_key(config1)
-        key2 = _compute_cache_key(config2)
+        key1 = _compute_cache_key(config1, env_id="test-env")
+        key2 = _compute_cache_key(config2, env_id="test-env")
 
         assert key1 != key2
 
@@ -64,8 +64,8 @@ class TestCacheKeyComputation:
         config1 = EnvConfig(split="train", mode="mvp", num_examples=100)
         config2 = EnvConfig(split="train", mode="mvp", num_examples=200)
 
-        key1 = _compute_cache_key(config1)
-        key2 = _compute_cache_key(config2)
+        key1 = _compute_cache_key(config1, env_id="test-env")
+        key2 = _compute_cache_key(config2, env_id="test-env")
 
         assert key1 != key2
 
@@ -82,15 +82,24 @@ class TestCacheKeyComputation:
             difficulty_weights={"primer": 0.1, "easy": 0.3, "medium": 0.3, "hard": 0.3},
         )
 
-        key1 = _compute_cache_key(config1)
-        key2 = _compute_cache_key(config2)
+        key1 = _compute_cache_key(config1, env_id="test-env")
+        key2 = _compute_cache_key(config2, env_id="test-env")
+
+        assert key1 != key2
+
+    def test_different_env_id_different_key(self):
+        """Different env_id should produce different cache key (P0 fix)."""
+        config = EnvConfig(split="train", mode="mvp", seed=42)
+
+        key1 = _compute_cache_key(config, env_id="env-a")
+        key2 = _compute_cache_key(config, env_id="env-b")
 
         assert key1 != key2
 
     def test_cache_key_is_hex_string(self):
         """Cache key should be a hex string."""
         config = EnvConfig(split="train", mode="mvp")
-        key = _compute_cache_key(config)
+        key = _compute_cache_key(config, env_id="test-env")
 
         assert isinstance(key, str)
         assert len(key) == 16  # First 16 chars of SHA-256

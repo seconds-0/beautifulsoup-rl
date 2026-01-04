@@ -6,6 +6,7 @@ This module builds HuggingFace datasets from task generators,
 managing train/eval/bench splits with disjoint seeds.
 """
 
+import contextlib
 import hashlib
 import json
 import logging
@@ -430,22 +431,30 @@ def build_lazy_dataset(
 # =============================================================================
 
 
-def _compute_cache_key(config: EnvConfig) -> str:
-    """Compute deterministic cache key from config + archetype version.
+def _compute_cache_key(config: EnvConfig, env_id: str) -> str:
+    """Compute deterministic cache key from config + env_id + archetype version.
 
     The key changes when:
+    - env_id changes (critical: task column value)
     - Config parameters change (split, mode, difficulty, seed, num_examples, archetypes)
     - Archetypes are added/removed (version hash)
+    - Package version changes (generator code updates)
 
     Args:
         config: Environment configuration.
+        env_id: Environment ID written to the 'task' column.
 
     Returns:
         SHA-256 hash string (first 16 chars).
     """
+    # Import version for cache invalidation on generator changes
+    from beautiful_soup_env import __version__
+
     # Include difficulty_weights for tiered mode cache invalidation
     weights_str = str(sorted(config.difficulty_weights.items()))
     key_parts = [
+        __version__,  # Invalidates when package version bumps
+        env_id,  # Critical: prevents cache collision with different env_ids
         config.split,
         config.mode,
         config.difficulty,
@@ -475,6 +484,26 @@ def _get_archetype_version_hash() -> str:
     return hashlib.sha256(":".join(spec_strings).encode()).hexdigest()[:8]
 
 
+@contextlib.contextmanager
+def _cache_lock(lock_path: Path):
+    """File-based lock for cache directory operations.
+
+    Prevents race conditions when multiple workers build the same cache.
+    Uses fcntl.flock which is available on Linux/macOS.
+    """
+    import fcntl
+    import os
+
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(str(lock_path), os.O_CREAT | os.O_RDWR, 0o644)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        yield
+    finally:
+        fcntl.flock(fd, fcntl.LOCK_UN)
+        os.close(fd)
+
+
 def build_disk_cached_dataset(
     config: EnvConfig,
     cache_dir: Path | str | None = None,
@@ -490,6 +519,9 @@ def build_disk_cached_dataset(
     This is the recommended approach for training datasets (50K+ examples).
     For bench splits, use build_dataset() which is simpler and sufficient.
 
+    Thread-safe: Uses file locking to prevent race conditions when multiple
+    workers attempt to build the same cache simultaneously.
+
     Args:
         config: Environment configuration.
         cache_dir: Directory for Arrow cache files. Defaults to ~/.cache/bs4_env/datasets/
@@ -503,46 +535,57 @@ def build_disk_cached_dataset(
         - example_id: integer index (required by verifiers)
         - task: string (required by verifiers EnvGroup)
     """
+    import shutil
+    import tempfile
+
     # Determine cache location
     if cache_dir is None:
         cache_dir = Path.home() / ".cache" / "bs4_env" / "datasets"
     else:
         cache_dir = Path(cache_dir)
 
-    cache_key = _compute_cache_key(config)
+    cache_key = _compute_cache_key(config, env_id=env_id)
     dataset_dir = cache_dir / cache_key
+    lock_file = dataset_dir.with_suffix(".lock")
 
-    # Try loading from cache
-    if dataset_dir.exists() and not force_rebuild:
-        try:
-            logger.info(f"Loading cached dataset from {dataset_dir}")
-            return Dataset.load_from_disk(str(dataset_dir))
-        except Exception as e:
-            logger.warning(f"Cache load failed, rebuilding: {e}")
+    # Use file lock to prevent race conditions on Prime (multiple workers)
+    with _cache_lock(lock_file):
+        # Re-check existence inside lock (TOCTOU fix)
+        if dataset_dir.exists() and not force_rebuild:
+            try:
+                logger.info(f"Loading cached dataset from {dataset_dir}")
+                return Dataset.load_from_disk(str(dataset_dir))
+            except Exception as e:
+                logger.warning(f"Cache load failed, will rebuild: {e}")
 
-    # Build from generator (streams to disk, not RAM)
-    logger.info(f"Building dataset to disk cache: {dataset_dir}")
-    dataset_dir.mkdir(parents=True, exist_ok=True)
+        # Delete old cache before rebuilding (prevents corrupted/mixed caches)
+        if dataset_dir.exists():
+            logger.info(f"Removing stale cache: {dataset_dir}")
+            shutil.rmtree(dataset_dir, ignore_errors=True)
 
-    import tempfile
+        # Build from generator (streams to disk, not RAM)
+        logger.info(f"Building dataset to disk cache: {dataset_dir}")
+        dataset_dir.mkdir(parents=True, exist_ok=True)
 
-    def gen():
-        for idx, row in enumerate(generate_dataset_rows(config)):
-            yield {
-                "prompt": row["prompt"],
-                "info": json.dumps(row["info"]) if isinstance(row["info"], dict) else row["info"],
-                "example_id": idx,  # Integer - verifiers skips add_column
-                "task": env_id,  # String - verifiers skips map
-            }
+        def gen():
+            for idx, row in enumerate(generate_dataset_rows(config)):
+                yield {
+                    "prompt": row["prompt"],
+                    "info": json.dumps(row["info"])
+                    if isinstance(row["info"], dict)
+                    else row["info"],
+                    "example_id": idx,  # Integer - verifiers skips add_column
+                    "task": env_id,  # String - verifiers skips map
+                }
 
-    # Use a temp directory for generation, then save to final location
-    # This avoids partial cache files if generation fails
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        dataset = Dataset.from_generator(gen, cache_dir=tmp_dir)
-        dataset.save_to_disk(str(dataset_dir))
+        # Use a temp directory for generation, then save to final location
+        # This avoids partial cache files if generation fails
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            dataset = Dataset.from_generator(gen, cache_dir=tmp_dir)
+            dataset.save_to_disk(str(dataset_dir))
 
-    # Load back with memory mapping
-    return Dataset.load_from_disk(str(dataset_dir))
+        # Load back with memory mapping
+        return Dataset.load_from_disk(str(dataset_dir))
 
 
 def get_dataset_stats(dataset: Dataset) -> dict[str, Any]:
