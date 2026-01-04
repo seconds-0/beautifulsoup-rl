@@ -96,9 +96,7 @@ def measure_disk_cached(num_examples: int, cache_dir: Path) -> dict:
     mem_before = get_process_memory_mb()
 
     config = EnvConfig(split="train", mode="mvp", num_examples=num_examples)
-    dataset = build_disk_cached_dataset(
-        config, cache_dir=cache_dir, force_rebuild=True
-    )
+    dataset = build_disk_cached_dataset(config, cache_dir=cache_dir, force_rebuild=True)
 
     # Force access to check memory-mapped behavior
     _ = len(dataset)
@@ -133,9 +131,7 @@ def measure_disk_cached_reload(num_examples: int, cache_dir: Path) -> dict:
 
     # Must use same num_examples to hit the same cache key
     config = EnvConfig(split="train", mode="mvp", num_examples=num_examples)
-    dataset = build_disk_cached_dataset(
-        config, cache_dir=cache_dir, force_rebuild=False
-    )
+    dataset = build_disk_cached_dataset(config, cache_dir=cache_dir, force_rebuild=False)
 
     _ = len(dataset)
     _ = dataset[0]
