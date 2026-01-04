@@ -561,16 +561,18 @@ def _collect_bs4_constructor_aliases(tree: ast.AST) -> set[str]:
 def check_bs4_usage(code_samples: list[str]) -> bool:
     """Check if any code sample uses BeautifulSoup in a meaningful way.
 
-    This creates a gradient toward BS4 usage without rejecting alternatives.
-    Regex and string solutions still work but receive a penalty.
+    This is used for the BS4-usage *penalty gradient* and should be:
+    - Strict enough to prevent trivial spoofing (e.g. redefining BeautifulSoup)
+    - Flexible enough to allow common preprocessing patterns (doc = HTML.replace(...))
 
-    Uses a hierarchy of detection methods to prevent spoofing:
-    1. Primary: BeautifulSoup(HTML, ...) - verified soup creation with injected variable
-    2. Secondary: make_soup() call - documented helper function
-    3. Tertiary: BS4 import + BeautifulSoup() constructor (requires both)
+    Recognized patterns:
+    1. make_soup(...)  # uses injected HTML internally
+    2. BeautifulSoup(<HTML-derived>, ...)  # includes markup= keyword
+    3. bs4_alias.BeautifulSoup(<HTML-derived>, ...) when `import bs4 as bs4_alias`
+    4. BS(<HTML-derived>, ...) when `from bs4 import BeautifulSoup as BS`
 
-    This is stricter than checking attribute names (which can be spoofed with
-    dummy objects having .attrs, .children, etc.).
+    Anti-spoofing: Names that are shadowed (redefined, assigned, or imported from
+    non-bs4 modules) are not counted as BS4 usage.
 
     Args:
         code_samples: List of code strings executed during the episode.
@@ -582,13 +584,7 @@ def check_bs4_usage(code_samples: list[str]) -> bool:
         return True  # No code = no penalty (e.g., format errors)
 
     for code in code_samples:
-        # Primary: soup creation with HTML variable (strongest signal)
-        # This also catches make_soup() calls via AST
         if _check_soup_creation_with_html_ast(code):
-            return True
-
-        # Secondary: BS4 import + constructor (requires both, not just attributes)
-        if _check_bs4_import_and_constructor_ast(code):
             return True
 
     return False
@@ -617,47 +613,95 @@ def compute_bs4_penalty(code_samples: list[str] | None) -> tuple[float, bool]:
 def _check_soup_creation_with_html_ast(code: str) -> bool:
     """AST check for soup creation using the injected HTML variable.
 
-    Matches both patterns:
-    1. BeautifulSoup(HTML, ...) - direct construction with HTML variable
-    2. make_soup() or make_soup(HTML, ...) - helper function (recommended)
+    This is the primary BS4-usage detector. It should be:
+    - Strict enough to prevent trivial spoofing (e.g. redefining BeautifulSoup)
+    - Flexible enough to allow common preprocessing patterns
 
-    The make_soup() helper is documented to use the HTML variable internally,
-    so calling it with no args is valid (actually preferred per prompt).
+    Recognized patterns:
+    1. make_soup(...)  # uses injected HTML internally
+    2. BeautifulSoup(<HTML-derived>, ...)  # positional or markup= keyword
+    3. bs4_alias.BeautifulSoup(<HTML-derived>, ...) when `import bs4 as bs4_alias`
+    4. BS(<HTML-derived>, ...) when `from bs4 import BeautifulSoup as BS`
+
+    HTML-derived variables include HTML itself and any variable assigned from
+    an expression that references HTML (e.g., `doc = HTML.replace(...)`).
 
     Args:
         code: Python code to analyze.
 
     Returns:
-        True if BeautifulSoup or make_soup is called appropriately.
+        True if a BeautifulSoup constructor call appears to parse the injected HTML.
     """
     try:
         tree = ast.parse(code)
     except SyntaxError:
         return False
 
-    class HTMLSoupVisitor(ast.NodeVisitor):
-        """Visitor to detect soup creation calls."""
+    # Light dataflow: allow intermediate variables derived from HTML.
+    html_derived = _collect_html_derived_names(tree)
 
+    # Guard against spoofing: treat these names as shadowed if user code binds them.
+    shadowed = _collect_shadowed_callable_names(tree, {"BeautifulSoup", "make_soup"})
+
+    # Support bs4.BeautifulSoup(...) when the bs4 module is imported under an alias.
+    bs4_module_aliases = _collect_bs4_module_aliases(tree)
+
+    # Support `from bs4 import BeautifulSoup as BS` constructor aliases.
+    bs4_ctor_aliases = _collect_bs4_constructor_aliases(tree)
+
+    # Names we will treat as legitimate constructor callables in this snippet.
+    ctor_names = set(bs4_ctor_aliases)
+    if "BeautifulSoup" not in shadowed:
+        ctor_names.add("BeautifulSoup")
+
+    def _markup_expr(node: ast.Call) -> ast.AST | None:
+        """Extract the markup argument from a BeautifulSoup call."""
+        if node.args:
+            return node.args[0]
+        for kw in node.keywords or []:
+            if kw.arg == "markup":
+                return kw.value
+        return None
+
+    def _is_html_derived(expr: ast.AST | None) -> bool:
+        """Check if expression references an HTML-derived variable."""
+        if expr is None:
+            return False
+        # Fast path: direct reference to a derived variable.
+        if isinstance(expr, ast.Name) and expr.id in html_derived:
+            return True
+        # General path: any reference to a derived variable within an expression.
+        return _expr_uses_any_name(expr, html_derived)
+
+    class HTMLSoupVisitor(ast.NodeVisitor):
         def __init__(self):
             self.found = False
 
-        def visit_Call(self, node):
-            # Check for BeautifulSoup(...) or bs4.BeautifulSoup(...)
-            func_name = None
-            if isinstance(node.func, ast.Name):
-                func_name = node.func.id
-            elif isinstance(node.func, ast.Attribute):
-                func_name = node.func.attr
+        def visit_Call(self, node: ast.Call) -> Any:
+            if self.found:
+                return
 
-            if func_name == "BeautifulSoup":
-                # Check first argument is the HTML variable
-                if node.args and isinstance(node.args[0], ast.Name):
-                    if node.args[0].id == "HTML":
+            # Helper: make_soup(...) always uses injected HTML internally.
+            if isinstance(node.func, ast.Name) and node.func.id == "make_soup":
+                if "make_soup" not in shadowed:
+                    self.found = True
+                    return
+
+            # Direct constructor call: BeautifulSoup(...) or BS(...)
+            if isinstance(node.func, ast.Name) and node.func.id in ctor_names:
+                if node.func.id in shadowed:
+                    return
+                if _is_html_derived(_markup_expr(node)):
+                    self.found = True
+                    return
+
+            # Module constructor call: bs4_alias.BeautifulSoup(...)
+            if isinstance(node.func, ast.Attribute) and node.func.attr == "BeautifulSoup":
+                if isinstance(node.func.value, ast.Name) and node.func.value.id in bs4_module_aliases:
+                    if _is_html_derived(_markup_expr(node)):
                         self.found = True
-            elif func_name == "make_soup":
-                # make_soup() helper uses HTML internally, so any call is valid
-                # (with or without args - no-arg is actually the preferred pattern)
-                self.found = True
+                        return
+
             self.generic_visit(node)
 
     visitor = HTMLSoupVisitor()
