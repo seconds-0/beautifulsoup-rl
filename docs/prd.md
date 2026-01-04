@@ -528,7 +528,7 @@ Each dataset row will contain:
   * `normalization: dict` (flags for whitespace, unicode normalization, ordering rules)
   * `ground_truth: any` (the expected answer, hidden from the model)
   * `limit: {allowed_reasons: [...], signatures: {...}}`
-  * `safety: {forbidden_patterns: [...], forbidden_fields: [...]}`
+  * `safety: {forbidden_patterns: [...], forbidden_values: [...]}`
 
 ### E.2 Deterministic Procedural Generation
 
