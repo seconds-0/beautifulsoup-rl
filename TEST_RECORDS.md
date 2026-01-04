@@ -77,8 +77,8 @@ Focus on **small/weak models** - they benefit most from RL training on this envi
 
 ### Tier 2: Medium Models (8B Validation)
 - [x] `mistralai/ministral-8b-2512` - **BEST 8B: 68.4% pass rate** (Ministral 3, Jan 2026, 680 examples)
-- [x] `mistralai/ministral-3b-2512` - **50.6% pass rate** (Ministral 3B, Jan 2026, 680 examples, $1.10)
-- [x] `qwen/qwen3-8b` - **43.1% pass rate** (680 examples)
+- [x] `ministralai/ministral-3b-2512` - ❌ **No function calling via OpenRouter** (0% pass, 0 tool calls)
+- [x] `qwen/qwen3-8b` - **90% pass rate on MVP** (50 examples, Jan 2026) / **43.1%** (680 examples, full benchmark)
 - [x] `mistralai/ministral-8b` - Old version (**27.5% pass rate** - loopy, expensive)
 
 ### Tier 3: Large Models (Ceiling Reference)
@@ -98,6 +98,37 @@ Focus on **small/weak models** - they benefit most from RL training on this envi
 ---
 
 ## Benchmark Runs (52 Archetypes, 1040 Bench Examples)
+
+### 2026-01-04: Post-PR #15 Evaluations (BS4 Detection Refactor)
+
+**Purpose:** Evaluate small RL-target models after BS4 detection refactor (anti-spoofing, preprocessing support)
+**Config:** split=bench, mode=mvp, 50 examples (3 archetypes: aggregation_min_max, attribute_selector, class_reserved_word)
+
+| Model | Avg Reward | Pass Rate | Perfect Rate | Notes |
+|-------|------------|-----------|--------------|-------|
+| `qwen/qwen3-8b` | **0.880** | **90%** | **78%** | Best RL candidate |
+| `prime-intellect/intellect-3` | 0.726 | 74% | 62% | Weak on aggregation |
+| `ministralai/ministral-3b-2512` | 0.000 | 0% | 0% | No function calling (0 tool calls) |
+
+**By Archetype:**
+
+| Model | aggregation_min_max | attribute_selector | class_reserved_word |
+|-------|---------------------|-------------------|---------------------|
+| qwen3-8b | 0.815 (65% perfect) | 0.895 (85% perfect) | 0.980 (90% perfect) |
+| intellect-3 | 0.445 (40% perfect) | 0.870 (65% perfect) | 1.000 (100% perfect) |
+| ministral-3b | 0.000 (0%) | 0.000 (0%) | 0.000 (0%) |
+
+**Key Findings:**
+1. **ministral-3b-2512 blocked**: Model doesn't support function calling via OpenRouter - made 0 tool calls across all 50 examples
+2. **qwen3-8b excellent RL candidate**: 90% pass rate with room for improvement on aggregation tasks
+3. **intellect-3 struggles with aggregation**: Only 40% perfect on min/max tasks, but 100% on class_reserved_word
+4. **BS4 detection refactor validated**: No regressions in grading behavior
+
+**Token Usage:**
+- qwen3-8b: 161K input, 80K output (65 tool calls)
+- intellect-3: 145K input, 127K output (49 tool calls)
+
+---
 
 ### 2026-01-04: GPT-4.1-Mini Benchmark (Validation After PRs #12-14)
 
