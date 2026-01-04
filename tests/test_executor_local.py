@@ -215,9 +215,10 @@ print(json.dumps(result))
         # Execute the script and verify values
         import json as json_module
         import subprocess
+        import sys
 
         result = subprocess.run(
-            ["python3", "-c", script],
+            [sys.executable, "-c", script],
             capture_output=True,
             text=True,
             timeout=10,
