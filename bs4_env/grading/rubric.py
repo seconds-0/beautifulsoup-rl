@@ -273,71 +273,9 @@ def _check_bs4_usage_ast(code: str) -> bool:
     return visitor.found_bs4
 
 
-def _check_bs4_import_and_constructor_ast(code: str) -> bool:
-    """Check for BOTH BS4 import AND constructor call.
-
-    This is stricter than _check_bs4_usage_ast() because it requires:
-    1. An import statement (import bs4 or from bs4 import BeautifulSoup)
-    2. A BeautifulSoup() constructor call using the imported name
-
-    Supports alias imports: `from bs4 import BeautifulSoup as BS`
-    will correctly detect `BS(...)` calls.
-
-    This prevents spoofing via dummy objects with BS4-like attribute names.
-
-    Args:
-        code: Python code to analyze.
-
-    Returns:
-        True if code imports bs4 AND calls BeautifulSoup constructor.
-    """
-    try:
-        tree = ast.parse(code)
-    except SyntaxError:
-        return False
-
-    class ImportAndConstructorVisitor(ast.NodeVisitor):
-        """Visitor to detect both import and constructor."""
-
-        def __init__(self):
-            self.bs4_names: set[str] = set()  # Names that refer to BeautifulSoup
-            self.has_bs4_import = False  # Whether bs4 module was imported
-            self.has_constructor = False
-
-        def visit_Import(self, node):
-            for alias in node.names:
-                if alias.name == "bs4" or alias.name.startswith("bs4."):
-                    self.has_bs4_import = True
-                    # If aliased: `import bs4 as b` -> b.BeautifulSoup
-                    # If not aliased: `import bs4` -> bs4.BeautifulSoup
-                    # We'll check for attribute access separately
-            self.generic_visit(node)
-
-        def visit_ImportFrom(self, node):
-            if node.module and (node.module == "bs4" or node.module.startswith("bs4.")):
-                self.has_bs4_import = True
-                # Track what names were imported
-                for alias in node.names:
-                    if alias.name == "BeautifulSoup":
-                        # Use asname if provided, otherwise use original name
-                        self.bs4_names.add(alias.asname or "BeautifulSoup")
-            self.generic_visit(node)
-
-        def visit_Call(self, node):
-            # Check for direct call: SomeName(...)
-            if isinstance(node.func, ast.Name):
-                # Either it's BeautifulSoup or an alias we tracked
-                if node.func.id in self.bs4_names or node.func.id == "BeautifulSoup":
-                    self.has_constructor = True
-            # Check for attribute call: bs4.BeautifulSoup(...)
-            elif isinstance(node.func, ast.Attribute):
-                if node.func.attr == "BeautifulSoup":
-                    self.has_constructor = True
-            self.generic_visit(node)
-
-    visitor = ImportAndConstructorVisitor()
-    visitor.visit(tree)
-    return visitor.has_bs4_import and visitor.has_constructor
+# NOTE: _check_bs4_import_and_constructor_ast was removed as dead code.
+# The enhanced _check_soup_creation_with_html_ast now handles all detection cases
+# with proper dataflow analysis and anti-spoofing via shadowing detection.
 
 
 def _extract_assigned_names(target: ast.AST) -> set[str]:
@@ -649,8 +587,12 @@ def _check_soup_creation_with_html_ast(code: str) -> bool:
     # Support `from bs4 import BeautifulSoup as BS` constructor aliases.
     bs4_ctor_aliases = _collect_bs4_constructor_aliases(tree)
 
+    # Check for shadowing of aliases too (e.g., BS = lambda *a: None)
+    alias_shadowed = _collect_shadowed_callable_names(tree, bs4_ctor_aliases)
+
     # Names we will treat as legitimate constructor callables in this snippet.
-    ctor_names = set(bs4_ctor_aliases)
+    # Only include aliases that are not shadowed.
+    ctor_names = bs4_ctor_aliases - alias_shadowed
     if "BeautifulSoup" not in shadowed:
         ctor_names.add("BeautifulSoup")
 

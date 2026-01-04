@@ -72,6 +72,19 @@ soup = BeautifulSoup(HTML, "html.parser")
 '''
         assert check_bs4_usage([code]) is False
 
+    def test_bs4_alias_rebound_not_detected(self):
+        """Rebinding a BS4 alias to a non-BS4 callable should not count as BS4 usage.
+
+        This prevents spoofing where someone imports BS4 but then redefines
+        the alias to avoid actually using BS4 while bypassing the penalty.
+        """
+        code = '''
+from bs4 import BeautifulSoup as BS
+BS = lambda *a, **k: None  # Rebind to fake
+soup = BS(HTML, "html.parser")
+'''
+        assert check_bs4_usage([code]) is False
+
     def test_find_all_alone_not_detected(self):
         """soup.find_all() alone is not detected (stricter detection)."""
         code = 'elements = soup.find_all("a")'
