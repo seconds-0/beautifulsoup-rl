@@ -370,12 +370,106 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any, **env_kwargs: Any) -> 
                 }
             return tool_args
 
+        def _try_repair_json(self, s: str) -> str | None:
+            """Try to repair malformed JSON from model output.
+
+            Common issues:
+            - Truncated JSON (string cut off mid-output)
+            - Missing closing braces/brackets
+            - Unescaped quotes in strings
+
+            Returns repaired JSON string or None if unfixable.
+            """
+            import re
+
+            # Try parsing as-is first
+            try:
+                json.loads(s)
+                return s
+            except json.JSONDecodeError:
+                pass
+
+            # Try adding missing closing braces/brackets
+            # Count opens vs closes
+            opens = s.count("{") - s.count("}")
+            bracket_opens = s.count("[") - s.count("]")
+
+            if opens > 0 or bracket_opens > 0:
+                # Try truncating to last complete value and closing
+                # Find last complete string value
+                repaired = s.rstrip()
+                # Remove trailing incomplete string if present
+                if repaired.endswith("\\"):
+                    repaired = repaired[:-1]
+                # Try to find a good truncation point
+                # Look for last complete value (ends with ", or ")
+                last_good = max(
+                    repaired.rfind('",'),
+                    repaired.rfind('"}'),
+                    repaired.rfind('"]'),
+                    repaired.rfind('" }'),
+                )
+                if last_good > 0:
+                    repaired = repaired[: last_good + 2]  # Include the closing quote and comma/brace
+
+                # Add missing closers
+                repaired += "}" * opens + "]" * bracket_opens
+
+                try:
+                    json.loads(repaired)
+                    return repaired
+                except json.JSONDecodeError:
+                    pass
+
+            # Try extracting just the code argument if it looks like a run_python call
+            code_match = re.search(r'"code"\s*:\s*"([^"]*(?:\\.[^"]*)*)"', s)
+            if code_match:
+                code_val = code_match.group(1)
+                repaired = json.dumps({"code": code_val.replace('\\"', '"')})
+                try:
+                    json.loads(repaired)
+                    return repaired
+                except json.JSONDecodeError:
+                    pass
+
+            return None
+
         async def env_response(self, messages: list, state: dict, **kwargs):
             """Process environment response after tool execution.
 
             Detects successful navigate calls and updates state["html"] accordingly.
+            Also handles malformed tool arguments from models with poor JSON output.
             """
-            # Call parent implementation first (returns Messages, not tuple)
+            # Pre-process tool calls to fix malformed JSON arguments
+            # This prevents crashes in the parent class's json.loads()
+            last_msg = messages[-1] if messages else {}
+            if isinstance(last_msg, dict) and "tool_calls" in last_msg:
+                tool_calls = last_msg.get("tool_calls", [])
+                for tc in tool_calls:
+                    if isinstance(tc, dict):
+                        func = tc.get("function", {})
+                        args_str = func.get("arguments", "")
+                        if args_str and isinstance(args_str, str):
+                            try:
+                                # Try to parse - if it works, great
+                                json.loads(args_str)
+                            except json.JSONDecodeError as e:
+                                # Model produced malformed JSON - try to repair or use empty
+                                logger.warning(
+                                    f"Malformed tool arguments from model: {e}. "
+                                    f"Args preview: {args_str[:200]}"
+                                )
+                                # Try simple repairs
+                                repaired = self._try_repair_json(args_str)
+                                if repaired is not None:
+                                    func["arguments"] = repaired
+                                    logger.info("Successfully repaired malformed JSON")
+                                else:
+                                    # Can't repair - use empty args so tool runs with defaults
+                                    func["arguments"] = "{}"
+                                    logger.warning("Could not repair JSON, using empty args")
+
+            # Call parent implementation (returns Messages, not tuple)
             response = await super().env_response(messages, state, **kwargs)
 
             # Check for navigate success in recent messages
