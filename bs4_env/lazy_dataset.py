@@ -93,24 +93,54 @@ class LazyBS4Dataset(Sequence):
         """Return number of entries."""
         return len(self._entries)
 
-    def __getitem__(self, idx: int) -> dict[str, Any]:
-        """Generate and return task at index.
+    def __getitem__(self, idx: int | str) -> dict[str, Any] | list[Any]:
+        """Generate and return task at index, or column values.
+
+        Supports two access patterns:
+        - Integer index: Returns a single example dict
+        - String column name: Returns list of all values for that column
 
         Args:
-            idx: Index into dataset.
+            idx: Index into dataset (int) or column name (str).
 
         Returns:
-            Dict with 'prompt' (list of messages) and 'info' (JSON string).
-            Note: info is a JSON string for HuggingFace Dataset compatibility.
+            Dict with 'prompt', 'info', and 'example_id' for int index.
+            List of column values for string column name.
 
         Raises:
-            IndexError: If idx is out of range.
+            IndexError: If int idx is out of range.
+            KeyError: If string column name is not found.
         """
+        # Handle column access (HuggingFace Dataset compatibility)
+        if isinstance(idx, str):
+            if idx not in self.column_names:
+                raise KeyError(f"Column '{idx}' not found. Available: {self.column_names}")
+            if idx == "example_id":
+                return list(range(len(self._entries)))
+            # For prompt/info, we need to generate all values (expensive!)
+            return [self._get_single_item(i)[idx] for i in range(len(self._entries))]
+
+        return self._get_single_item(idx)
+
+    def _get_single_item(self, idx: int) -> dict[str, Any]:
+        """Get a single item by index."""
         if idx < 0 or idx >= len(self._entries):
             raise IndexError(f"Index {idx} out of range [0, {len(self._entries)})")
 
         entry = self._entries[idx]
-        return self._generate_task(entry.archetype_id, entry.seed)
+        result = self._generate_task(entry.archetype_id, entry.seed)
+        # Make a shallow copy to avoid mutating cached result
+        result = dict(result)
+        result["example_id"] = idx
+        return result
+
+    @property
+    def column_names(self) -> list[str]:
+        """Mimic HuggingFace Dataset.column_names for compatibility.
+
+        Includes 'example_id' which verifiers expects.
+        """
+        return ["prompt", "info", "example_id"]
 
     def _generate_task_uncached(self, archetype_id: str, seed: int) -> dict[str, Any]:
         """Generate a task from archetype_id and seed.

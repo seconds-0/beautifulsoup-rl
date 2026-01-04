@@ -71,7 +71,9 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any, **env_kwargs: Any) -> 
         build_tool_response,
     )
 
-    # Build the HuggingFace dataset
+    # Build dataset
+    # Note: Verifiers requires HuggingFace Dataset API (map, add_column, etc.)
+    # so we always use eager loading here. Lazy loading is only for MinimalEnv.
     dataset = build_dataset(config)
 
     # Create executor for code execution
@@ -565,7 +567,17 @@ class MinimalEnv:
     def dataset(self):
         """Lazily build and cache the dataset."""
         if self._dataset is None:
-            self._dataset = build_dataset(self.config)
+            if self.config.dataset_backend == "lazy" and self.config.split in (
+                "train",
+                "eval",
+            ):
+                from bs4_env.lazy_dataset import LazyBS4Dataset
+
+                self._dataset = LazyBS4Dataset.from_config(
+                    self.config, cache_size=self.config.lazy_cache_size
+                )
+            else:
+                self._dataset = build_dataset(self.config)
         return self._dataset
 
     @property
