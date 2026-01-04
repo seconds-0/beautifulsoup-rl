@@ -4,6 +4,48 @@ Track evaluation progress and results. Update this file after each benchmark run
 
 ---
 
+## Prime Infrastructure Benchmark (2026-01-04)
+
+Systematic testing of Prime Intellect hosted models to identify candidates for RL fine-tuning.
+
+### Working Models (Tool Calling Support)
+
+| Model | Avg Reward | Pass Rate | Pricing | Role |
+|-------|------------|-----------|---------|------|
+| `mistralai/mistral-small-3.2-24b-instruct` | **100.0%** | 100% | $0.10/$0.30 | Validation ceiling |
+| `arcee-ai/trinity-mini` | **75.6%** | ~76% | $0.045/$0.15 | Best cheap RL candidate |
+| `prime-intellect/intellect-3` | **67.3%** | ~67% | $0.20/$1.10 | Frontier (106B MoE) |
+| `z-ai/glm-4.5-air` | **65.7%** | ~66% | Unknown | Frontier baseline |
+| `meta-llama/llama-4-maverick` | **0.0%** | 0% | Unknown | Weak baseline |
+| `allenai/olmo-3-7b-instruct` | **0.0%** | 0% | Cheap | Perfect weak baseline |
+
+**Config:** `split=bench`, `mode=mvp`, 100 examples, 3 rollouts each
+
+### Blocked Models (No Tool Calling on Prime)
+
+| Model | Error | Notes |
+|-------|-------|-------|
+| `google/gemma-3-27b-it` | 404 | No tool calling support |
+| `mistralai/mistral-nemo` | 404 | Model not found |
+| `qwen/qwen3-30b-a3b-instruct-2507` | JSON decode error | Tool call format issue |
+| `deepseek/deepseek-v3-0324` | 404 | Model not found |
+
+### Key Findings
+
+1. **Best RL Candidates:**
+   - `allenai/olmo-3-7b-instruct` (0% baseline - maximum room for improvement)
+   - `arcee-ai/trinity-mini` (cheap, 75.6% - good for validation)
+
+2. **Ceiling Validation:**
+   - `mistral-small-3.2` achieves 100% - confirms tasks are solvable
+   - `intellect-3` at 67.3% - realistic frontier target
+
+3. **Model ID Differences:**
+   - Prime uses different model IDs than OpenRouter
+   - Always verify with `prime inference models` before running evals
+
+---
+
 ## Baseline vs Trained Model Performance
 
 Track RL training progress by comparing baseline (pre-training) to trained model performance.
@@ -49,8 +91,9 @@ Focus on **small/weak models** - they benefit most from RL training on this envi
 - ~~`google/gemma-3-4b-it`~~ - No `tools` support on OpenRouter
 - ~~`google/gemma-3n-*`~~ - No `tools` support on OpenRouter
 - ~~`deepseek/deepseek-r1-0528-qwen3-8b`~~ - No function calling support
-- ~~`prime-intellect/intellect-3`~~ - OpenRouter function calling broken
 - ~~`x-ai/grok-4.1-fast`~~ - Rate limits too aggressive
+
+*Note: `prime-intellect/intellect-3` function calling fixed as of 2026-01-04*
 
 ---
 

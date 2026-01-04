@@ -340,6 +340,93 @@ def _check_bs4_import_and_constructor_ast(code: str) -> bool:
     return visitor.has_bs4_import and visitor.has_constructor
 
 
+def _extract_assigned_names(target: ast.AST) -> set[str]:
+    """Extract simple assigned names from an assignment target.
+
+    Handles simple names, tuples, and lists:
+    - `x = ...` -> {"x"}
+    - `x, y = ...` -> {"x", "y"}
+    - `[x, y] = ...` -> {"x", "y"}
+
+    Args:
+        target: An AST node representing the assignment target.
+
+    Returns:
+        Set of variable names being assigned.
+    """
+    names: set[str] = set()
+    if isinstance(target, ast.Name):
+        names.add(target.id)
+    elif isinstance(target, (ast.Tuple, ast.List)):
+        for elt in target.elts:
+            names |= _extract_assigned_names(elt)
+    return names
+
+
+def _expr_uses_any_name(expr: ast.AST, names: set[str]) -> bool:
+    """Return True if an expression references any name in `names`.
+
+    Walks the expression tree to find any Name node that matches.
+
+    Args:
+        expr: AST expression to check.
+        names: Set of variable names to look for.
+
+    Returns:
+        True if any name in `names` appears in the expression.
+    """
+    for node in ast.walk(expr):
+        if isinstance(node, ast.Name) and node.id in names:
+            return True
+    return False
+
+
+def _collect_html_derived_names(tree: ast.AST) -> set[str]:
+    """Collect variables that are (syntactically) derived from the injected `HTML`.
+
+    This is a lightweight, conservative dataflow pass used only for BS4-usage
+    detection. It allows patterns like:
+
+        doc = HTML.replace(...)
+        soup = BeautifulSoup(doc, ...)
+
+    without allowing trivial bypasses like BeautifulSoup("").
+
+    The analysis is iterative: if `doc = HTML.replace(...)` and `doc2 = doc + ...`,
+    both `doc` and `doc2` are considered HTML-derived.
+
+    Args:
+        tree: Parsed AST of the code.
+
+    Returns:
+        Set of variable names derived from HTML (always includes "HTML" itself).
+    """
+    derived: set[str] = {"HTML"}
+    assigns: list[tuple[set[str], ast.AST | None]] = []
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            for t in node.targets:
+                assigns.append((_extract_assigned_names(t), node.value))
+        elif isinstance(node, ast.AnnAssign):
+            assigns.append((_extract_assigned_names(node.target), node.value))
+
+    # Fixed-point iteration: keep adding derived names until no changes
+    changed = True
+    while changed:
+        changed = False
+        for targets, value in assigns:
+            if value is None:
+                continue
+            if _expr_uses_any_name(value, derived):
+                for name in targets:
+                    if name and name not in derived:
+                        derived.add(name)
+                        changed = True
+
+    return derived
+
+
 def check_bs4_usage(code_samples: list[str]) -> bool:
     """Check if any code sample uses BeautifulSoup in a meaningful way.
 

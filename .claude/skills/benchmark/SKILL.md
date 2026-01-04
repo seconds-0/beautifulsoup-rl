@@ -14,9 +14,9 @@ Run and analyze LLM benchmarks on the BeautifulSoup RL environment.
 ### Frontier Models
 | Model | ID | Notes |
 |-------|----|----|
-| GLM-4.7 | `z-ai/glm-4.7` | Best open-source, fast |
+| INTELLECT-3 | `prime-intellect/intellect-3` | **Primary ceiling** - 106B MoE, cheap ($0.20/$1.10) |
+| GLM-4.7 | `z-ai/glm-4.7` | Good open-source, fast |
 | Kimi K2 | `moonshotai/kimi-k2` | Strong but slow |
-| GPT-5.2 | `openai/gpt-5.2` | Best overall |
 
 ### Small Models (RL Training Targets)
 | Model | ID | Notes |
