@@ -29,6 +29,49 @@ class TestBS4UsageDetection:
         code = "soup = make_soup()"
         assert check_bs4_usage([code]) is True
 
+    def test_beautifulsoup_called_on_transformed_html_detected(self):
+        """BeautifulSoup(doc, ...) where doc is derived from HTML is detected.
+
+        The harness encourages parsing the injected HTML, but solutions may
+        preprocess it before constructing soup. These should not be penalized.
+        """
+        code = '''
+doc = HTML.replace("\\n", "")
+soup = BeautifulSoup(doc, "html.parser")
+'''
+        assert check_bs4_usage([code]) is True
+
+    def test_beautifulsoup_called_with_markup_keyword_detected(self):
+        """BeautifulSoup(markup=HTML, ...) is detected."""
+        code = 'soup = BeautifulSoup(markup=HTML, features="html.parser")'
+        assert check_bs4_usage([code]) is True
+
+    def test_beautifulsoup_shadowed_by_definition_not_detected(self):
+        """Defining BeautifulSoup locally should not count as BS4 usage."""
+        code = '''
+def BeautifulSoup(x, *args, **kwargs):
+    return x
+
+soup = BeautifulSoup(HTML, "html.parser")
+'''
+        assert check_bs4_usage([code]) is False
+
+    def test_beautifulsoup_shadowed_by_assignment_not_detected(self):
+        """Assigning to BeautifulSoup locally should not count as BS4 usage."""
+        code = '''
+BeautifulSoup = lambda *a, **k: None
+soup = BeautifulSoup(HTML, "html.parser")
+'''
+        assert check_bs4_usage([code]) is False
+
+    def test_beautifulsoup_imported_from_non_bs4_not_detected(self):
+        """Importing BeautifulSoup from a non-bs4 module is treated as shadowing."""
+        code = '''
+from not_bs4 import BeautifulSoup
+soup = BeautifulSoup(HTML, "html.parser")
+'''
+        assert check_bs4_usage([code]) is False
+
     def test_find_all_alone_not_detected(self):
         """soup.find_all() alone is not detected (stricter detection)."""
         code = 'elements = soup.find_all("a")'
