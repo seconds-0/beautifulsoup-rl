@@ -141,7 +141,7 @@ def _output_to_string(output: Any) -> str:
     if isinstance(output, str):
         return output
 
-    if isinstance(output, (list, tuple)):
+    if isinstance(output, list | tuple):
         return " ".join(_output_to_string(item) for item in output)
 
     if isinstance(output, dict):

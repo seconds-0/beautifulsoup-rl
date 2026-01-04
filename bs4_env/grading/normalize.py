@@ -166,7 +166,7 @@ def normalize_value(value: Any, normalization_config: dict | None = None) -> Any
         )
 
     # Numbers and booleans pass through unchanged
-    if isinstance(value, (int, float, bool)):
+    if isinstance(value, int | float | bool):
         return value
 
     # Unknown types convert to string
@@ -182,7 +182,7 @@ def _sort_key(value: Any) -> tuple:
         return (0, "")
     if isinstance(value, bool):
         return (1, value)
-    if isinstance(value, (int, float)):
+    if isinstance(value, int | float):
         return (2, value)
     if isinstance(value, str):
         return (3, value)
@@ -418,7 +418,7 @@ def normalize_price(value: Any) -> str:
     if isinstance(value, bool):
         raise ValueError(f"Cannot normalize boolean as price: {value!r}")
 
-    if isinstance(value, (int, float)):
+    if isinstance(value, int | float):
         return f"${value:.2f}"
 
     if isinstance(value, str):

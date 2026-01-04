@@ -72,7 +72,19 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any, **env_kwargs: Any) -> 
     )
 
     # Build the HuggingFace dataset
-    dataset = build_dataset(config)
+    # - bench: use eager loading (small, needs stability for comparisons)
+    # - train/eval with cache_datasets: use disk-cached (memory-efficient for large datasets)
+    if config.split == "bench" or not config.cache_datasets:
+        dataset = build_dataset(config)
+    else:
+        from bs4_env.dataset import build_disk_cached_dataset
+
+        dataset = build_disk_cached_dataset(
+            config,
+            cache_dir=config.cache_dir,
+            force_rebuild=config.force_rebuild_cache,
+            env_id=env_kwargs.get("env_id", "beautiful-soup-env"),
+        )
 
     # Create executor for code execution
     executor = get_executor(

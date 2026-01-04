@@ -42,6 +42,10 @@ def load_environment(
     cpu_cores: int = 1,
     memory_gb: int = 2,
     timeout_minutes: int = 30,
+    # Dataset caching for memory efficiency
+    cache_datasets: bool = True,
+    cache_dir: str | None = None,
+    force_rebuild_cache: bool = False,
     **kwargs: Any,
 ) -> Any:
     """Load the BeautifulSoup RL environment.
@@ -63,6 +67,10 @@ def load_environment(
         cpu_cores: CPU cores for Prime sandbox (default: 1).
         memory_gb: Memory in GB for Prime sandbox (default: 2).
         timeout_minutes: Sandbox lifecycle timeout in minutes (default: 30).
+        cache_datasets: Use disk caching for train/eval (default: True).
+            Streams data to Arrow files instead of loading into RAM.
+        cache_dir: Custom cache directory (default: ~/.cache/bs4_env/datasets/).
+        force_rebuild_cache: Force regeneration even if cache exists.
         **kwargs: Additional arguments (for future compatibility).
 
     Returns:
@@ -90,6 +98,9 @@ def load_environment(
         cpu_cores=cpu_cores,
         memory_gb=memory_gb,
         timeout_minutes=timeout_minutes,
+        cache_datasets=cache_datasets,
+        cache_dir=cache_dir,
+        force_rebuild_cache=force_rebuild_cache,
     )
 
     return build_verifiers_environment(config, **kwargs)
