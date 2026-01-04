@@ -80,7 +80,7 @@ bs4_env/
 ```toml
 # configs/prime-rl/beautiful-soup-env.toml
 [orchestrator.sampling]
-max_tokens = 768        # Prime uses this!
+max_tokens = 4000       # Matches local eval default
 temperature = 0.7
 ```
 
@@ -129,7 +129,7 @@ prime env eval seconds-0/beautiful-soup-env -m <model> -n 50
 
 **Local eval limitations:**
 - Uses OpenRouter API (different from Prime's vLLM inference)
-- Default `max_tokens=4000` vs Prime's `768`
+- Both now use `max_tokens=4000` (aligned)
 - No sandboxing (security behaviors may differ)
 - Token counting may differ from Prime's tokenizer
 

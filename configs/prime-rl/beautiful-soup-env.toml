@@ -60,8 +60,13 @@ mask_truncated_completions = false
 zero_truncated_completions = true
 
 [orchestrator.sampling]
-# Per-rollout generation limit. Python snippets can get longer than you'd think.
-max_tokens = 768
+# Per-rollout generation limit. Models need enough tokens to:
+# - Include reasoning/chain-of-thought before tool calls
+# - Generate Python code (BS4 snippets are typically 100-300 tokens)
+# - Handle multi-turn conversations
+# 768 was too tight - caused truncation before tool calls could be emitted.
+# 4000 matches local eval default. Very verbose models (intellect-3) may need 8000+.
+max_tokens = 4000
 temperature = 0.7
 top_p = 0.95
 
