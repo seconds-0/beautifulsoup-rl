@@ -26,6 +26,7 @@ name = "openai/gpt-oss-20b"
 # Optional, but highly recommended for tracking.
 project = "beautiful-soup-env"
 name = "bs4-rl-gpt-oss-20b-lora"
+offline = true  # Run without WandB login for now
 
 [trainer.optim]
 lr = 1e-5
