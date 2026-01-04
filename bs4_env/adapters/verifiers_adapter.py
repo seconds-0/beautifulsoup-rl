@@ -575,9 +575,23 @@ class MinimalEnv:
 
     @property
     def dataset(self):
-        """Lazily build and cache the dataset."""
+        """Lazily build and cache the dataset.
+
+        Respects cache_datasets config: when True and not bench split,
+        uses disk-cached dataset for memory efficiency.
+        """
         if self._dataset is None:
-            self._dataset = build_dataset(self.config)
+            if self.config.split != "bench" and self.config.cache_datasets:
+                from bs4_env.dataset import build_disk_cached_dataset
+
+                self._dataset = build_disk_cached_dataset(
+                    self.config,
+                    cache_dir=self.config.cache_dir,
+                    force_rebuild=self.config.force_rebuild_cache,
+                    env_id="beautiful-soup-env",
+                )
+            else:
+                self._dataset = build_dataset(self.config)
         return self._dataset
 
     @property
