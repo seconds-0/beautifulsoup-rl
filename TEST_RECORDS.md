@@ -8,39 +8,57 @@ Track evaluation progress and results. Update this file after each benchmark run
 
 Systematic testing of Prime Intellect hosted models to identify candidates for RL fine-tuning.
 
+### JSON Repair Fix Deployed
+
+**Issue:** Many models were crashing with `JSONDecodeError` during evaluation because:
+1. Models output truncated JSON (hit `max_tokens` limit)
+2. Models output raw Python code instead of JSON-wrapped tool arguments
+
+**Fix:** Added `_try_repair_json()` method in `bs4_env/adapters/verifiers_adapter.py` that:
+- Pre-parses tool arguments before passing to verifiers
+- Attempts to repair truncated JSON (add missing braces)
+- Falls back to empty args `{}` if unfixable (allows eval to continue)
+
+This unlocked several models that were previously crashing.
+
 ### Working Models (Tool Calling Support)
 
-| Model | Avg Reward | Pass Rate | Pricing | Role |
-|-------|------------|-----------|---------|------|
-| `mistralai/mistral-small-3.2-24b-instruct` | **100.0%** | 100% | $0.10/$0.30 | Validation ceiling |
-| `arcee-ai/trinity-mini` | **75.6%** | ~76% | $0.045/$0.15 | Best cheap RL candidate |
-| `prime-intellect/intellect-3` | **67.3%** | ~67% | $0.20/$1.10 | Frontier (106B MoE) |
-| `z-ai/glm-4.5-air` | **65.7%** | ~66% | Unknown | Frontier baseline |
-| `meta-llama/llama-4-maverick` | **0.0%** | 0% | Unknown | Weak baseline |
-| `allenai/olmo-3-7b-instruct` | **0.0%** | 0% | Cheap | Perfect weak baseline |
+| Model | Baseline | Pricing ($/1M in/out) | Role |
+|-------|----------|----------------------|------|
+| `openai/gpt-5-nano` | **98.3%** | $0.05/$0.40 | Ceiling (too good for RL) |
+| `z-ai/glm-4.5-air` | **86.9%** | $0.20/$1.10 | Frontier baseline |
+| `mistralai/mistral-small-3.2-24b-instruct` | **82.6%** | $0.10/$0.25 | Validation |
+| `meta-llama/llama-4-maverick` | **65.8%** | $0.27/$0.88 | ✅ RL candidate |
+| `openai/gpt-oss-20b` | **63.3%** | $0.07/$0.30 | ✅ **Best RL target** |
+| `arcee-ai/trinity-mini` | **34.3%** | $0.045/$0.15 | Works (JSON truncation issues) |
+| `allenai/olmo-3-7b-instruct` | **0%** | $0.10/$0.20 | ❌ No proper tool calls |
 
-**Config:** `split=bench`, `mode=mvp`, 100 examples, 3 rollouts each
+**Config:** `split=bench`, `mode=mvp`, 50 examples, 3 rollouts each
 
 ### Blocked Models (No Tool Calling on Prime)
 
 | Model | Error | Notes |
 |-------|-------|-------|
-| `google/gemma-3-27b-it` | 404 | No tool calling support |
-| `mistralai/mistral-nemo` | 404 | Model not found |
-| `qwen/qwen3-30b-a3b-instruct-2507` | JSON decode error | Tool call format issue |
-| `deepseek/deepseek-v3-0324` | 404 | Model not found |
+| `google/gemma-3-27b-it` | 404 | Model not available |
+| `qwen/qwen3-30b-a3b-instruct` | 404 | Model ID not found |
+| `qwen/qwen3-235b-a22b-instruct` | 404 | Model ID not found |
 
 ### Key Findings
 
-1. **Best RL Candidates:**
-   - `allenai/olmo-3-7b-instruct` (0% baseline - maximum room for improvement)
-   - `arcee-ai/trinity-mini` (cheap, 75.6% - good for validation)
+1. **Best RL Training Target:**
+   - `openai/gpt-oss-20b` ($0.07/$0.30, 63.3%) - cheap with room to improve
+   - `meta-llama/llama-4-maverick` ($0.27/$0.88, 65.8%) - backup target
 
-2. **Ceiling Validation:**
-   - `mistral-small-3.2` achieves 100% - confirms tasks are solvable
-   - `intellect-3` at 67.3% - realistic frontier target
+2. **JSON Truncation Issue:**
+   - `arcee-ai/trinity-mini` and `openai/gpt-oss-20b` frequently hit `max_tokens` limits
+   - JSON repair fix prevents crashes but doesn't fix truncated code
+   - Consider increasing `max_tokens` for verbose models
 
-3. **Model ID Differences:**
+3. **Non-functional Models:**
+   - `allenai/olmo-3-7b-instruct` outputs code as markdown text, not tool calls
+   - Not trainable without fundamental tool-calling capability
+
+4. **Model ID Differences:**
    - Prime uses different model IDs than OpenRouter
    - Always verify with `prime inference models` before running evals
 
