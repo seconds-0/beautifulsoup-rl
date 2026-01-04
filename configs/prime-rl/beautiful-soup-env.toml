@@ -18,18 +18,18 @@ trainer_gpu_ids = [1]
 max_steps = 1000  # Full training run
 
 [model]
-# Pick a model that can reliably do tool calling + short Python snippets.
-# gpt-oss-20b: 49.2% baseline (n=680), $0.07/$0.30, good tool calling support.
-name = "openai/gpt-oss-20b"
+# qwen3-vl-8b: 50% baseline (n=10), 8B params, good tool calling support.
+# Switching from gpt-oss-20b due to vLLM weight reload incompatibility.
+name = "qwen/qwen3-vl-8b-instruct"
 
-[trainer.model]
-# Enable CPU offloading for FSDP to fit 20B model on 2x A6000
-fsdp_cpu_offload = true
+# Note: With 8B model, CPU offloading not needed
+# [trainer.model]
+# fsdp_cpu_offload = true
 
 [wandb]
 # Optional, but highly recommended for tracking.
 project = "beautiful-soup-env"
-name = "bs4-rl-gpt-oss-20b-lora"
+name = "bs4-rl-qwen3-8b-lora"
 
 [trainer.optim]
 lr = 1e-5
@@ -52,9 +52,9 @@ target_modules = [
 
 [orchestrator]
 # batch_size is "rollouts per batch" in prime-rl land.
-# Reduced for 2-GPU setup with 20B model
-batch_size = 32
-rollouts_per_example = 4
+# 8B model allows larger batches on 2x A6000
+batch_size = 128
+rollouts_per_example = 8
 seq_len = 8192
 oversampling_factor = 2.0
 
