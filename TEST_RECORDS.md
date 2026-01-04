@@ -56,6 +56,28 @@ Focus on **small/weak models** - they benefit most from RL training on this envi
 
 ## Benchmark Runs (52 Archetypes, 1040 Bench Examples)
 
+### 2026-01-04: GPT-4.1-Mini Benchmark (Validation After PRs #12-14)
+
+**Model:** `openai/gpt-4.1-mini`
+**Purpose:** Validate environment after disk cache fixes, training improvements, and polish PRs
+
+**Eval Split (30 samples):**
+| Archetype | Avg Reward | Pass Rate |
+|-----------|------------|-----------|
+| mvp.class_reserved_word | 0.967 | 96.7% |
+
+**Bench Split (50 samples):**
+| Archetype | Avg Reward | Perfect |
+|-----------|------------|---------|
+| mvp.aggregation_min_max | 1.000 | 20/20 |
+| mvp.attribute_selector | 1.000 | 20/20 |
+| mvp.class_reserved_word | 1.000 | 10/10 |
+| **Total** | **1.000** | **50/50** |
+
+**Key Finding:** 100% pass rate on bench confirms environment stability post-PRs.
+
+---
+
 ### 2026-01-02: Price Bounds Fix - Ground Truth Contamination Bug ⭐
 
 **Bug Fixed:** `wrap_with_realistic_chrome(complexity="realistic")` added product grids with
