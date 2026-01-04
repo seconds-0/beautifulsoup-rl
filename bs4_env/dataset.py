@@ -29,6 +29,24 @@ from bs4_env.prompt import format_prompt
 from bs4_env.registry import get_all_archetype_ids, get_archetype, list_archetypes
 
 
+def _get_pkg_version() -> str:
+    """Get package version using importlib.metadata.
+
+    This avoids importing beautiful_soup_env from within bs4_env.dataset,
+    which would create a layering smell (dataset depending on the entrypoint).
+
+    Returns:
+        Version string, or "0.0.0" if package is not installed.
+    """
+    from importlib.metadata import PackageNotFoundError
+    from importlib.metadata import version as _version
+
+    try:
+        return _version("beautiful-soup-env")
+    except PackageNotFoundError:
+        return "0.0.0"
+
+
 def _stable_seed_from_key(key: str) -> int:
     """Generate a stable integer seed from a string key.
 
@@ -144,6 +162,11 @@ def generate_dataset_rows(config: EnvConfig) -> Iterator[dict[str, Any]]:
 
     # Get archetypes to include
     archetype_ids = _get_archetype_ids_for_config(config)
+
+    # Sort for stable dataset ordering when no explicit archetypes specified.
+    # Registration/import order may vary, but sorted order is deterministic.
+    if not config.archetypes:
+        archetype_ids = sorted(archetype_ids)
 
     if not archetype_ids:
         return
@@ -448,13 +471,10 @@ def _compute_cache_key(config: EnvConfig, env_id: str) -> str:
     Returns:
         SHA-256 hash string (first 16 chars).
     """
-    # Import version for cache invalidation on generator changes
-    from beautiful_soup_env import __version__
-
     # Include difficulty_weights for tiered mode cache invalidation
     weights_str = str(sorted(config.difficulty_weights.items()))
     key_parts = [
-        __version__,  # Invalidates when package version bumps
+        _get_pkg_version(),  # Invalidates when package version bumps
         _get_code_fingerprint(),  # Invalidates on generator code changes (dev mode safety)
         env_id,  # Critical: prevents cache collision with different env_ids
         config.split,
@@ -584,8 +604,6 @@ def build_disk_cached_dataset(
     import tempfile
     from datetime import UTC, datetime
 
-    from beautiful_soup_env import __version__
-
     # Determine cache location
     if cache_dir is None:
         cache_dir = Path.home() / ".cache" / "bs4_env" / "datasets"
@@ -628,7 +646,12 @@ def build_disk_cached_dataset(
                 }
 
         # Generate dataset to temp directory
-        with tempfile.TemporaryDirectory() as arrow_tmp:
+        # IMPORTANT: Use cache_dir as base for Arrow temp files, not /tmp.
+        # On some Linux hosts, /tmp is RAM-backed (tmpfs), which defeats
+        # the purpose of disk caching and can cause RAM spikes.
+        with tempfile.TemporaryDirectory(
+            dir=str(cache_dir), prefix=f"{cache_key}_arrow_"
+        ) as arrow_tmp:
             dataset = Dataset.from_generator(gen, cache_dir=arrow_tmp)
             dataset.save_to_disk(str(tmp_dir))
 
@@ -644,7 +667,7 @@ def build_disk_cached_dataset(
                 "seed": config.seed,
                 "num_examples": config.num_examples,
             },
-            "version": __version__,
+            "version": _get_pkg_version(),
             "code_fingerprint": code_fingerprint,
             "created_at": datetime.now(UTC).isoformat(),
         }

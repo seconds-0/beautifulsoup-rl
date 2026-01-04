@@ -201,7 +201,7 @@ requires-dist = [
     { name = "pytest-timeout", marker = "extra == 'dev'", specifier = ">=2.2.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.0" },
     { name = "soupsieve", specifier = ">=2.4" },
-    { name = "verifiers", marker = "extra == 'verifiers'", specifier = ">=0.1.0" },
+    { name = "verifiers", marker = "extra == 'verifiers'", specifier = ">=0.1.0,<0.2" },
 ]
 provides-extras = ["eval", "prime", "dev", "verifiers", "all"]
 
