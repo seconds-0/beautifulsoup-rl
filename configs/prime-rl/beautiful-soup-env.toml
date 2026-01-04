@@ -18,18 +18,18 @@ trainer_gpu_ids = [1]
 max_steps = 1000  # Full training run
 
 [model]
-# qwen3-vl-8b: 50% baseline (n=10), 8B params, good tool calling support.
-# Switching from gpt-oss-20b due to vLLM weight reload incompatibility.
-name = "qwen/qwen3-vl-8b-instruct"
+# mistral-small-3.2-24b: 36.3% baseline (n=10), 24B dense, text-only.
+# Tried: gpt-oss-20b (vLLM bug), qwen3-vl-8b (VL model not supported)
+name = "mistralai/mistral-small-3.2-24b-instruct"
 
-# Note: With 8B model, CPU offloading not needed
-# [trainer.model]
-# fsdp_cpu_offload = true
+[trainer.model]
+# 24B model needs CPU offloading on 2x A6000
+fsdp_cpu_offload = true
 
 [wandb]
 # Optional, but highly recommended for tracking.
 project = "beautiful-soup-env"
-name = "bs4-rl-qwen3-8b-lora"
+name = "bs4-rl-mistral-24b-lora"
 
 [trainer.optim]
 lr = 1e-5
@@ -52,9 +52,9 @@ target_modules = [
 
 [orchestrator]
 # batch_size is "rollouts per batch" in prime-rl land.
-# 8B model allows larger batches on 2x A6000
-batch_size = 128
-rollouts_per_example = 8
+# 24B model - conservative settings with CPU offloading
+batch_size = 64
+rollouts_per_example = 4
 seq_len = 8192
 oversampling_factor = 2.0
 
