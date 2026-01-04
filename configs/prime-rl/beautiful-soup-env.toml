@@ -15,7 +15,7 @@ trainer_gpu_ids = [1]
 
 # Total number of optimizer steps.
 # Start small for shakeout runs, then scale.
-max_steps = 1000
+max_steps = 50  # Smoke test - increase to 1000+ for real training
 
 [model]
 # Pick a model that can reliably do tool calling + short Python snippets.

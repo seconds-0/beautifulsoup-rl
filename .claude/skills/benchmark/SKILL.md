@@ -303,10 +303,35 @@ executor_backend = "prime"    # Sandboxed execution
 | `lr` | 1e-5 | Conservative for LoRA. Can try 5e-5 if learning is slow. |
 | `lora.rank` | 8 | Higher = more capacity but slower. 8 is good starting point. |
 
-### Running Training
+### Running Training (Requires GPU Pod)
+
+Training requires GPU infrastructure. Create a Prime Cloud pod and run there:
+
 ```bash
-uv run prime-rl @ configs/prime-rl/beautiful-soup-env.toml
+# 1. Check available GPU resources
+prime availability list
+
+# 2. Create a 2-GPU pod (need inference + trainer GPUs)
+prime pods create
+# Select: 2x A100 80GB or 2x H100 for best performance
+
+# 3. SSH into the pod
+prime pods ssh <pod-id>
+
+# 4. Clone repo and install
+git clone https://github.com/seconds-0/beautifulsoup-rl.git
+cd beautifulsoup-rl
+uv sync
+
+# 5. Run training with verifiers rl command
+uv run rl \
+  --trainer @ configs/prime-rl/beautiful-soup-env.toml \
+  --orchestrator @ configs/prime-rl/beautiful-soup-env.toml \
+  --inference @ configs/prime-rl/beautiful-soup-env.toml \
+  --trainer-gpus 1 --inference-gpus 1
 ```
+
+**Note**: The config uses `inference_gpu_ids = [0]` and `trainer_gpu_ids = [1]`, requiring at least 2 GPUs.
 
 ### Bootstrap Strategy (0% Models)
 For models with 0% baseline, use staged training:
