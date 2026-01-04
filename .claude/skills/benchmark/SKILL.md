@@ -35,75 +35,105 @@ Run benchmarks, evaluations, and RL training on the BeautifulSoup RL environment
 
 ## Model Registry (Prime Cloud)
 
-### Best RL Training Targets
+### Best RL Training Targets (Smoke Test n=10, 2026-01-04)
 | Model | Baseline | Params | Cost ($/1M in/out) | Notes |
 |-------|----------|--------|-------------------|-------|
-| `openai/gpt-oss-20b` | **63.3%** | 20B | $0.07/$0.30 | **Best target** - cheap, room to grow |
-| `meta-llama/llama-4-maverick` | **65.8%** | 400B (17B active) | $0.27/$0.88 | MoE, good backup |
+| `openai/gpt-oss-20b` | **53%** | 20B | $0.07/$0.30 | **Best target** - cheap, room to grow |
+| `qwen/qwen3-vl-8b-instruct` | **50%** | 8B | $0.18/$0.70 | Good small target |
+| `mistralai/mistral-small-3.2-24b-instruct` | **36.3%** | 24B | $0.20/$0.50 | Needs improvement |
 
-### Validation/Ceiling Models
+### Validation/Ceiling Models (Smoke Test n=10, 2026-01-04)
 | Model | Baseline | Params | Cost ($/1M in/out) | Notes |
 |-------|----------|--------|-------------------|-------|
-| `openai/gpt-5-nano` | **98.3%** | ? | $0.05/$0.40 | Ceiling (too good for RL) |
-| `z-ai/glm-4.5-air` | **86.9%** | 106B (12B) | $0.20/$1.10 | MoE, frontier baseline |
-| `mistralai/mistral-small-3.2-24b-instruct` | **82.6%** | 24B | $0.10/$0.25 | Dense, validation |
-| `prime-intellect/intellect-3` | **74%** | 106B (12B) | $0.20/$1.10 | MoE, GLM-based, **PI's model** |
+| `qwen/qwen3-235b-a22b-instruct-2507` | **100%** | 235B (22B) | $0.22/$0.88 | Perfect on smoke test |
+| `prime-intellect/intellect-3` | **92.5%** | 106B (12B) | $0.20/$1.10 | MoE, GLM-based, **PI's model** |
+| `z-ai/glm-4.5-air` | **79.7%** | 106B (12B) | $0.20/$1.10 | MoE, frontier baseline |
+| `openai/gpt-5-nano` | **98.3%** | ? | $0.05/$0.40 | Ceiling (closed API, not trainable) |
 
 ### Models with Issues (avoid for RL)
 | Model | Baseline | Issue |
 |-------|----------|-------|
-| `arcee-ai/trinity-mini` | 21-34% | Inconsistent - often skips tools entirely |
-| `allenai/olmo-3-7b-instruct` | 0% | Outputs code as markdown, not tool calls |
+| `arcee-ai/trinity-mini` | 21% | JSON truncation despite max_tokens=10000 |
+| `qwen/qwen3-30b-a3b-instruct-2507` | ~20% | JSON truncation (3B active too small) |
+| `qwen/qwen3-30b-a3b-thinking-2507` | ? | Likely truncation (same architecture) |
+| `meta-llama/llama-4-maverick` | 3.3% | Outputs code blocks, not tool calls |
+| `allenai/olmo-3-7b-instruct` | 0% | Outputs markdown, not tool calls |
 
 ### Unavailable on Prime (404)
-- `google/gemma-3-*` - Not available
-- `qwen/qwen3-30b-*` - Model ID not found
+- `google/gemma-3-*` - Not available (except gemma-3-27b-it)
+- `allenai/olmo-3-7b-think` - Listed in API but returns 404 at runtime
 
 ---
 
-## Full Model Registry by Size
+## Complete Prime Model Registry (from `prime inference models`)
 
-### Nano (<3B active)
-| Model | Total | Active | Price | prime-rl |
-|-------|-------|--------|-------|----------|
-| `arcee-ai/trinity-mini` | 26B | 3B | $0.045/$0.15 | native (Afmoe) |
+*Last verified: 2026-01-04*
 
-### Small (3-10B active)
-| Model | Total | Active | Price | prime-rl |
-|-------|-------|--------|-------|----------|
-| `allenai/olmo-3-7b-instruct` | 7B | 7B | $0.10/$0.20 | hf |
-| `allenai/olmo-3-7b-think` | 7B | 7B | $0.12/$0.20 | hf |
-| `qwen/qwen3-vl-8b-instruct` | 8B | 8B | $0.18/$0.70 | native |
+### Open-Weight / Trainable Models
 
-### Medium (10-35B active)
-| Model | Total | Active | Price | prime-rl |
-|-------|-------|--------|-------|----------|
-| `prime-intellect/intellect-3` | 106B | 12B | $0.20/$1.10 | native (Glm4Moe) |
-| `z-ai/glm-4.5-air` | 106B | 12B | $0.20/$1.10 | native (Glm4Moe) |
-| `meta-llama/llama-4-maverick` | 400B | 17B | $0.27/$0.88 | native (Llama) |
-| `openai/gpt-oss-20b` | 20B | 20B | $0.07/$0.30 | hf |
-| `qwen/qwen3-235b-a22b-instruct-2507` | 235B | 22B | $0.22/$0.88 | native (Qwen3Moe) |
-| `mistralai/mistral-small-3.2-24b-instruct` | 24B | 24B | $0.20/$0.50 | hf |
-| `google/gemma-3-27b-it` | 27B | 27B | $0.119/$0.30 | hf |
-| `moonshotai/kimi-k2-0905` | 1T | 32B | $1.20/$5.00 | hf |
+#### Nano/Small (<10B active) - Best RL Targets
+| Model ID | Params | Price ($/M in/out) | Notes |
+|----------|--------|-------------------|-------|
+| `arcee-ai/trinity-mini` | 3B | $0.045/$0.15 | Cheapest, JSON truncation issues |
+| `qwen/qwen3-30b-a3b-instruct-2507` | 30B (3B active) | $0.20/$0.80 | MoE, instruct |
+| `qwen/qwen3-30b-a3b-thinking-2507` | 30B (3B active) | $0.20/$2.40 | MoE, reasoning |
+| `allenai/olmo-3-7b-instruct` | 7B | $0.10/$0.20 | No tool calls (outputs markdown) |
+| `allenai/olmo-3-7b-think` | 7B | $0.12/$0.20 | Reasoning variant |
+| `qwen/qwen3-vl-8b-instruct` | 8B | $0.18/$0.70 | Vision-language |
 
-### Large (35-100B active)
-| Model | Total | Active | Price | prime-rl |
-|-------|-------|--------|-------|----------|
-| `deepseek/deepseek-v3.2` | 671B | 37B | $0.28/$0.42 | hf |
-| `mistralai/mistral-large-2512` | 675B | 41B | $0.50/$1.50 | hf |
-| `meta-llama/llama-3.1-70b-instruct` | 70B | 70B | $0.90/$0.90 | native |
-| `qwen/qwen-2.5-72b-instruct` | 72B | 72B | $0.38/$0.40 | hf |
+#### Medium (10-35B active)
+| Model ID | Params | Price ($/M in/out) | Notes |
+|----------|--------|-------------------|-------|
+| `prime-intellect/intellect-3` | 106B (12B active) | $0.20/$1.10 | MoE, GLM-based, **PI's model** |
+| `z-ai/glm-4.5-air` | 106B (12B active) | $0.20/$1.10 | MoE, strong baseline |
+| `mistralai/mistral-nemo` | 12B | $0.10/$0.25 | Dense |
+| `meta-llama/llama-4-maverick` | 400B (17B active) | $0.27/$0.88 | MoE |
+| `openai/gpt-oss-20b` | 20B | $0.07/$0.30 | **Cheapest medium** |
+| `qwen/qwen3-235b-a22b-2507` | 235B (22B active) | $0.22/$0.88 | MoE base |
+| `qwen/qwen3-235b-a22b-instruct-2507` | 235B (22B active) | $0.22/$0.88 | MoE instruct |
+| `qwen/qwen3-235b-a22b-thinking-2507` | 235B (22B active) | $0.65/$3.00 | MoE reasoning |
+| `mistralai/mistral-small-24b-instruct-2501` | 24B | $0.80/$0.80 | Dense |
+| `mistralai/mistral-small-3.2-24b-instruct` | 24B | $0.20/$0.50 | Dense, newer |
+| `google/gemma-3-27b-it` | 27B | $0.119/$0.30 | Dense |
+| `allenai/olmo-3-32b-think` | 32B | $0.30/$0.55 | Dense, reasoning |
+| `moonshotai/kimi-k2-thinking` | ~1T (32B active) | $0.60/$2.50 | MoE |
+
+#### Large (35-100B+ active)
+| Model ID | Params | Price ($/M in/out) | Notes |
+|----------|--------|-------------------|-------|
+| `deepseek/deepseek-v3.2` | 671B (37B active) | $0.28/$0.42 | MoE, good value |
+| `mistralai/mistral-large-2512` | ~41B | $0.50/$1.50 | Dense |
+| `mistralai/mixtral-8x7b-instruct` | 47B (13B active) | $0.60/$0.60 | MoE |
+| `mistralai/mixtral-8x22b-instruct` | 176B (~45B active) | $2.00/$6.00 | MoE |
+| `z-ai/glm-4.5` | 106B (full) | $0.60/$2.20 | Dense |
+| `z-ai/glm-4.6` | 106B (full) | $0.60/$2.20 | Dense, newer |
+| `meta-llama/llama-3.1-70b-instruct` | 70B | $0.90/$0.90 | Dense |
+| `meta-llama/llama-3.3-70b-instruct` | 70B | $0.90/$0.90 | Dense, newer |
+| `qwen/qwen-2.5-72b-instruct` | 72B | $0.38/$0.40 | Dense |
+| `openai/gpt-oss-120b` | 120B | $0.15/$0.60 | Dense |
+| `moonshotai/kimi-k2-0905` | ~1T | $1.20/$5.00 | MoE |
+
+#### Vision-Language Models
+| Model ID | Params | Price ($/M in/out) | Notes |
+|----------|--------|-------------------|-------|
+| `qwen/qwen3-vl-8b-instruct` | 8B | $0.18/$0.70 | Small VL |
+| `qwen/qwen3-vl-30b-a3b-instruct` | 30B (3B active) | $0.25/$1.00 | MoE VL |
+| `qwen/qwen3-vl-30b-a3b-thinking` | 30B (3B active) | $0.16/$0.80 | MoE VL reasoning |
+| `qwen/qwen3-vl-235b-a22b-instruct` | 235B (22B active) | $0.40/$1.90 | MoE VL large |
+| `qwen/qwen3-vl-235b-a22b-thinking` | 235B (22B active) | $0.784/$3.16 | MoE VL reasoning |
 
 ### Closed APIs (Inference Only, NOT Trainable)
-| Vendor | Models | Notes |
-|--------|--------|-------|
-| `anthropic/` | Claude 3.5-4.5 | Haiku, Sonnet, Opus |
-| `openai/` | GPT-4o to 5.2 | Except gpt-oss-* |
-| `google/gemini-*` | Gemini 2.0-3 | Flash, Pro |
-| `x-ai/` | Grok 3-4 | |
 
-**Exception:** `openai/gpt-oss-20b` and `openai/gpt-oss-120b` are open-source and trainable.
+| Vendor | Models Available |
+|--------|-----------------|
+| `anthropic/` | claude-3.5-haiku, claude-3.5-sonnet, claude-3.7-sonnet, claude-3-opus, claude-haiku-4.5, claude-opus-4, claude-opus-4.1, claude-opus-4.5, claude-sonnet-4, claude-sonnet-4.5 |
+| `openai/` | gpt-4.1, gpt-4.1-mini, gpt-4.1-nano, gpt-4o, gpt-4o-mini, gpt-5, gpt-5.1*, gpt-5.2*, gpt-5-chat, gpt-5-codex, gpt-5-mini, gpt-5-nano |
+| `google/` | gemini-2.0-flash-001, gemini-2.0-flash-lite-001, gemini-2.5-flash*, gemini-2.5-pro, gemini-3-flash-preview, gemini-3-pro-preview |
+| `x-ai/` | grok-3-mini, grok-4, grok-4-fast, grok-code-fast-1 |
+| `deepseek/` | deepseek-chat, deepseek-chat-v3-0324, deepseek-chat-v3.1, deepseek-r1-0528, deepseek-v3.1-terminus, deepseek-v3.2-exp, deepseek-v3.2-speciale |
+| `qwen/` | qwen3-coder, qwen3-max |
+
+**Exception:** `openai/gpt-oss-20b` and `openai/gpt-oss-120b` ARE open-source and trainable.
 
 ---
 
@@ -246,49 +276,106 @@ source .env && uv run python -m bs4_env.scripts.eval_with_llm \
 ### Config File
 `configs/prime-rl/beautiful-soup-env.toml`
 
+### Architecture Overview
+
+Prime RL runs 3 distributed components:
+1. **Orchestrator** - CPU process managing data/scheduling
+2. **Trainer** - GPU process for policy updates via FSDP2
+3. **Inference** - vLLM-based rollout generation server
+
+### Environment Installation (CRITICAL!)
+
+**Environments MUST be installed via Prime CLI, NOT pip install:**
+
+```bash
+# Push env to Hub (from local machine with source)
+prime env push
+
+# Install on GPU pod (REQUIRED before training!)
+prime env install seconds-0/beautiful-soup-env
+
+# Verify installation
+python -c "from verifiers import load_environment; load_environment('seconds-0/beautiful-soup-env')"
+```
+
+**Why this matters:** The orchestrator uses `verifiers.load_environment()` which only finds Hub-installed environments. `pip install -e .` does NOT work!
+
+### Config Format (CRITICAL - Updated 2026-01-04)
+
+Reference: [wiki_search example](https://github.com/PrimeIntellect-ai/prime-rl/blob/main/examples/wiki_search/rl.toml)
+
+**CONFIG VALIDATION RULES:**
+1. `trainer.model.seq_len` MUST be >= `orchestrator.seq_len`
+2. LoRA config: `[trainer.model.lora]` **NOT** `[trainer.model.experimental.lora]`
+3. `lora_name` REQUIRED under `[orchestrator]` when using LoRA
+4. **NO** `top_p` in `[orchestrator.sampling]`
+5. **NO** `mask_truncated_completions` or `zero_truncated_completions`
+6. Buffer: `online_difficulty_filtering = true`, **NOT** `type = "online-difficulty"`
+7. Launch with: `uv run rl @ path/to/config.toml` (not prime-rl)
+
 ### Recommended Default Config
 
 ```toml
+# === GPU ASSIGNMENT ===
+inference_gpu_ids = [0]
+trainer_gpu_ids = [1]
+
+# === TRAINING PARAMS ===
+max_steps = 1000              # Production: 1000+
+
 # === MODEL ===
 [model]
-name = "openai/gpt-oss-20b"  # Best RL target: 63.3% baseline, cheap
+name = "Qwen/Qwen2.5-7B-Instruct"  # 7B, text-only, works with vLLM
+
+[wandb]
+project = "beautiful-soup-env"
+name = "bs4-rl-qwen2.5-7b-lora"
 
 # === TRAINING ===
-max_steps = 50                # Smoke test. Production: 1000+
-
 [trainer.optim]
 lr = 1e-5                     # Conservative LR for LoRA
 weight_decay = 0.0
 
-[trainer.model.experimental.lora]
-rank = 8                      # LoRA rank (8-16 typical)
-alpha = 32                    # LoRA alpha (usually 2-4x rank)
+[trainer.model]
+seq_len = 4096                # MUST be >= orchestrator.seq_len
+
+[trainer.model.lora]          # NOT experimental.lora!
+rank = 8
+alpha = 32
 dropout = 0.0
+target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
 
 # === ORCHESTRATOR ===
 [orchestrator]
-batch_size = 256              # Rollouts per batch
-rollouts_per_example = 8      # Completions per prompt
-seq_len = 4096                # Context window
+batch_size = 128              # Rollouts per batch
+rollouts_per_example = 8
+seq_len = 4096                # Must be <= trainer.model.seq_len
+oversampling_factor = 2.0
+lora_name = "qwen2.5-7b-bs4-lora"  # REQUIRED for LoRA
 
 [orchestrator.sampling]
-max_tokens = 10000            # CRITICAL: Must be high for multi-turn tool calling
-temperature = 0.7             # Exploration vs exploitation
-top_p = 0.95
+max_tokens = 10000            # CRITICAL for multi-turn tool calling
 
 [orchestrator.buffer]
-type = "online-difficulty"    # Prioritize harder examples
-oversampling_factor = 2.0
+online_difficulty_filtering = true  # NOT type = "online-difficulty"
 
 # === ENVIRONMENT ===
 [[orchestrator.env]]
-id = "seconds-0/beautiful-soup-env"
+id = "seconds-0/beautiful-soup-env"  # Must be installed via prime env install
 
 [orchestrator.env.args]
 split = "train"
-mode = "tiered"               # Overweights harder archetypes
+mode = "tiered"
 difficulty = "mixed"
-executor_backend = "prime"    # Sandboxed execution
+seed = 42
+executor_backend = "prime"
+network_access = true
+timeout_s = 30.0
+max_output_chars = 10000
+
+[inference.model]
+enable_auto_tool_choice = true
+tool_call_parser = "hermes"
 ```
 
 ### Key Parameters Explained
@@ -303,35 +390,108 @@ executor_backend = "prime"    # Sandboxed execution
 | `lr` | 1e-5 | Conservative for LoRA. Can try 5e-5 if learning is slow. |
 | `lora.rank` | 8 | Higher = more capacity but slower. 8 is good starting point. |
 
-### Running Training (Requires GPU Pod)
+### Prime RL CLI Commands Reference
 
-Training requires GPU infrastructure. Create a Prime Cloud pod and run there:
+**From [prime-rl docs](https://github.com/PrimeIntellect-ai/prime-rl):**
 
 ```bash
-# 1. Check available GPU resources
-prime availability list
+# === ENVIRONMENT MANAGEMENT ===
+prime env list                               # Browse available environments
+prime env info owner/env-name                # View environment details
+prime env install owner/env-name             # Install from Hub (REQUIRED!)
+prime env install owner/env-name@1.0.0       # Install specific version
+prime env push                               # Upload local env to Hub
+prime env pull owner/env-name                # Download source code
 
-# 2. Create a 2-GPU pod (need inference + trainer GPUs)
-prime pods create
-# Select: 2x A100 80GB or 2x H100 for best performance
+# === TRAINING COMMANDS ===
+uv run rl @ config.toml                      # Combined training (starts all 3)
+uv run trainer @ train.toml                  # Trainer only
+uv run orchestrator @ orch.toml              # Orchestrator only
+uv run inference @ infer.toml                # Inference server only
 
-# 3. SSH into the pod
-prime pods ssh <pod-id>
+# === OTHER ENTRYPOINTS ===
+uv run sft @ sft.toml                        # Supervised fine-tuning
+uv run eval @ eval.toml                      # Evaluation
+uv run synthesize @ synth.toml               # Synthetic data generation
 
-# 4. Clone repo and install
-git clone https://github.com/seconds-0/beautifulsoup-rl.git
-cd beautifulsoup-rl
-uv sync
+# === POD MANAGEMENT ===
+prime pods list                              # View running pods
+prime pods create --name my-pod              # Create new pod
+prime pods status <pod-id>                   # Check pod state
+prime pods ssh <pod-id>                      # SSH into pod
+prime pods terminate <pod-id>                # Shutdown pod
 
-# 5. Run training with verifiers rl command
-uv run rl \
-  --trainer @ configs/prime-rl/beautiful-soup-env.toml \
-  --orchestrator @ configs/prime-rl/beautiful-soup-env.toml \
-  --inference @ configs/prime-rl/beautiful-soup-env.toml \
-  --trainer-gpus 1 --inference-gpus 1
+# === GPU AVAILABILITY ===
+prime availability list                      # All available GPUs
+prime availability list --gpu-type H100_80GB # Filter by type
 ```
 
-**Note**: The config uses `inference_gpu_ids = [0]` and `trainer_gpu_ids = [1]`, requiring at least 2 GPUs.
+### Running Training (GPU Pod Workflow)
+
+Training requires a GPU pod with the `prime_rl` image.
+
+```bash
+# 1. SSH into pod
+prime pods ssh <pod-id>
+# OR: ssh -i ~/.ssh/primeintellect_ed25519 root@<ip> -p <port>
+
+# 2. Clone/update repo
+cd /workspace
+git clone https://github.com/seconds-0/beautifulsoup-rl.git
+cd beautifulsoup-rl
+git pull
+
+# 3. CRITICAL: Install environment from Hub
+prime env install seconds-0/beautiful-soup-env
+
+# 4. Configure WandB
+export WANDB_API_KEY=your-key
+# OR create /root/.netrc:
+# machine api.wandb.ai
+#   login user
+#   password YOUR_KEY
+
+# 5. Start training in tmux
+tmux new -s training
+source /app/.venv/bin/activate
+rl @ configs/prime-rl/beautiful-soup-env.toml 2>&1 | tee /tmp/training.log
+
+# 6. Monitor logs
+tail -f /tmp/training.log
+# OR check: outputs/logs/orchestrator.stdout, trainer/rank_0.log
+```
+
+### Important Notes
+
+- **`rl @`** starts all 3 components (orchestrator, trainer, inference)
+- **Environment MUST be installed via `prime env install`** - pip install doesn't work!
+- Config file path is relative to current directory
+- Use `tmux attach -t training` to reconnect
+- Logs go to `outputs/logs/` and `/tmp/training.log`
+
+**GPU Requirements**: Config uses `inference_gpu_ids = [0]` and `trainer_gpu_ids = [1]`, requiring at least 2 GPUs.
+
+### Model Selection for Training
+
+When selecting models:
+- Must be on HuggingFace Hub
+- Must NOT be Vision-Language (VL) models
+- Must be compatible with vLLM weight reloading
+
+**Tested working:** Qwen/Qwen2.5-7B-Instruct, Qwen/Qwen3-4B-Instruct
+**Known issues:** gpt-oss-20b (vLLM bug), qwen3-vl models (VL not supported), Mistral (not on HF)
+
+### Monitoring Training
+
+```bash
+# Attach to tmux session with wandb monitor
+tmux attach -t wandb-monitor
+
+# Or view W&B dashboard
+open https://wandb.ai/YOUR_USERNAME/beautiful-soup-env
+
+# Track runs in TRAINING_RUNS.md
+```
 
 ### Bootstrap Strategy (0% Models)
 For models with 0% baseline, use staged training:

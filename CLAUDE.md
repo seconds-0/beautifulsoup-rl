@@ -188,6 +188,29 @@ uv run python -m bs4_env.scripts.eval_with_llm --model <model> --num 50 --max-to
 - Prime uses vLLM inference, local uses OpenRouter
 - Results may not correlate - always validate on Prime
 
+## Prime RL Training
+
+**See `.claude/skills/benchmark/SKILL.md` for full documentation.**
+
+### Critical Rules
+
+1. **Environment installation**: MUST use `prime env install seconds-0/beautiful-soup-env` on pod. `pip install -e .` does NOT work!
+
+2. **Config validation**:
+   - `trainer.model.seq_len` >= `orchestrator.seq_len`
+   - LoRA: `[trainer.model.lora]` NOT `[trainer.model.experimental.lora]`
+   - `lora_name` required under `[orchestrator]`
+   - NO `top_p`, `mask_truncated_completions`, `zero_truncated_completions`
+   - Buffer: `online_difficulty_filtering = true` NOT `type = "online-difficulty"`
+
+3. **Model selection**: Must be on HuggingFace, NOT VL models, compatible with vLLM
+
+4. **Commands**:
+   ```bash
+   prime env install seconds-0/beautiful-soup-env  # REQUIRED on pod
+   uv run rl @ config.toml                         # Start training
+   ```
+
 ## Test Records
 
 **Always update `TEST_RECORDS.md` after running evaluations.**
