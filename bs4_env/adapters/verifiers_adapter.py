@@ -257,7 +257,10 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any, **env_kwargs: Any) -> 
                                             f"Args preview: {str(args)[:100]}"
                                         )
 
-        # Compute weighted tool call count (navigate costs less than run_python)
+        # Compute tool call counts:
+        # - raw count: for hard caps (matches prompt wording "10+ calls = zero")
+        # - weighted count: for soft efficiency gradient (navigate=0.2, run_python=1.0)
+        raw_tool_count = len(all_tool_calls)
         weighted_tool_count = compute_weighted_tool_count(all_tool_calls)
 
         # Extract string content from completion
@@ -285,6 +288,7 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any, **env_kwargs: Any) -> 
             task_info=task_info,
             html=html,
             tool_call_count=weighted_tool_count if weighted_tool_count > 0 else None,
+            tool_call_count_raw=raw_tool_count if raw_tool_count > 0 else None,
             run_python_calls=run_python_calls,
             code_samples=code_samples if code_samples else None,
             partial_credit_enabled=config.partial_credit_enabled,
