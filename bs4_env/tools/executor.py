@@ -327,7 +327,7 @@ class PrimeSandboxExecutor(Executor):
         client = self._get_sandbox_client()
         result = client.execute_command(
             self._sandbox_id,
-            'python3 -c "import bs4, lxml, html5lib; print(\'OK\')"',
+            "python3 -c \"import bs4, lxml, html5lib; print('OK')\"",
             timeout=30,
         )
 

@@ -39,9 +39,7 @@ class TestSolvableArchetypeRewards:
         assert len(solvable_archetypes) > 0, "No solvable archetypes registered"
 
     @pytest.mark.parametrize("seed", TEST_SEEDS[:2])  # Use 2 seeds for speed
-    def test_all_solvable_archetypes_reward_ground_truth(
-        self, solvable_archetypes, seed
-    ):
+    def test_all_solvable_archetypes_reward_ground_truth(self, solvable_archetypes, seed):
         """Every solvable archetype should give high reward for ground truth."""
         failures = []
 
@@ -102,8 +100,7 @@ class TestArchetypeSpecificSolvability:
             )
 
             assert reward >= REWARD_TOLERANCE, (
-                f"Primer archetype {spec.archetype_id} failed: "
-                f"reward={reward}, metrics={metrics}"
+                f"Primer archetype {spec.archetype_id} failed: reward={reward}, metrics={metrics}"
             )
 
     def test_easy_archetypes_solvable(self):
@@ -128,8 +125,7 @@ class TestArchetypeSpecificSolvability:
             )
 
             assert reward >= REWARD_TOLERANCE, (
-                f"Easy archetype {spec.archetype_id} failed: "
-                f"reward={reward}, metrics={metrics}"
+                f"Easy archetype {spec.archetype_id} failed: reward={reward}, metrics={metrics}"
             )
 
 
@@ -188,14 +184,16 @@ class TestLimitationArchetypes:
             if evidence is None:
                 continue  # Can't construct valid evidence, skip
 
-            output = json.dumps({
-                "status": "limit",
-                "answer": None,
-                "limit": {
-                    "reason": valid_reasons[0],
-                    "evidence": evidence,
-                },
-            })
+            output = json.dumps(
+                {
+                    "status": "limit",
+                    "answer": None,
+                    "limit": {
+                        "reason": valid_reasons[0],
+                        "evidence": evidence,
+                    },
+                }
+            )
 
             task_info = parse_task_info(task.to_info_dict())
 
