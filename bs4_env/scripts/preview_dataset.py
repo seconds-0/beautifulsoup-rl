@@ -49,7 +49,7 @@ def preview_example(example: dict, idx: int) -> None:
     # Ground truth
     print("\n--- Ground Truth ---")
     gt = info.get("ground_truth")
-    if isinstance(gt, (dict, list)):
+    if isinstance(gt, dict | list):
         print(json.dumps(gt, indent=2))
     else:
         print(gt)

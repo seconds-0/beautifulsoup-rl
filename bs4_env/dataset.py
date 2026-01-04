@@ -582,7 +582,7 @@ def build_disk_cached_dataset(
     """
     import shutil
     import tempfile
-    from datetime import datetime, timezone
+    from datetime import UTC, datetime
 
     from beautiful_soup_env import __version__
 
@@ -646,7 +646,7 @@ def build_disk_cached_dataset(
             },
             "version": __version__,
             "code_fingerprint": code_fingerprint,
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
         }
         (tmp_dir / "_metadata.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
 

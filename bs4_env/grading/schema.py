@@ -134,7 +134,7 @@ def _is_coercible_to_schema(answer: Any, answer_schema: dict) -> bool:
     # Numeric value -> string (for prices, e.g., 185.40 -> "$185.40")
     if (
         schema_type == "string"
-        and isinstance(answer, (int, float))
+        and isinstance(answer, int | float)
         and not isinstance(answer, bool)
     ):
         return True

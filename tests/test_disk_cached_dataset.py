@@ -318,7 +318,7 @@ class TestCrashSafety:
         """_READY marker should be created after successful build."""
         config = EnvConfig(split="train", mode="mvp", num_examples=5)
 
-        dataset = build_disk_cached_dataset(config, cache_dir=temp_cache_dir, force_rebuild=True)
+        build_disk_cached_dataset(config, cache_dir=temp_cache_dir, force_rebuild=True)
 
         # Find the cache directory
         cache_dirs = [d for d in temp_cache_dir.iterdir() if d.is_dir()]
