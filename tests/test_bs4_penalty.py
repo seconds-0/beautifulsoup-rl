@@ -401,3 +401,29 @@ result = fake.contents
 answer = fake.attrs.get('class')
 """
         assert check_bs4_usage([code]) is False
+
+    def test_alias_import_detected(self):
+        """Alias imports (from bs4 import BeautifulSoup as BS) are detected."""
+        code = """
+from bs4 import BeautifulSoup as BS
+soup = BS(html, "html.parser")
+"""
+        assert check_bs4_usage([code]) is True
+
+    def test_make_soup_in_comment_not_detected(self):
+        """make_soup() in a comment should NOT be detected (anti-spoofing)."""
+        code = """
+# Just use make_soup() to parse
+import re
+match = re.search(r'pattern', HTML)
+"""
+        assert check_bs4_usage([code]) is False
+
+    def test_make_soup_in_string_not_detected(self):
+        """make_soup() in a string should NOT be detected (anti-spoofing)."""
+        code = """
+print("Call make_soup() to parse")
+import re
+match = re.search(r'pattern', HTML)
+"""
+        assert check_bs4_usage([code]) is False
