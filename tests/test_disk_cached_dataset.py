@@ -100,9 +100,7 @@ class TestDiskCachedDataset:
         """Dataset should be created in the cache directory."""
         config = EnvConfig(split="train", mode="mvp", num_examples=5)
 
-        dataset = build_disk_cached_dataset(
-            config, cache_dir=temp_cache_dir, force_rebuild=True
-        )
+        dataset = build_disk_cached_dataset(config, cache_dir=temp_cache_dir, force_rebuild=True)
 
         # Dataset should exist and have data
         assert len(dataset) > 0
@@ -116,14 +114,10 @@ class TestDiskCachedDataset:
         config = EnvConfig(split="train", mode="mvp", num_examples=5)
 
         # First call - generates
-        dataset1 = build_disk_cached_dataset(
-            config, cache_dir=temp_cache_dir, force_rebuild=True
-        )
+        dataset1 = build_disk_cached_dataset(config, cache_dir=temp_cache_dir, force_rebuild=True)
 
         # Second call - should load from cache
-        dataset2 = build_disk_cached_dataset(
-            config, cache_dir=temp_cache_dir, force_rebuild=False
-        )
+        dataset2 = build_disk_cached_dataset(config, cache_dir=temp_cache_dir, force_rebuild=False)
 
         assert len(dataset1) == len(dataset2)
 
@@ -132,15 +126,11 @@ class TestDiskCachedDataset:
         config = EnvConfig(split="train", mode="mvp", num_examples=5)
 
         # First call
-        dataset1 = build_disk_cached_dataset(
-            config, cache_dir=temp_cache_dir, force_rebuild=True
-        )
+        dataset1 = build_disk_cached_dataset(config, cache_dir=temp_cache_dir, force_rebuild=True)
         len1 = len(dataset1)
 
         # Second call with force_rebuild should still work
-        dataset2 = build_disk_cached_dataset(
-            config, cache_dir=temp_cache_dir, force_rebuild=True
-        )
+        dataset2 = build_disk_cached_dataset(config, cache_dir=temp_cache_dir, force_rebuild=True)
         len2 = len(dataset2)
 
         # Both should have same length (regenerated correctly)
@@ -151,9 +141,7 @@ class TestDiskCachedDataset:
         """Dataset should have example_id and task columns for verifiers."""
         config = EnvConfig(split="train", mode="mvp", num_examples=5)
 
-        dataset = build_disk_cached_dataset(
-            config, cache_dir=temp_cache_dir, force_rebuild=True
-        )
+        dataset = build_disk_cached_dataset(config, cache_dir=temp_cache_dir, force_rebuild=True)
 
         assert "example_id" in dataset.column_names
         assert "task" in dataset.column_names
@@ -164,9 +152,7 @@ class TestDiskCachedDataset:
         """example_id should be an integer (required by verifiers)."""
         config = EnvConfig(split="train", mode="mvp", num_examples=5)
 
-        dataset = build_disk_cached_dataset(
-            config, cache_dir=temp_cache_dir, force_rebuild=True
-        )
+        dataset = build_disk_cached_dataset(config, cache_dir=temp_cache_dir, force_rebuild=True)
 
         # Check first example
         assert isinstance(dataset[0]["example_id"], int)
@@ -176,9 +162,7 @@ class TestDiskCachedDataset:
         """task should be a string (required by verifiers EnvGroup)."""
         config = EnvConfig(split="train", mode="mvp", num_examples=5)
 
-        dataset = build_disk_cached_dataset(
-            config, cache_dir=temp_cache_dir, force_rebuild=True
-        )
+        dataset = build_disk_cached_dataset(config, cache_dir=temp_cache_dir, force_rebuild=True)
 
         assert isinstance(dataset[0]["task"], str)
 
@@ -254,9 +238,7 @@ class TestVerifiersCompatibility:
         """Verifiers should skip add_column when example_id exists."""
         config = EnvConfig(split="train", mode="mvp", num_examples=5)
 
-        dataset = build_disk_cached_dataset(
-            config, cache_dir=temp_cache_dir, force_rebuild=True
-        )
+        dataset = build_disk_cached_dataset(config, cache_dir=temp_cache_dir, force_rebuild=True)
 
         # Simulate verifiers' _ensure_example_id check
         assert "example_id" in dataset.column_names
@@ -266,9 +248,7 @@ class TestVerifiersCompatibility:
         """Verifiers should skip map when task column exists."""
         config = EnvConfig(split="train", mode="mvp", num_examples=5)
 
-        dataset = build_disk_cached_dataset(
-            config, cache_dir=temp_cache_dir, force_rebuild=True
-        )
+        dataset = build_disk_cached_dataset(config, cache_dir=temp_cache_dir, force_rebuild=True)
 
         # Simulate verifiers' _ensure_task check
         assert "task" in dataset.column_names
