@@ -21,12 +21,12 @@ max_steps = 1000  # Full training run
 # Pick a model that can reliably do tool calling + short Python snippets.
 # gpt-oss-20b: 49.2% baseline (n=680), $0.07/$0.30, good tool calling support.
 name = "openai/gpt-oss-20b"
+fsdp_cpu_offload = true  # Enable CPU offloading for 2-GPU setup
 
 [wandb]
 # Optional, but highly recommended for tracking.
 project = "beautiful-soup-env"
 name = "bs4-rl-gpt-oss-20b-lora"
-offline = true  # Run without WandB login for now
 
 [trainer.optim]
 lr = 1e-5
@@ -49,10 +49,10 @@ target_modules = [
 
 [orchestrator]
 # batch_size is "rollouts per batch" in prime-rl land.
-# For early debugging, keep these modest; then scale up once stable.
-batch_size = 256
-rollouts_per_example = 8
-seq_len = 16384
+# Reduced for 2-GPU setup with 20B model
+batch_size = 32
+rollouts_per_example = 4
+seq_len = 8192
 oversampling_factor = 2.0
 
 mask_truncated_completions = false
