@@ -9,9 +9,10 @@ Track all RL training experiments for BeautifulSoup environment.
 - **Model**: Qwen/Qwen2.5-7B-Instruct (7B params)
 - **Config**: configs/prime-rl/beautiful-soup-env.toml
 - **Pod**: bs4-rl-training (2x A6000 48GB)
-- **Start**: 2026-01-04 ~21:00 UTC
-- **Status**: LAUNCHING (attempt 8)
+- **Start**: 2026-01-04 21:03 UTC
+- **Status**: RUNNING ✅
 - **W&B Project**: beautiful-soup-env
+- **W&B Run**: https://wandb.ai/seconds-0-domus-magna-inc/beautiful-soup-env/runs/aochk8k1
 - **Baseline**: TBD (need to run smoke test)
 
 #### Config (v8 - Qwen2.5-7B)
@@ -73,6 +74,16 @@ seq_len = 8192
 7. **Final model selection** (attempt 7-8):
    - Qwen/Qwen2.5-7B-Instruct: 7B params, text-only, widely supported, good tool calling
    - No CPU offloading needed on 2x A6000 (7B fits comfortably)
+
+8. **vLLM V1 engine CUDA segfault** (attempt 9-10):
+   - Error: `Segfault encountered` in `THCPModule_initExtension` / `cuCtxGetDevice`
+   - Root cause: vLLM V1 engine spawns child processes that inherit invalid CUDA context
+   - Fix: Set environment variables before launching:
+     ```bash
+     export VLLM_USE_V1=0
+     export VLLM_WORKER_MULTIPROC_METHOD=spawn
+     ```
+   - Also added `enforce_eager = true` in config to disable CUDA graphs
 
 #### WandB Setup on Pod
 ```bash
@@ -186,3 +197,19 @@ chmod 600 /root/.netrc
 # Option 2: Environment variable
 export WANDB_API_KEY=YOUR_KEY
 ```
+
+### vLLM CUDA Segfault Fix
+
+If you see `THCPModule_initExtension` or `cuCtxGetDevice` segfault in vLLM:
+
+```bash
+# Set before launching training
+export VLLM_USE_V1=0
+export VLLM_WORKER_MULTIPROC_METHOD=spawn
+
+# Also add to config
+[inference.model]
+enforce_eager = true
+```
+
+This disables V1 engine and uses spawn instead of fork for child processes.

@@ -97,3 +97,5 @@ max_output_chars = 10000
 # Tool calling settings (important for your env because it relies on tools).
 enable_auto_tool_choice = true
 tool_call_parser = "hermes"
+# Disable CUDA graphs to avoid segfault in Ray workers (common vLLM issue)
+enforce_eager = true
