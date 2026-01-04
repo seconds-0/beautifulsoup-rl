@@ -163,6 +163,11 @@ def generate_dataset_rows(config: EnvConfig) -> Iterator[dict[str, Any]]:
     # Get archetypes to include
     archetype_ids = _get_archetype_ids_for_config(config)
 
+    # Sort for stable dataset ordering when no explicit archetypes specified.
+    # Registration/import order may vary, but sorted order is deterministic.
+    if not config.archetypes:
+        archetype_ids = sorted(archetype_ids)
+
     if not archetype_ids:
         return
 
