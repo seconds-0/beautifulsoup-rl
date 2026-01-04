@@ -15,11 +15,14 @@ trainer_gpu_ids = [1]
 
 # Total number of optimizer steps.
 # Start small for shakeout runs, then scale.
-max_steps = 50  # Smoke test - increase to 1000+ for real training
+max_steps = 1000  # Full training run
+
+# Context length - MUST be at top level (not under [orchestrator])
+seq_len = 4096
 
 [model]
 # Pick a model that can reliably do tool calling + short Python snippets.
-# gpt-oss-20b: 63.3% baseline, $0.07/$0.30, good tool calling support.
+# gpt-oss-20b: 49.2% baseline (n=680), $0.07/$0.30, good tool calling support.
 name = "openai/gpt-oss-20b"
 
 [wandb]
@@ -52,10 +55,6 @@ target_modules = [
 batch_size = 256
 rollouts_per_example = 8
 
-# Context length. Your prompts include HTML + tool chatter.
-# If your HTML gets longer, bump this (and ensure your model supports it).
-seq_len = 4096
-
 mask_truncated_completions = false
 zero_truncated_completions = true
 
@@ -78,6 +77,7 @@ oversampling_factor = 2.0
 # If you have uploaded to Hub, use "owner/name".
 # If you installed locally editable, you may also be able to use just the env name.
 id = "seconds-0/beautiful-soup-env"
+name = "beautiful-soup"  # Required by prime-rl
 
 # Forwarded to your load_environment(**kwargs).
 # This is where you set your splits/modes and the executor backend.

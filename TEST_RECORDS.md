@@ -29,11 +29,23 @@ This unlocked several models that were previously crashing.
 | `z-ai/glm-4.5-air` | **86.9%** | $0.20/$1.10 | Frontier baseline |
 | `mistralai/mistral-small-3.2-24b-instruct` | **82.6%** | $0.10/$0.25 | Validation |
 | `meta-llama/llama-4-maverick` | **65.8%** | $0.27/$0.88 | ✅ RL candidate |
-| `openai/gpt-oss-20b` | **63.3%** | $0.07/$0.30 | ✅ **Best RL target** |
+| `openai/gpt-oss-20b` | **49.2%** | $0.07/$0.30 | ✅ **Best RL target** |
 | `arcee-ai/trinity-mini` | **34.3%** | $0.045/$0.15 | Works (JSON truncation issues) |
 | `allenai/olmo-3-7b-instruct` | **0%** | $0.10/$0.20 | ❌ No proper tool calls |
 
-**Config:** `split=bench`, `mode=mvp`, 50 examples, 3 rollouts each
+**Full Benchmark Results (n=680, 3 rollouts each, 2026-01-04):**
+
+| Model | Avg Reward | Std Dev | Notes |
+|-------|-----------|---------|-------|
+| `openai/gpt-oss-20b` | **49.2%** | 0.470 | Primary RL target, MoE 21B/3.6B active |
+
+**Smoke Test Results (n=50, 3 rollouts each):**
+
+| Model | Avg Reward | Notes |
+|-------|-----------|-------|
+| `openai/gpt-oss-20b` | **69.8%** | Higher on easier examples |
+
+**Config:** `split=bench`, `mode=all`
 
 ### Blocked Models (No Tool Calling on Prime)
 
@@ -46,7 +58,7 @@ This unlocked several models that were previously crashing.
 ### Key Findings
 
 1. **Best RL Training Target:**
-   - `openai/gpt-oss-20b` ($0.07/$0.30, 63.3%) - cheap with room to improve
+   - `openai/gpt-oss-20b` ($0.07/$0.30, 49.2% full benchmark) - cheap with lots of room to improve
    - `meta-llama/llama-4-maverick` ($0.27/$0.88, 65.8%) - backup target
 
 2. **JSON Truncation Issue:**
