@@ -121,7 +121,11 @@ Focus on **small/weak models** - they benefit most from RL training on this envi
 **Key Findings:**
 1. **ministral-3b-2512 blocked**: Model doesn't support function calling via OpenRouter - made 0 tool calls across all 50 examples
 2. **qwen3-8b excellent RL candidate**: 90% pass rate with room for improvement on aggregation tasks
-3. **intellect-3 struggles with aggregation**: Only 40% perfect on min/max tasks, but 100% on class_reserved_word
+3. **intellect-3 max_tokens issue**: Many 0-call failures due to `max_tokens=4000` being too low. Investigation showed:
+   - `max_tokens=2000`: 20% tool call success
+   - `max_tokens=4000`: 60% tool call success (current eval setting)
+   - `max_tokens=8000`: 100% tool call success
+   - intellect-3 generates verbose reasoning before tool calls, causing truncation
 4. **BS4 detection refactor validated**: No regressions in grading behavior
 
 **Token Usage:**
