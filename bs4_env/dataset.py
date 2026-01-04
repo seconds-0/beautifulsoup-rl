@@ -628,7 +628,12 @@ def build_disk_cached_dataset(
                 }
 
         # Generate dataset to temp directory
-        with tempfile.TemporaryDirectory() as arrow_tmp:
+        # IMPORTANT: Use cache_dir as base for Arrow temp files, not /tmp.
+        # On some Linux hosts, /tmp is RAM-backed (tmpfs), which defeats
+        # the purpose of disk caching and can cause RAM spikes.
+        with tempfile.TemporaryDirectory(
+            dir=str(cache_dir), prefix=f"{cache_key}_arrow_"
+        ) as arrow_tmp:
             dataset = Dataset.from_generator(gen, cache_dir=arrow_tmp)
             dataset.save_to_disk(str(tmp_dir))
 
