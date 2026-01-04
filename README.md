@@ -50,7 +50,8 @@ env = load_environment(
     split="train",       # Use "bench" for quick testing, "train" for RL training
     mode="mvp",
     difficulty="mixed",
-    executor_backend="local"
+    executor_backend="local",
+    dataset_backend="lazy",  # "lazy" (default for train/eval) or "hf" (eager)
 )
 
 # Get a task
