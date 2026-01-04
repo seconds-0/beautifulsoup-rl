@@ -795,3 +795,138 @@ print(result)
 
         # Without code samples, can't compute process credit
         assert reward == 0.0
+
+
+class TestSchemaErrorEfficiencyEnforcement:
+    """Tests that schema-error process credit respects efficiency limits.
+
+    This closes a reward-hacking loophole where models could:
+    1. Make 100 tool calls
+    2. Produce schema-invalid JSON
+    3. Have correct BS4 patterns in code
+    4. Get 0.30 process credit WITHOUT efficiency penalty
+
+    After the fix, efficiency is enforced on schema-error process credit.
+    """
+
+    def test_schema_error_with_high_tool_count_gets_zero(self):
+        """Schema error with tool count > max returns 0.0 (hard cap)."""
+        raw_output = '{"status": "ok"}'  # Missing 'answer' field
+        task_info = {
+            "ground_truth": "test",
+            "solvable": True,
+            "answer_schema": {"type": "string"},
+        }
+        # Good BS4 code that would otherwise earn process credit
+        code_samples = [
+            """
+from bs4 import BeautifulSoup
+soup = BeautifulSoup(HTML, "html.parser")
+result = soup.find("div").get_text()
+"""
+        ]
+
+        reward, metrics = compute_reward(
+            raw_output=raw_output,
+            task_info=task_info,
+            code_samples=code_samples,
+            run_python_calls=1,
+            tool_call_count_raw=15,  # Exceeds default max of 10
+            partial_credit_enabled=True,
+        )
+
+        # Should be 0.0 due to hard cap, not 0.30
+        assert reward == 0.0, "Schema error with high tool count should hit hard cap"
+        assert metrics.get("efficiency_multiplier") == 0.0
+        assert "Exceeded max tool calls" in str(metrics.get("errors", []))
+
+    def test_schema_error_with_moderate_tool_count_gets_reduced(self):
+        """Schema error with moderate tool count gets efficiency reduction."""
+        raw_output = '{"status": "ok"}'  # Missing 'answer' field
+        task_info = {
+            "ground_truth": "test",
+            "solvable": True,
+            "answer_schema": {"type": "string"},
+        }
+        code_samples = [
+            """
+from bs4 import BeautifulSoup
+soup = BeautifulSoup(HTML, "html.parser")
+result = soup.find("div").get_text()
+"""
+        ]
+
+        reward, metrics = compute_reward(
+            raw_output=raw_output,
+            task_info=task_info,
+            code_samples=code_samples,
+            run_python_calls=1,
+            tool_call_count=5.0,  # Moderate - efficiency multiplier = 0.6
+            partial_credit_enabled=True,
+        )
+
+        # Process credit (0.30) * efficiency (0.6) = 0.18
+        assert reward == pytest.approx(0.18), "Schema error should have efficiency applied"
+        assert metrics.get("efficiency_multiplier") == pytest.approx(0.6)
+        assert metrics.get("partial_credit_source") == "process_on_schema_error"
+
+    def test_schema_error_within_limit_gets_full_credit(self):
+        """Schema error within tool limit gets full process credit."""
+        raw_output = '{"status": "ok"}'  # Missing 'answer' field
+        task_info = {
+            "ground_truth": "test",
+            "solvable": True,
+            "answer_schema": {"type": "string"},
+        }
+        code_samples = [
+            """
+from bs4 import BeautifulSoup
+soup = BeautifulSoup(HTML, "html.parser")
+result = soup.find("div").get_text()
+"""
+        ]
+
+        reward, metrics = compute_reward(
+            raw_output=raw_output,
+            task_info=task_info,
+            code_samples=code_samples,
+            run_python_calls=1,
+            tool_call_count=1.0,  # Single call - efficiency multiplier = 1.0
+            partial_credit_enabled=True,
+        )
+
+        # Process credit (0.30) * efficiency (1.0) = 0.30
+        assert reward == pytest.approx(PROCESS_PARTIAL_CREDIT_CAP)
+        assert metrics.get("efficiency_multiplier") == 1.0
+        assert metrics.get("partial_credit_source") == "process_on_schema_error"
+
+    def test_schema_error_hard_cap_uses_raw_count(self):
+        """Hard cap uses raw count, not weighted count."""
+        raw_output = '{"status": "ok"}'  # Missing 'answer' field
+        task_info = {
+            "ground_truth": "test",
+            "solvable": True,
+            "answer_schema": {"type": "string"},
+        }
+        code_samples = [
+            """
+from bs4 import BeautifulSoup
+soup = BeautifulSoup(HTML, "html.parser")
+result = soup.find("div").get_text()
+"""
+        ]
+
+        # Weighted count is low, but raw count exceeds limit
+        reward, metrics = compute_reward(
+            raw_output=raw_output,
+            task_info=task_info,
+            code_samples=code_samples,
+            run_python_calls=1,
+            tool_call_count=2.0,  # Low weighted count
+            tool_call_count_raw=15,  # High raw count (e.g., many navigate calls)
+            partial_credit_enabled=True,
+        )
+
+        # Hard cap should use raw count
+        assert reward == 0.0, "Hard cap should use raw count, not weighted"
+        assert metrics.get("efficiency_multiplier") == 0.0

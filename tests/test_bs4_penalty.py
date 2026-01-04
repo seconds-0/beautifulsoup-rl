@@ -29,9 +29,18 @@ class TestBS4UsageDetection:
         code = "soup = make_soup()"
         assert check_bs4_usage([code]) is True
 
-    def test_detects_find_all_method(self):
-        """soup.find_all() method is detected (BS4-specific)."""
+    def test_find_all_alone_not_detected(self):
+        """soup.find_all() alone is not detected (stricter detection)."""
         code = 'elements = soup.find_all("a")'
+        assert check_bs4_usage([code]) is False
+
+    def test_find_all_with_import_and_constructor_detected(self):
+        """soup.find_all() with import and constructor IS detected."""
+        code = """
+from bs4 import BeautifulSoup
+soup = BeautifulSoup(HTML, "html.parser")
+elements = soup.find_all("a")
+"""
         assert check_bs4_usage([code]) is True
 
     def test_find_alone_not_detected(self):
@@ -46,19 +55,52 @@ class TestBS4UsageDetection:
         code = 'soup = BeautifulSoup(HTML, "html.parser")\nresult = soup.find("div")'
         assert check_bs4_usage([code]) is True
 
-    def test_detects_select_method(self):
-        """soup.select() CSS selector method is detected."""
+    def test_select_alone_not_detected(self):
+        """soup.select() alone is not detected (stricter detection)."""
         code = 'elements = soup.select("div.target > span")'
+        assert check_bs4_usage([code]) is False
+
+    def test_select_with_import_and_constructor_detected(self):
+        """soup.select() with import and constructor IS detected."""
+        code = """
+from bs4 import BeautifulSoup
+soup = BeautifulSoup(HTML, "html.parser")
+elements = soup.select("div.target > span")
+"""
         assert check_bs4_usage([code]) is True
 
-    def test_detects_get_text_method(self):
-        """element.get_text() method is detected."""
+    def test_get_text_alone_not_detected(self):
+        """element.get_text() alone is not detected (stricter detection).
+
+        Stricter detection requires soup creation or import + constructor.
+        """
         code = "text = element.get_text(strip=True)"
+        assert check_bs4_usage([code]) is False
+
+    def test_get_text_with_soup_detected(self):
+        """element.get_text() WITH soup creation IS detected."""
+        code = """
+from bs4 import BeautifulSoup
+soup = BeautifulSoup(HTML, "html.parser")
+text = element.get_text(strip=True)
+"""
         assert check_bs4_usage([code]) is True
 
-    def test_detects_sibling_navigation(self):
-        """Sibling navigation is detected."""
+    def test_sibling_navigation_alone_not_detected(self):
+        """Sibling navigation alone is not detected (could be spoofed).
+
+        Stricter detection requires actual soup creation, not just attribute access.
+        """
         code = "sibling = element.next_sibling"
+        assert check_bs4_usage([code]) is False
+
+    def test_sibling_navigation_with_soup_detected(self):
+        """Sibling navigation WITH soup creation IS detected."""
+        code = """
+from bs4 import BeautifulSoup
+soup = BeautifulSoup(HTML, "html.parser")
+sibling = element.next_sibling
+"""
         assert check_bs4_usage([code]) is True
 
     def test_pure_regex_not_detected(self):
@@ -242,19 +284,28 @@ class TestBS4EdgeCases:
 
     def test_case_sensitive_detection(self):
         """Detection requires exact case for function names (AST-based)."""
-        # AST-based detection is case-sensitive for identifiers
-        code = 'BeautifulSoup(html, "html.parser")'  # correct case
+        # Stricter detection requires import + constructor
+        code = """
+from bs4 import BeautifulSoup
+soup = BeautifulSoup(html, "html.parser")
+"""
         assert check_bs4_usage([code]) is True
 
-        # Lowercase won't parse as valid Python call
-        code = 'beautifulsoup(html, "html.parser")'  # lowercase - different function
-        # This is technically valid Python (a different function), but won't
-        # match our detector since Python is case-sensitive
+        # Lowercase won't match
+        code = """
+from bs4 import beautifulsoup
+beautifulsoup(html, "html.parser")
+"""
+        # This wouldn't match because identifier is lowercase
         assert check_bs4_usage([code]) is False
 
-    def test_find_all_method_detected(self):
-        """.find_all() method call detected via AST."""
-        code = 'element.find_all("div")'
+    def test_find_all_with_soup_creation_detected(self):
+        """.find_all() with soup creation is detected."""
+        code = """
+from bs4 import BeautifulSoup
+soup = BeautifulSoup(HTML, "html.parser")
+elements = soup.find_all("div")
+"""
         assert check_bs4_usage([code]) is True
 
     def test_comment_containing_bs4_not_detected(self):
@@ -269,36 +320,84 @@ class TestBS4EdgeCases:
         code = 'print("Use BeautifulSoup for parsing")'
         assert check_bs4_usage([code]) is False
 
-    def test_import_bs4_detected(self):
-        """Import statements are detected."""
+    def test_import_alone_not_detected(self):
+        """Import statements alone are NOT detected (stricter detection)."""
+        # Stricter detection requires import + constructor
         code = "import bs4"
-        assert check_bs4_usage([code]) is True
+        assert check_bs4_usage([code]) is False
 
         code = "from bs4 import BeautifulSoup"
+        assert check_bs4_usage([code]) is False
+
+    def test_import_plus_constructor_detected(self):
+        """Import + constructor together IS detected."""
+        code = """
+from bs4 import BeautifulSoup
+soup = BeautifulSoup(html, "html.parser")
+"""
         assert check_bs4_usage([code]) is True
 
-    def test_actual_beautifulsoup_call_detected(self):
-        """Actual BeautifulSoup() call is detected."""
+    def test_beautifulsoup_call_with_html_var_detected(self):
+        """BeautifulSoup(HTML, ...) with HTML variable is detected (primary signal)."""
+        # This matches _check_soup_creation_with_html_ast
         code = 'soup = BeautifulSoup(HTML, "html.parser")'
         assert check_bs4_usage([code]) is True
+
+    def test_beautifulsoup_call_with_other_var_not_detected(self):
+        """BeautifulSoup(other_var, ...) without import is NOT detected."""
+        # This uses 'html' not 'HTML', and no import
+        code = 'soup = BeautifulSoup(html, "html.parser")'
+        assert check_bs4_usage([code]) is False
 
     def test_syntax_error_not_detected(self):
         """Code with syntax errors returns False (safe default)."""
         code = "this is not valid python {"
         assert check_bs4_usage([code]) is False
 
-    def test_sibling_navigation_detected(self):
-        """Sibling navigation attributes are detected."""
+    def test_sibling_navigation_not_detected_alone(self):
+        """Sibling navigation attributes alone are NOT detected (anti-spoofing).
+
+        Stricter detection prevents dummy object spoofing via attribute names.
+        """
         code = "element.next_sibling"
-        assert check_bs4_usage([code]) is True
+        assert check_bs4_usage([code]) is False
 
         code = "element.previous_sibling"
-        assert check_bs4_usage([code]) is True
+        assert check_bs4_usage([code]) is False
 
-    def test_contents_descendants_detected(self):
-        """BS4-specific container attributes detected."""
+    def test_contents_descendants_not_detected_alone(self):
+        """BS4-specific container attributes alone are NOT detected (anti-spoofing).
+
+        Stricter detection prevents dummy object spoofing via attribute names.
+        """
         code = "element.contents"
-        assert check_bs4_usage([code]) is True
+        assert check_bs4_usage([code]) is False
 
         code = "for child in element.descendants: pass"
-        assert check_bs4_usage([code]) is True
+        assert check_bs4_usage([code]) is False
+
+    def test_dummy_object_attrs_not_detected_as_bs4(self):
+        """Dummy objects with BS4-like attributes should NOT bypass penalty.
+
+        This is the key anti-spoofing test. A model could try to avoid the BS4
+        penalty by creating a fake object with .attrs/.children/.contents:
+
+            class Fake:
+                attrs = {}
+                children = []
+
+        Without stricter detection, this would incorrectly be detected as BS4 usage.
+        """
+        code = """
+class FakeSoup:
+    def __init__(self):
+        self.contents = []
+        self.attrs = {}
+        self.children = []
+        self.next_sibling = None
+
+fake = FakeSoup()
+result = fake.contents
+answer = fake.attrs.get('class')
+"""
+        assert check_bs4_usage([code]) is False
