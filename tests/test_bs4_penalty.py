@@ -327,9 +327,10 @@ class TestBS4EdgeCases:
 
     def test_case_sensitive_detection(self):
         """Detection requires exact case for function names (AST-based)."""
-        # Stricter detection requires import + constructor
+        # Stricter detection requires import + constructor with HTML-derived var
         code = """
 from bs4 import BeautifulSoup
+html = HTML
 soup = BeautifulSoup(html, "html.parser")
 """
         assert check_bs4_usage([code]) is True
@@ -337,6 +338,7 @@ soup = BeautifulSoup(html, "html.parser")
         # Lowercase won't match
         code = """
 from bs4 import beautifulsoup
+html = HTML
 beautifulsoup(html, "html.parser")
 """
         # This wouldn't match because identifier is lowercase
@@ -376,6 +378,7 @@ elements = soup.find_all("div")
         """Import + constructor together IS detected."""
         code = """
 from bs4 import BeautifulSoup
+html = HTML
 soup = BeautifulSoup(html, "html.parser")
 """
         assert check_bs4_usage([code]) is True
@@ -449,6 +452,7 @@ answer = fake.attrs.get('class')
         """Alias imports (from bs4 import BeautifulSoup as BS) are detected."""
         code = """
 from bs4 import BeautifulSoup as BS
+html = HTML
 soup = BS(html, "html.parser")
 """
         assert check_bs4_usage([code]) is True
