@@ -4,34 +4,38 @@ Track all RL training experiments for BeautifulSoup environment.
 
 ## Active Runs
 
-### Run: bs4-rl-gpt-oss-20b-1000steps (2026-01-04)
+### Run: bs4-rl-qwen3-8b-1000steps (2026-01-04)
 
-- **Model**: openai/gpt-oss-20b (20B params)
+- **Model**: qwen/qwen3-vl-8b-instruct (8B params)
 - **Config**: configs/prime-rl/beautiful-soup-env.toml
 - **Pod**: bs4-rl-training (2x A6000 48GB)
-- **Start**: 2026-01-04 ~20:15 UTC
-- **Status**: LAUNCHING (attempt 3)
+- **Start**: 2026-01-04 ~20:25 UTC
+- **Status**: LAUNCHING (attempt 5)
 - **W&B Project**: beautiful-soup-env
+- **Baseline**: 50% (n=10 smoke test)
 
-#### Config (v3 - memory optimized)
+#### Config (v5 - switched to 8B model)
 ```toml
 max_steps = 1000
 inference_gpu_ids = [0]
 trainer_gpu_ids = [1]
 
 [model]
-name = "openai/gpt-oss-20b"
-fsdp_cpu_offload = true  # Added for 2-GPU setup
+name = "qwen/qwen3-vl-8b-instruct"  # Switched from gpt-oss-20b
 
 [trainer.model.experimental.lora]
 rank = 8
 alpha = 32
 
 [orchestrator]
-batch_size = 32         # Reduced from 256
-rollouts_per_example = 4  # Reduced from 8
-seq_len = 8192          # Reduced from 16384
+batch_size = 128        # Increased for 8B model
+rollouts_per_example = 8
+seq_len = 8192
 ```
+
+#### Previous model attempt (gpt-oss-20b)
+- Hit vLLM weight reload bug: `default_weight_loader() got an unexpected keyword argument 'weight_name'`
+- Bug is in vLLM's gpt_oss.py model loader when calling `/reload_weights`
 
 #### Issues Encountered
 
@@ -48,6 +52,11 @@ seq_len = 8192          # Reduced from 16384
    - Error: `CUDA out of memory. Tried to allocate 2.16 GiB`
    - Root cause: 20B model weights (~40GB BF16) + inference server using 42.83GB on GPU 0
    - Fix: Enable `fsdp_cpu_offload = true`, reduce batch_size to 32, seq_len to 8192
+
+4. **vLLM weight reload bug** (attempt 4):
+   - Error: `TypeError: default_weight_loader() got an unexpected keyword argument 'weight_name'`
+   - Root cause: `gpt-oss-20b` model loader incompatible with vLLM `/reload_weights` endpoint
+   - Fix: Switch to `qwen/qwen3-vl-8b-instruct` (8B params, 50% baseline)
 
 #### WandB Setup on Pod
 ```bash
