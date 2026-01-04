@@ -37,6 +37,8 @@ def load_environment(
     timeout_s: float = 30.0,
     max_output_chars: int = 10000,
     archetypes: list[str] | None = None,
+    dataset_backend: str = "lazy",
+    lazy_cache_size: int = 512,
     # Prime sandbox-specific settings (only used when executor_backend="prime")
     docker_image: str | None = None,
     cpu_cores: int = 1,
@@ -59,6 +61,8 @@ def load_environment(
         timeout_s: Code execution timeout in seconds.
         max_output_chars: Max characters from stdout/stderr.
         archetypes: Specific archetype IDs to include (optional).
+        dataset_backend: Dataset backend - "lazy" (recommended for train/eval) or "hf" (eager).
+        lazy_cache_size: LRU cache size for lazy dataset (0 disables caching).
         docker_image: Docker image for Prime sandbox (default: python:3.11-slim).
         cpu_cores: CPU cores for Prime sandbox (default: 1).
         memory_gb: Memory in GB for Prime sandbox (default: 2).
@@ -86,6 +90,8 @@ def load_environment(
         timeout_s=timeout_s,
         max_output_chars=max_output_chars,
         archetypes=archetypes,
+        dataset_backend=dataset_backend,
+        lazy_cache_size=lazy_cache_size,
         docker_image=docker_image,
         cpu_cores=cpu_cores,
         memory_gb=memory_gb,
