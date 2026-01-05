@@ -26,10 +26,14 @@ Run benchmarks, evaluations, and RL training on the BeautifulSoup RL environment
 
 - "run benchmark", "benchmark model", "eval on", "test model"
 - "run on prime", "prime eval", "prime evaluation"
-- "train model", "rl training", "prime rl"
+- "train model", "rl training", "prime rl", "start training"
 - "check model performance"
 - "prime models", "trainable models", "which model for RL"
 - "model sizes", "model parameters", "model pricing"
+- "training progress", "check training", "monitor training", "step time"
+- "checkpoint", "evaluate checkpoint", "benchmark checkpoint"
+- "stop training", "continue training", "when to stop", "training metrics"
+- "reward curve", "entropy", "KL divergence", "training health"
 
 ---
 
@@ -797,6 +801,80 @@ timeout_s = 30.0              # Local execution is fast, keep reasonable timeout
 3. **Question defaults** - `executor_backend="prime"` is safe but slow
 4. **The bottleneck was environment execution, not inference**
 5. **Reducing work doesn't reduce fixed latency** - Halving rollouts didn't halve time
+
+---
+
+## Training Monitoring & Evaluation
+
+### Training Time Estimates
+
+With local executor on 2x H100 (1024 rollouts/step):
+
+| Milestone | Time from Start | Wall Clock Example |
+|-----------|-----------------|-------------------|
+| Step 100 | ~6 hours | +6h |
+| Step 500 | ~30 hours | +1.25 days |
+| Step 1000 | ~61 hours | +2.5 days |
+
+**Step time breakdown:** ~220s average (3-4 minutes)
+
+### Checkpoint Benchmarking Protocol
+
+**When to benchmark:** Steps 100, 500, 1000 (or at any checkpoint)
+
+**How to benchmark:**
+```bash
+# Load checkpoint weights into vLLM and eval
+# (exact command depends on how weights are exported)
+prime env eval seconds-0/beautiful-soup-env \
+  -a '{"split":"bench","mode":"mvp"}' \
+  -m <checkpoint-model-path> \
+  -n 100
+```
+
+**Target improvements vs baseline:**
+
+| Checkpoint | Expected Improvement | Interpretation |
+|------------|---------------------|----------------|
+| Step 100 | +5-10% | Early signal, learning started |
+| Step 500 | +15-20% | Solid progress |
+| Step 1000 | +25-30% | Strong training run |
+
+### Key WandB Metrics to Monitor
+
+| Metric | Healthy Range | Warning Sign | Action |
+|--------|---------------|--------------|--------|
+| **Reward** | Increasing | Plateau >200 steps | Consider stopping |
+| **Policy entropy** | 0.05-0.15 | < 0.05 | Overfitting, stop |
+| **KL divergence** | < 0.1 | > 0.5 | Unstable, reduce LR |
+| **Grad norm** | < 1.0 | Spikes > 5.0 | Reduce LR or batch size |
+
+### Stop Training Criteria
+
+Stop training if ANY of these occur:
+
+1. **Reward plateau** - No improvement for 300+ consecutive steps
+2. **Benchmark stagnation** - < 5% improvement from step 500 → 1000
+3. **Entropy collapse** - Policy entropy drops below 0.05 (overfit)
+4. **KL explosion** - KL divergence spikes above 0.5 (training unstable)
+5. **Gradient explosion** - Grad norm consistently > 5.0
+
+### Continue Training Criteria
+
+Continue training if:
+
+1. Reward curve still trending upward
+2. Entropy stable in 0.05-0.15 range
+3. Benchmark shows improvement at each checkpoint
+4. No signs of overfitting (train reward >> eval reward)
+
+### Monitoring Checklist (Every 100 Steps)
+
+- [ ] Check WandB reward curve - still increasing?
+- [ ] Check entropy - not collapsed?
+- [ ] Check KL divergence - stable?
+- [ ] If at checkpoint: run benchmark eval
+- [ ] Compare to previous checkpoint - improved?
 
 ---
 
