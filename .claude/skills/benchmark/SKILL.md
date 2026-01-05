@@ -271,6 +271,58 @@ source .env && uv run python -m bs4_env.scripts.eval_with_llm \
 
 ---
 
+## Verifiers Tooling (vf-* commands)
+
+The `verifiers` package provides CLI tools for evaluation and setup.
+
+### Initial Setup (Clone prime-rl)
+
+```bash
+# Clone and install prime-rl with starter configs
+uv run vf-setup
+```
+
+This clones the prime-rl repo and generates default training configs.
+
+### Run Evaluation with vf-eval
+
+```bash
+# Generate outputs/ folder for PR submission
+uv run vf-eval -s seconds-0/beautiful-soup-env -m gpt-4.1-mini -n 5
+
+# With more examples and rollouts
+uv run vf-eval -s seconds-0/beautiful-soup-env -m <model> -n 50 -r 3
+```
+
+**Options:**
+- `-s` / `--slug`: Environment slug (owner/name)
+- `-m` / `--model`: Model to evaluate
+- `-n` / `--num`: Number of examples
+- `-r` / `--rollouts`: Rollouts per example (default 3)
+
+### Browse Results with vf-tui
+
+```bash
+# Interactive TUI to inspect eval results
+uv run vf-tui
+```
+
+**Features:**
+- Navigate through examples
+- View rollouts side-by-side
+- Inspect rewards and model outputs
+- Filter by archetype or reward
+
+### When to Use vf-* vs prime env eval
+
+| Tool | Use Case |
+|------|----------|
+| `vf-eval` | Generate outputs/ for PR submission, local debugging |
+| `vf-tui` | Inspect and debug individual rollouts |
+| `prime env eval` | Production benchmarks on Prime Cloud |
+
+---
+
 ## Prime RL Training
 
 ### Config File
@@ -451,25 +503,77 @@ export WANDB_API_KEY=your-key
 #   login user
 #   password YOUR_KEY
 
-# 5. Start training in tmux
+# 5. Start training in tmux WITH CHECKPOINTING
 tmux new -s training
 source /app/.venv/bin/activate
-rl @ configs/prime-rl/beautiful-soup-env.toml 2>&1 | tee /tmp/training.log
+uv run rl @ configs/prime-rl/beautiful-soup-env.toml \
+  --ckpt --ckpt.interval 5 --ckpt.keep-last 3 \
+  2>&1 | tee /tmp/training.log
 
 # 6. Monitor logs
 tail -f /tmp/training.log
 # OR check: outputs/logs/orchestrator.stdout, trainer/rank_0.log
 ```
 
+### Checkpointing (CRITICAL for Spot Instances!)
+
+**Checkpointing is OFF by default.** Always enable it:
+
+```bash
+uv run rl @ config.toml --ckpt --ckpt.interval 5 --ckpt.keep-last 3
+```
+
+| Flag | Purpose |
+|------|---------|
+| `--ckpt` | Enable checkpointing (required!) |
+| `--ckpt.interval N` | Save every N steps |
+| `--ckpt.keep-last N` | Keep only last N checkpoints |
+| `--ckpt.save-async` | Non-blocking saves (optional) |
+| `--ckpt.resume-step N` | Resume from step N |
+
+**Resume from checkpoint:**
+```bash
+uv run rl @ config.toml --ckpt.resume-step 20 --max-steps 50
+```
+
+**Checkpoints saved to:** `checkpoints/step_N/`
+
 ### Important Notes
 
 - **`rl @`** starts all 3 components (orchestrator, trainer, inference)
 - **Environment MUST be installed via `prime env install`** - pip install doesn't work!
+- **Always enable checkpointing** - spot instances can be reclaimed!
 - Config file path is relative to current directory
 - Use `tmux attach -t training` to reconnect
 - Logs go to `outputs/logs/` and `/tmp/training.log`
 
 **GPU Requirements**: Config uses `inference_gpu_ids = [0]` and `trainer_gpu_ids = [1]`, requiring at least 2 GPUs.
+
+### Single-GPU Training Constraints
+
+For single H100 80GB (inference + trainer sharing GPU 0):
+
+| Setting | Value | Why |
+|---------|-------|-----|
+| `gpu_memory_utilization` | 0.50 | Leave room for trainer (~30GB for 7B) |
+| `[trainer.model.ac] freq` | 1 | Full activation checkpointing saves ~20GB |
+| `max_tokens` | 2000 | Must fit: max_tokens + input (~1500) < max_model_len |
+| `fsdp_cpu_offload` | **NEVER with LoRA** | Causes device mismatch errors |
+
+**Single-GPU config:** `configs/prime-rl/qwen2.5-7b-h100.toml`
+
+### Pod Setup Script
+
+Run on every new pod to set up vLLM environment variables and install deps:
+
+```bash
+# Download and run
+curl -sSL https://raw.githubusercontent.com/seconds-0/beautifulsoup-rl/main/scripts/pod_setup.sh | bash
+
+# Or manually set critical env vars:
+export VLLM_USE_V1=0
+export VLLM_WORKER_MULTIPROC_METHOD=spawn
+```
 
 ### Model Selection for Training
 
@@ -477,6 +581,11 @@ When selecting models:
 - Must be on HuggingFace Hub
 - Must NOT be Vision-Language (VL) models
 - Must be compatible with vLLM weight reloading
+
+**Verify before training:**
+```bash
+python scripts/verify_model_for_training.py <model-name>
+```
 
 **Tested working:** Qwen/Qwen2.5-7B-Instruct, Qwen/Qwen3-4B-Instruct
 **Known issues:** gpt-oss-20b (vLLM bug), qwen3-vl models (VL not supported), Mistral (not on HF)
@@ -583,4 +692,70 @@ for arch, avg in sorted(data['by_archetype'].items(), key=lambda x: x[1]):
 
 ---
 
-*Last updated: 2026-01-04*
+## Config Version Tracking
+
+### Config Metadata Header
+
+All training configs should include a `[config]` section at the top:
+
+```toml
+[config]
+version = "v2"
+created = "2026-01-05"
+env_version = "0.1.1"
+based_on = "qwen3-8b-2xh100.toml:v1"
+notes = "Speed optimizations: reduced max_tokens, rollouts, added prefix caching"
+```
+
+**Required fields:**
+- `version`: Semantic version (v1, v2, etc.) - bump when changing any training param
+- `created`: ISO date of this version
+- `env_version`: BeautifulSoup env version (from pyproject.toml)
+- `based_on`: Parent config:version (for tracking lineage)
+- `notes`: Human-readable description of what changed and WHY
+
+### Config Registry
+
+`configs/registry.json` tracks all config versions:
+
+```json
+{
+  "active_configs": {
+    "qwen3-8b-2xh100": "configs/prime-rl/qwen3-8b-2xh100.toml:v2"
+  },
+  "configs": {
+    "configs/prime-rl/qwen3-8b-2xh100.toml": {
+      "model": "Qwen/Qwen3-8B",
+      "hardware": "2x H100",
+      "current_version": "v2",
+      "versions": {
+        "v1": {"created": "2026-01-04", "notes": "Initial config"},
+        "v2": {"created": "2026-01-05", "notes": "Speed optimizations"}
+      }
+    }
+  }
+}
+```
+
+### Best Practices
+
+1. **Version bump**: Change version when modifying ANY training parameter
+2. **Document WHY**: Always explain reasoning in notes field
+3. **Update registry**: Keep `configs/registry.json` in sync
+4. **Atomic commits**: One config change = one commit
+5. **Rollback via git**: `git show v1:configs/prime-rl/config.toml > config.toml`
+
+### Key Config Parameters for Speed
+
+| Setting | Default | Optimized | Impact |
+|---------|---------|-----------|--------|
+| `max_tokens` | 10000 | 4096 | 2.5x faster |
+| `rollouts_per_example` | 8 | 4 | 2x faster |
+| `oversampling_factor` | 2.0 | 1.0 | 2x faster |
+| `enable_prefix_caching` | false | true | 10-20% faster |
+| `max_num_seqs` | 256 | 512 | Better scheduling |
+| `max_num_batched_tokens` | default | 8192 | Better throughput |
+
+---
+
+*Last updated: 2026-01-05 (added config version tracking, speed optimizations)*

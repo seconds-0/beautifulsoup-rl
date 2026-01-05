@@ -1,0 +1,45 @@
+{
+  "description": "Config version registry for Prime-RL training runs",
+  "active_configs": {
+    "qwen3-8b-2xh100": "configs/prime-rl/qwen3-8b-2xh100.toml:v2"
+  },
+  "configs": {
+    "configs/prime-rl/qwen3-8b-2xh100.toml": {
+      "model": "Qwen/Qwen3-8B",
+      "hardware": "2x H100",
+      "current_version": "v2",
+      "versions": {
+        "v1": {
+          "created": "2026-01-04",
+          "notes": "Initial 2xH100 config with batch=128, rollouts=8, max_tokens=10000"
+        },
+        "v2": {
+          "created": "2026-01-05",
+          "notes": "Speed optimizations: max_tokens 10k->4k, rollouts 8->4, oversampling 2->1, added prefix caching"
+        }
+      }
+    },
+    "configs/prime-rl/qwen2.5-7b-h100.toml": {
+      "model": "Qwen/Qwen2.5-7B-Instruct",
+      "hardware": "1x H100",
+      "current_version": "v1",
+      "versions": {
+        "v1": {
+          "created": "2026-01-04",
+          "notes": "Single H100 config with activation checkpointing"
+        }
+      }
+    },
+    "configs/prime-rl/qwen3-8b-bootstrap.toml": {
+      "model": "Qwen/Qwen3-8B",
+      "hardware": "2x H100",
+      "current_version": "v1",
+      "versions": {
+        "v1": {
+          "created": "2026-01-04",
+          "notes": "Bootstrap mode for easy tasks before ramping to harder"
+        }
+      }
+    }
+  }
+}

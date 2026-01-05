@@ -96,4 +96,6 @@ docs/vendor/
 
 # Local hookify rules
 .claude/*.local.md
-prime-rl/
+
+# Prime-RL framework clone (not configs/prime-rl/)
+/prime-rl/

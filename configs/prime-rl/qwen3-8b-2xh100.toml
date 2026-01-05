@@ -1,0 +1,97 @@
+# PRIME-RL config for Qwen3-8B on 2x H100
+#
+# Model: Qwen/Qwen3-8B
+# - 8.2B params, instruction-tuned
+# - Ungated (Apache 2.0) - no license approval needed!
+# - Tool calling supported on OpenRouter (qwen/qwen3-8b)
+#
+# Launch:
+#   export VLLM_USE_V1=0
+#   export VLLM_WORKER_MULTIPROC_METHOD=spawn
+#   export WANDB_API_KEY=<key>
+#   export HF_TOKEN=<token>
+#   uv run rl @ configs/prime-rl/qwen3-8b-2xh100.toml \
+#     --ckpt --ckpt.interval 5 --ckpt.keep-last 3
+
+# Config version tracking
+[config]
+version = "v2"
+created = "2026-01-05"
+env_version = "0.1.1"
+based_on = "qwen3-8b-2xh100.toml:v1"
+notes = "Speed optimizations: reduced max_tokens 10k->4k, rollouts 8->4, oversampling 2->1, added prefix caching"
+
+# 2-GPU layout: inference on GPU 0, trainer on GPU 1
+inference_gpu_ids = [0]
+trainer_gpu_ids = [1]
+
+max_steps = 1000
+
+[model]
+name = "Qwen/Qwen3-8B"
+
+[wandb]
+project = "beautiful-soup-env"
+name = "bs4-rl-qwen3-8b-2xh100"
+
+[trainer.optim]
+lr = 1e-5
+weight_decay = 0.0
+
+[trainer.model]
+seq_len = 4096
+
+[trainer.model.lora]
+rank = 8
+alpha = 32
+dropout = 0.0
+target_modules = [
+  "q_proj",
+  "k_proj",
+  "v_proj",
+  "o_proj",
+  "gate_proj",
+  "up_proj",
+  "down_proj"
+]
+
+[orchestrator]
+batch_size = 128
+rollouts_per_example = 4      # Was 8 - halved to reduce inference load
+seq_len = 4096
+oversampling_factor = 1.0     # Was 2.0 - no extra rollouts needed
+lora_name = "qwen3-8b-bs4-lora"
+
+[orchestrator.sampling]
+max_tokens = 4096             # Was 10000 - reduced to match seq_len
+temperature = 0.7
+
+[orchestrator.buffer]
+online_difficulty_filtering = true
+
+[[orchestrator.env]]
+id = "seconds-0/beautiful-soup-env"
+
+[orchestrator.env.args]
+split = "train"
+mode = "tiered"
+difficulty = "mixed"
+seed = 42
+executor_backend = "prime"
+network_access = true
+timeout_s = 30.0
+max_output_chars = 10000
+
+[inference]
+gpu_memory_utilization = 0.90
+# Speed optimizations
+enable_prefix_caching = true  # Reuse KV cache for shared system prompts
+max_num_seqs = 512            # Handle more concurrent sequences (default 256)
+max_num_batched_tokens = 8192 # Better throughput on H100
+
+[inference.model]
+# Qwen3 tool calling - use hermes parser
+enable_auto_tool_choice = true
+tool_call_parser = "hermes"
+# Disable CUDA graphs to avoid segfault in Ray workers
+enforce_eager = true

@@ -211,6 +211,91 @@ uv run python -m bs4_env.scripts.eval_with_llm --model <model> --num 50 --max-to
    uv run rl @ config.toml                         # Start training
    ```
 
+### Known Model Compatibility Issues
+
+| Model | Status | Issue |
+|-------|--------|-------|
+| gpt-oss-20b | BLOCKED | vLLM weight reload bug |
+| qwen3-vl-* | BLOCKED | VL model, wrong class |
+| Ministral-3-8B | BLOCKED | transformers KeyError |
+| **Qwen2.5-7B-Instruct** | **WORKS** | Use with hermes parser |
+
+### Required Environment Variables (on pod)
+
+```bash
+export VLLM_USE_V1=0                      # Disable V1 engine (has LoRA issues)
+export VLLM_WORKER_MULTIPROC_METHOD=spawn # Prevent CUDA context inheritance
+export WANDB_API_KEY=<key>                # For logging
+```
+
+### Single-GPU Training Constraints
+
+| Setting | Value | Why |
+|---------|-------|-----|
+| `[inference] gpu_memory_utilization` | `0.50` | Leave room for trainer (default 0.9 will OOM) |
+| `[trainer.model.ac] freq` | `1` | Activation checkpointing saves ~20GB |
+| `[orchestrator.sampling] max_tokens` | `2000` | Must be < max_model_len - 1500 |
+| `fsdp_cpu_offload` | **NEVER with LoRA** | Uses 1.65x MORE memory with LoRA! |
+
+### Checkpointing (CRITICAL)
+
+**Checkpointing is OFF by default in prime-rl!** Always enable it:
+
+```bash
+uv run rl @ config.toml --ckpt --ckpt.interval 5 --ckpt.keep-last 3
+```
+
+Resume from checkpoint:
+```bash
+uv run rl @ config.toml --ckpt.resume-step 20 --max-steps 50
+```
+
+### Config Version Tracking
+
+**All training configs must be versioned.** This enables rollback, comparison, and reproducibility.
+
+**Config metadata header** (required in all `.toml` configs):
+```toml
+[config]
+version = "v2"
+created = "2026-01-05"
+env_version = "0.1.1"
+based_on = "qwen3-8b-2xh100.toml:v1"
+notes = "Speed optimizations: reduced max_tokens, added prefix caching"
+```
+
+**Registry file** (`configs/registry.json`):
+- Tracks active config per model/hardware combo
+- Version history with notes
+- Update when changing active config
+
+**Rules:**
+1. Bump version when changing ANY training parameter
+2. Document WHY in notes field
+3. Update `registry.json` when switching active configs
+4. Commit config changes atomically (one config = one commit)
+5. Never delete old versions from registry (history is valuable)
+
+**Key speed parameters** (tune these first):
+| Parameter | Impact | Notes |
+|-----------|--------|-------|
+| `max_tokens` | High | Reduce to match actual needs (4k vs 10k = ~2.5x faster) |
+| `rollouts_per_example` | High | Fewer rollouts = faster steps (8→4 = 2x faster) |
+| `oversampling_factor` | Medium | 1.0 = no oversampling (fastest) |
+| `enable_prefix_caching` | Medium | Reuses KV cache for shared prompts |
+
+### Pre-Training Checklist
+
+Run before creating a pod:
+```bash
+python scripts/verify_model_for_training.py <model-name>
+```
+
+On pod setup:
+```bash
+bash scripts/pod_setup.sh
+```
+
 ## Test Records
 
 **Always update `TEST_RECORDS.md` after running evaluations.**
