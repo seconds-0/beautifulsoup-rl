@@ -31,6 +31,33 @@ Track all RL training experiments for BeautifulSoup environment.
 | v2 (prime executor) | ~27 min | 3.2s | Network latency |
 | **v3 (local executor)** | **~3-4 min** | ~0.2s | GPU-bound |
 
+#### Incident: Inference Server Crash (Step 5)
+
+**What happened:**
+- Training crashed after step 5 completed
+- Inference server (GPU 0) died silently - 0% utilization, 0 memory
+- Orchestrator kept retrying but got `APIConnectionError('Connection error.')` for all 128 rollouts
+- Training appeared "stuck" for ~3 hours with no progress
+
+**Diagnosis:**
+- Original logs were overwritten when training was restarted
+- Found warning in logs: `Found ulimit of 32000 and failed to automatically increase`
+- vLLM recommends 65536 file descriptors; 32000 may cause "Too many open files" errors
+- Most likely causes: FD exhaustion, GPU memory fragmentation, or CUDA context corruption
+
+**Recovery:**
+```bash
+# Kill stuck processes
+ps aux | grep -E "(rl|vllm|ray)" | grep -v grep | awk '{print $2}' | xargs -r kill -9
+
+# Resume from checkpoint
+uv run rl @ /tmp/config.toml --ckpt --ckpt.resume-step 5 --ckpt.interval 5 --ckpt.keep-last 3
+```
+
+**Fix Applied:**
+- Added `ulimit -n 65536` to `scripts/pod_setup.sh`
+- Added to `.bashrc` for persistence
+
 ---
 
 ### Run: bs4-rl-qwen3-8b-2xh100-v2 (2026-01-05) - POSTMORTEM ⚠️
