@@ -4,26 +4,68 @@ Track all RL training experiments for BeautifulSoup environment.
 
 ## Active Runs
 
-### Run: bs4-rl-qwen3-8b-2xh100-v2 (2026-01-05) - PENDING
+### Run: bs4-rl-qwen3-8b-2xh100-v3 (2026-01-05) - RUNNING ✅
+
+- **Model**: Qwen/Qwen3-8B (8.2B params)
+- **Config**: configs/prime-rl/qwen3-8b-2xh100.toml:v3
+- **Pod**: 2x H100 80GB (bs4-llama-2xh100)
+- **Status**: RUNNING ✅
+- **W&B Run**: https://wandb.ai/seconds-0-domus-magna-inc/beautiful-soup-env/runs/r1hgf2ie
+- **Step Time**: ~3-4 minutes (down from 27 min with v2!)
+- **Speedup**: **7-8x** achieved
+
+#### v3 Fix: Local Executor (CRITICAL!)
+
+**Root cause found:** Training was LATENCY-BOUND, not throughput-bound!
+
+| Setting | v2 | v3 | Impact |
+|---------|----|----|--------|
+| `executor_backend` | `"prime"` | `"local"` | **10-15x speedup** |
+| `rollouts_per_example` | 4 | 8 | Restored (local is fast) |
+| `oversampling_factor` | 1.0 | 2.0 | Restored (local is fast) |
+
+#### Step Time Comparison
+
+| Config | Step Time | Per-Rollout | Bottleneck |
+|--------|-----------|-------------|------------|
+| v2 (prime executor) | ~27 min | 3.2s | Network latency |
+| **v3 (local executor)** | **~3-4 min** | ~0.2s | GPU-bound |
+
+---
+
+### Run: bs4-rl-qwen3-8b-2xh100-v2 (2026-01-05) - POSTMORTEM ⚠️
 
 - **Model**: Qwen/Qwen3-8B (8.2B params)
 - **Config**: configs/prime-rl/qwen3-8b-2xh100.toml:v2
 - **Pod**: 2x H100 80GB
-- **Status**: PENDING (config pushed, awaiting restart)
-- **Expected Step Time**: ~4-6 min (down from ~30 min with v1)
+- **Status**: POSTMORTEM ⚠️ (optimizations failed, root cause found)
+- **Step Time**: ~27 min (only 10% improvement from v1!)
+- **Expected**: ~4-6 min (5-8x speedup)
+- **Actual**: ~27 min (10% speedup)
 
-#### v2 Speed Optimizations
+#### v2 Postmortem: Wrong Bottleneck Identified
 
-| Setting | v1 | v2 | Impact |
-|---------|----|----|--------|
-| `max_tokens` | 10000 | 4096 | ~2.5x faster inference |
-| `rollouts_per_example` | 8 | 4 | 2x fewer rollouts |
-| `oversampling_factor` | 2.0 | 1.0 | No extra rollouts |
-| `enable_prefix_caching` | - | true | KV cache reuse |
-| `max_num_seqs` | 256 | 512 | Better batching |
-| `max_num_batched_tokens` | - | 8192 | H100 throughput |
+**What we tried:**
+- Reduced max_tokens (10k → 4k) - No impact
+- Reduced rollouts (8 → 4) - Made per-rollout time WORSE
+- Added prefix caching - Not supported by prime-rl
+- Added max_num_seqs, max_num_batched_tokens - Not supported
 
-**Expected total speedup: 5-8x** (30 min/step → ~4-6 min/step)
+**Why it failed:**
+Multi-turn tool-calling RL is **LATENCY-BOUND**, not throughput-bound!
+
+- Remote sandbox (`executor_backend = "prime"`) adds ~1.5s per tool call
+- 1024 rollouts × 1.5s = ~25 minutes of waiting (GPUs idle!)
+- Reducing rollouts to 512 didn't reduce latency, just did less work
+
+**The fix:** Switch to `executor_backend = "local"` (see v3)
+
+#### Lessons Learned
+
+1. **Profile before optimizing** - We optimized inference params, but tool execution was the bottleneck
+2. **Latency vs throughput** - Multi-turn interactions are latency-bound
+3. **Reducing work doesn't reduce fixed latency** - 512 rollouts took same time as 1024
+4. **Question defaults** - `executor_backend="prime"` is safe but slow
 
 ---
 
@@ -292,6 +334,30 @@ open https://wandb.ai/YOUR_USERNAME/beautiful-soup-env
 | z-ai/glm-4.5-air | 66.8% | $0.20/$1.10 | Room for improvement |
 
 ## Lessons Learned
+
+### Executor Backend: Local vs Prime (CRITICAL!)
+
+**Multi-turn tool-calling RL is LATENCY-BOUND, not throughput-bound!**
+
+| Backend | Tool Call Latency | 1024 Rollouts | Use Case |
+|---------|-------------------|---------------|----------|
+| `"prime"` | ~1.5 seconds | ~25 minutes | Production (secure) |
+| `"local"` | ~0.05 seconds | **~1 minute** | Training on dedicated pods |
+
+```toml
+[orchestrator.env.args]
+executor_backend = "local"    # CRITICAL: 10-15x speedup for training!
+```
+
+**Why this matters:**
+- Remote sandbox adds network latency per tool call
+- GPUs sit idle waiting for tool execution
+- Reducing rollouts doesn't reduce fixed latency
+- Always use `"local"` for training on dedicated/ephemeral pods
+
+**Safe to use local because:**
+- BeautifulSoup tasks only parse HTML (no file/network access)
+- Training pods are ephemeral (no persistent data at risk)
 
 ### 2-GPU Setup (2x A6000 48GB)
 
