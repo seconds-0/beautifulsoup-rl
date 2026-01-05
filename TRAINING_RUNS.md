@@ -4,6 +4,29 @@ Track all RL training experiments for BeautifulSoup environment.
 
 ## Active Runs
 
+### Run: bs4-rl-qwen3-8b-2xh100-v2 (2026-01-05) - PENDING
+
+- **Model**: Qwen/Qwen3-8B (8.2B params)
+- **Config**: configs/prime-rl/qwen3-8b-2xh100.toml:v2
+- **Pod**: 2x H100 80GB
+- **Status**: PENDING (config pushed, awaiting restart)
+- **Expected Step Time**: ~4-6 min (down from ~30 min with v1)
+
+#### v2 Speed Optimizations
+
+| Setting | v1 | v2 | Impact |
+|---------|----|----|--------|
+| `max_tokens` | 10000 | 4096 | ~2.5x faster inference |
+| `rollouts_per_example` | 8 | 4 | 2x fewer rollouts |
+| `oversampling_factor` | 2.0 | 1.0 | No extra rollouts |
+| `enable_prefix_caching` | - | true | KV cache reuse |
+| `max_num_seqs` | 256 | 512 | Better batching |
+| `max_num_batched_tokens` | - | 8192 | H100 throughput |
+
+**Expected total speedup: 5-8x** (30 min/step → ~4-6 min/step)
+
+---
+
 ### Run: bs4-rl-qwen2.5-7b-h100-v6 (2026-01-05) - RUNNING ✅
 
 - **Model**: Qwen/Qwen2.5-7B-Instruct (7B params)
@@ -396,6 +419,38 @@ Spot instances (e.g., DataCrunch $0.99/hr H100) can be reclaimed at any time:
 
 **Mitigation options:**
 1. **Use on-demand instances** - More expensive but guaranteed availability
-2. **Implement checkpointing** - Save LoRA adapters frequently, resume from last checkpoint
+2. **Implement checkpointing** - Save LoRA adapters frequently, resume from last checkpoint (see below)
 3. **Use Prime's pods** - More stable than cheap spot providers
 4. **Monitor aggressively** - Check WandB every 5 minutes, restart quickly if dead
+
+### Checkpointing (CRITICAL for Spot Instances)
+
+**Checkpointing is OFF by default in prime-rl!** You must explicitly enable it via CLI flags.
+
+| Flag | Purpose |
+|------|---------|
+| `--ckpt` | Enable checkpointing (OFF by default!) |
+| `--ckpt.interval N` | Save every N steps |
+| `--ckpt.keep-last N` | Keep only last N checkpoints |
+| `--ckpt.save-async` | Non-blocking saves |
+| `--ckpt.resume-step N` | Resume from checkpoint |
+
+**Checkpoints saved to:** `checkpoints/step_N/`
+
+**Example: 25-step validation run with checkpointing**
+```bash
+uv run rl @ configs/prime-rl/qwen2.5-7b-h100.toml \
+  --ckpt --ckpt.interval 5 --ckpt.keep-last 3 \
+  --max-steps 25
+```
+
+**Resume from checkpoint:**
+```bash
+uv run rl @ configs/prime-rl/qwen2.5-7b-h100.toml \
+  --ckpt.resume-step 20 --max-steps 50
+```
+
+**What gets checkpointed:**
+- **Trainer**: FSDP model shards, optimizer/scheduler state, progress metrics
+- **Orchestrator**: Progress (step, tokens, samples)
+- **Inference**: Nothing (stateless) - orchestrator reloads correct weights automatically
