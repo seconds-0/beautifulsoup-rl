@@ -248,9 +248,11 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any, **env_kwargs: Any) -> 
                                         args_dict = (
                                             json.loads(args) if isinstance(args, str) else args
                                         )
-                                        code = args_dict.get("code", "")
-                                        if code:
-                                            code_samples.append(code)
+                                        # Guard against malformed JSON (list, str instead of dict)
+                                        if isinstance(args_dict, dict):
+                                            code = args_dict.get("code", "")
+                                            if code:
+                                                code_samples.append(code)
                                     except json.JSONDecodeError as e:
                                         logger.warning(
                                             f"Failed to parse tool arguments: {e}. "
