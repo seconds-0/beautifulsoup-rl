@@ -4,20 +4,36 @@ Track all RL training experiments for BeautifulSoup environment.
 
 ## Active Runs
 
-### Run: bs4-rl-qwen2.5-7b-h100-v5 (2026-01-05) - INTERRUPTED ⚠️
+### Run: bs4-rl-qwen2.5-7b-h100-v6 (2026-01-05) - RUNNING ✅
 
 - **Model**: Qwen/Qwen2.5-7B-Instruct (7B params)
 - **Config**: /tmp/config.toml (remote) - see below
 - **Pod**: 1x H100 80GB SXM5 (DataCrunch spot, $0.99/hr)
 - **Pod ID**: fd6a88cad0f04019841355376d088f5b
+- **Start**: 2026-01-05 00:16 UTC
+- **Status**: RUNNING ✅
+- **W&B Run**: https://wandb.ai/seconds-0-domus-magna-inc/beautiful-soup-env/runs/189rkyj5
+- **GPU Usage**: 72GB/81GB (89%) with activation checkpointing
+- **Baseline**: N/A (OpenRouter doesn't support tool calling for Qwen2.5-7B)
+- **Env Version**: 0.1.1 (fixed reward function crash on malformed JSON)
+
+---
+
+### Run: bs4-rl-qwen2.5-7b-h100-v5 (2026-01-05) - ABANDONED ⚠️
+
+- **Model**: Qwen/Qwen2.5-7B-Instruct (7B params)
+- **Config**: /tmp/config.toml (remote)
+- **Pod**: 1x H100 80GB SXM5 (DataCrunch spot, $0.99/hr)
+- **Pod ID**: fd6a88cad0f04019841355376d088f5b
 - **Start**: 2026-01-04 23:50 UTC
-- **End**: 2026-01-04 23:55 UTC (spot instance reclaimed)
-- **Status**: INTERRUPTED ⚠️ (spot instance reclaimed after 1 step)
+- **End**: 2026-01-05 00:14 UTC (killed for v6 restart)
+- **Status**: ABANDONED ⚠️ (reward function bug caused errors, restarted with v0.1.1)
 - **W&B Run**: https://wandb.ai/seconds-0-domus-magna-inc/beautiful-soup-env/runs/t6agrtyb
 - **GPU Usage**: 74GB/81GB (91%) with activation checkpointing
 - **Baseline**: N/A (OpenRouter doesn't support tool calling for Qwen2.5-7B)
 - **Progress**: 1/1000 steps completed (reward 0.0238, 287s, 50 tokens/s)
-- **Learnings**: Config v5 works! Need non-spot instance or checkpoint resumption
+- **Issue**: Reward function crashed on malformed JSON: `'list' object has no attribute 'get'`
+- **Fix**: Published env v0.1.1 with guard against malformed JSON arguments
 
 #### Working Config (H100 Single GPU - Final v5)
 
