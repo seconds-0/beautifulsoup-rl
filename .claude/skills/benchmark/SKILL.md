@@ -682,6 +682,124 @@ for arch, avg in sorted(data['by_archetype'].items(), key=lambda x: x[1]):
 
 ---
 
+## Performance Optimization & Debugging
+
+### Understanding the Bottleneck: Latency vs Throughput
+
+**Multi-turn tool-calling RL is LATENCY-BOUND, not throughput-bound.**
+
+This is the most important insight for optimizing training speed. In each step:
+1. Model generates a tool call
+2. Tool executes (this is where time is spent!)
+3. Result returns to model
+4. Repeat 3-10+ times per rollout
+
+The GPU sits idle waiting for tool execution results. Optimizing inference parameters (max_tokens, batch sizes) has minimal impact if tool execution is the bottleneck.
+
+### The `executor_backend` Setting (CRITICAL)
+
+| Backend | Tool Call Latency | 1024 Rollouts | Use Case |
+|---------|-------------------|---------------|----------|
+| `"prime"` | ~1.5 seconds | ~25 minutes | Production (secure sandboxing) |
+| `"local"` | ~0.05 seconds | **~1 minute** | Training on dedicated pods |
+
+**Default is `"prime"` (remote sandbox)** - safe but slow.
+
+```toml
+[orchestrator.env.args]
+executor_backend = "prime"    # Remote sandbox - SLOW but safe
+executor_backend = "local"    # Local subprocess - FAST, use for training
+```
+
+### When to Use Local Execution
+
+Use `executor_backend = "local"` when:
+- Training on dedicated ephemeral pod (no persistent data at risk)
+- Tasks are sandboxed by nature (BS4 only parses HTML, no file/network access)
+- Speed is critical (10-15x faster!)
+
+Use `executor_backend = "prime"` when:
+- Running on shared infrastructure
+- Tasks involve file system or network access
+- Security isolation is required
+
+### Why Common "Optimizations" Don't Work
+
+| "Optimization" | Expected Impact | Actual Impact | Why |
+|----------------|-----------------|---------------|-----|
+| Reduce `max_tokens` (10k→4k) | 2.5x faster | ~0% | Tool-calling models generate short responses, stop at tool call |
+| Reduce `rollouts_per_example` (8→4) | 2x faster | **Worse per-rollout** | Fixed latency spread over fewer rollouts |
+| Reduce `oversampling_factor` (2→1) | 2x faster | ~0% | Same latency, just less exploration |
+| Enable prefix caching | 10-20% faster | **Not supported** | prime-rl doesn't support this parameter |
+| Increase `max_num_seqs` | Better scheduling | **Not supported** | prime-rl doesn't support this parameter |
+
+**The math:**
+- v1: 1024 rollouts × 1.5s latency = ~25 min waiting
+- v2: 512 rollouts × 1.5s latency = ~25 min waiting (same wall time, half the work!)
+- Local: 1024 rollouts × 0.05s latency = **~50 seconds**
+
+### Diagnosing Performance Issues
+
+**Step 1: Check where time is spent**
+
+Look at training logs for timing breakdown:
+```
+Step 0 completed in 27m 15s
+  - Rollout generation: 26m 30s (97%)  ← Tool execution dominates
+  - Reward computation: 30s (2%)
+  - Policy update: 15s (1%)
+```
+
+**Step 2: Identify the bottleneck**
+
+If rollout generation dominates (>80%), the bottleneck is tool execution latency.
+
+**Step 3: Calculate per-rollout time**
+
+```
+per_rollout_time = step_time / (batch_size × rollouts_per_example)
+```
+
+If per-rollout time is >1 second, you're likely latency-bound.
+
+**Step 4: Test with local executor**
+
+Switch to `executor_backend = "local"` and observe speedup. If >5x faster, latency was the bottleneck.
+
+### Recommended Training Config (Speed-Optimized)
+
+```toml
+[orchestrator]
+batch_size = 128
+rollouts_per_example = 8      # More rollouts = better signal (local is fast enough)
+oversampling_factor = 2.0     # More exploration (local is fast enough)
+
+[orchestrator.sampling]
+max_tokens = 4096             # Match seq_len (multi-turn tool calls rarely need more)
+
+[orchestrator.env.args]
+executor_backend = "local"    # CRITICAL: 10-15x speedup
+timeout_s = 30.0              # Local execution is fast, keep reasonable timeout
+```
+
+### Performance Expectations
+
+| Config | Step Time | Per-Rollout | Notes |
+|--------|-----------|-------------|-------|
+| Prime executor, 512 rollouts | ~27 min | 3.2s | Latency-bound, GPU idle |
+| Prime executor, 1024 rollouts | ~27 min | 1.6s | Same latency, better utilization |
+| **Local executor, 1024 rollouts** | **~2-3 min** | ~0.1s | **GPU-bound, optimal** |
+
+### Lessons Learned (2026-01-05 Postmortem)
+
+1. **Profile before optimizing** - Always identify the actual bottleneck first
+2. **Latency vs throughput** - Multi-turn interactions are latency-bound
+3. **Question defaults** - `executor_backend="prime"` is safe but slow
+4. **The bottleneck was environment execution, not inference**
+5. **Reducing work doesn't reduce fixed latency** - Halving rollouts didn't halve time
+
+---
+
 ## Dataset Splits
 
 | Split | Size | Purpose |

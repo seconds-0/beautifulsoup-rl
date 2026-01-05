@@ -1,13 +1,13 @@
 {
   "description": "Config version registry for Prime-RL training runs",
   "active_configs": {
-    "qwen3-8b-2xh100": "configs/prime-rl/qwen3-8b-2xh100.toml:v2"
+    "qwen3-8b-2xh100": "configs/prime-rl/qwen3-8b-2xh100.toml:v3"
   },
   "configs": {
     "configs/prime-rl/qwen3-8b-2xh100.toml": {
       "model": "Qwen/Qwen3-8B",
       "hardware": "2x H100",
-      "current_version": "v2",
+      "current_version": "v3",
       "versions": {
         "v1": {
           "created": "2026-01-04",
@@ -16,6 +16,10 @@
         "v2": {
           "created": "2026-01-05",
           "notes": "Speed optimizations: max_tokens 10k->4k, rollouts 8->4, oversampling 2->1, added prefix caching"
+        },
+        "v3": {
+          "created": "2026-01-05",
+          "notes": "CRITICAL FIX: executor_backend prime->local (10-15x speedup). Restored rollouts=8, oversampling=2.0. v2 postmortem: system was latency-bound not throughput-bound."
         }
       }
     },
