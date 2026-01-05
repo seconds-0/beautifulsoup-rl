@@ -4,18 +4,20 @@ Track all RL training experiments for BeautifulSoup environment.
 
 ## Active Runs
 
-### Run: bs4-rl-qwen2.5-7b-h100-v5 (2026-01-05) - RUNNING ✅
+### Run: bs4-rl-qwen2.5-7b-h100-v5 (2026-01-05) - INTERRUPTED ⚠️
 
 - **Model**: Qwen/Qwen2.5-7B-Instruct (7B params)
 - **Config**: /tmp/config.toml (remote) - see below
 - **Pod**: 1x H100 80GB SXM5 (DataCrunch spot, $0.99/hr)
 - **Pod ID**: fd6a88cad0f04019841355376d088f5b
 - **Start**: 2026-01-04 23:50 UTC
-- **Status**: RUNNING ✅
+- **End**: 2026-01-04 23:55 UTC (spot instance reclaimed)
+- **Status**: INTERRUPTED ⚠️ (spot instance reclaimed after 1 step)
 - **W&B Run**: https://wandb.ai/seconds-0-domus-magna-inc/beautiful-soup-env/runs/t6agrtyb
 - **GPU Usage**: 74GB/81GB (91%) with activation checkpointing
 - **Baseline**: N/A (OpenRouter doesn't support tool calling for Qwen2.5-7B)
-- **First Step**: Reward 0.0238, 287s, 50 tokens/s
+- **Progress**: 1/1000 steps completed (reward 0.0238, 287s, 50 tokens/s)
+- **Learnings**: Config v5 works! Need non-spot instance or checkpoint resumption
 
 #### Working Config (H100 Single GPU - Final v5)
 
@@ -366,3 +368,18 @@ This model's maximum context length is 4096 tokens and your request has 1297 inp
 
 **Symptom:** Rollout generation hangs indefinitely at "0/8 rollouts" with no errors in main log.
 The actual error appears in the vLLM process logs. Check `/tmp/vllm.log` if rollouts stall.
+
+### Spot Instance Risks
+
+Spot instances (e.g., DataCrunch $0.99/hr H100) can be reclaimed at any time:
+- Training may stop without warning after 1-2 steps
+- WandB shows "running" even after pod is terminated (no graceful shutdown)
+- SSH connection fails when pod is reclaimed
+
+**Detection:** If WandB runtime stops increasing and last update is 10+ minutes old, the pod is dead.
+
+**Mitigation options:**
+1. **Use on-demand instances** - More expensive but guaranteed availability
+2. **Implement checkpointing** - Save LoRA adapters frequently, resume from last checkpoint
+3. **Use Prime's pods** - More stable than cheap spot providers
+4. **Monitor aggressively** - Check WandB every 5 minutes, restart quickly if dead

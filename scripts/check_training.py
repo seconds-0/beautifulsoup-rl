@@ -11,8 +11,9 @@ except ImportError:
     import wandb
 
 PROJECT = "seconds-0-domus-magna-inc/beautiful-soup-env"
-TRAINER_RUN_ID = "r4rv5keq"
-ORCHESTRATOR_RUN_ID = "yek034oe"
+# v5 run IDs (2026-01-05)
+TRAINER_RUN_ID = "x8mti05p"
+ORCHESTRATOR_RUN_ID = "t6agrtyb"
 
 
 def check_run(run_id: str, name: str):
