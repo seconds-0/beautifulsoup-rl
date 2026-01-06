@@ -1,0 +1,145 @@
+# PRIME-RL Curriculum config for Qwen2.5-3B-Instruct on 2x RTX 5090 (Vast.ai)
+#
+# Auto-curriculum: Single config that walks through 4 difficulty phases automatically.
+# No manual intervention needed - just start training and let it run.
+#
+# Phase Schedule (based on Codex recommendations):
+# - Phase 1 (steps 0-150):   primer 80%, easy 20% - Lock in tool format
+# - Phase 2 (steps 150-400): easy 60%, medium 40% - Build confidence
+# - Phase 3 (steps 400-750): mixed weighted - Breadth + hard exposure
+# - Phase 4 (steps 750-1000): hard 50%, medium 35%, easy 15% - Specialize
+#
+# Model: Qwen/Qwen2.5-3B-Instruct
+# - 3B params, instruction-tuned
+# - Ungated (Apache 2.0) - no license approval needed!
+#
+# Hardware: 2x RTX 5090 (32GB VRAM each)
+#
+# Launch:
+#   export VLLM_USE_V1=0
+#   export VLLM_WORKER_MULTIPROC_METHOD=spawn
+#   export WANDB_API_KEY=<key>
+#   uv run rl @ configs/prime-rl/qwen25-3b-2x5090-curriculum.toml \
+#     --ckpt --ckpt.interval 5 --ckpt.keep-last 3
+#
+# Resume from checkpoint:
+#   uv run rl @ configs/prime-rl/qwen25-3b-2x5090-curriculum.toml \
+#     --ckpt --ckpt.resume-step <step> --ckpt.keep-last 3
+#
+# Config version: v2 (2026-01-06)
+# Changes from v1:
+#   - gpu_memory_utilization: 0.80 → 0.90 (more KV cache)
+#   - enable_prefix_caching: added (reuse KV cache for shared prompts)
+#   - oversampling_factor: 2.0 → 1.5 (less wasted inference)
+# Expected improvement: ~30-40% faster inference
+
+# 2-GPU layout: inference on GPU 0, trainer on GPU 1
+inference_gpu_ids = [0]
+trainer_gpu_ids = [1]
+
+# Full training run: 1000 steps
+max_steps = 1000
+
+[model]
+name = "Qwen/Qwen2.5-3B-Instruct"
+
+[wandb]
+project = "beautiful-soup-env"
+name = "bs4-rl-qwen25-3b-5090-curriculum"
+
+[trainer.optim]
+lr = 1e-5
+weight_decay = 0.0
+
+[trainer.model]
+seq_len = 4096
+
+# Activation checkpointing - saves memory
+[trainer.model.ac]
+freq = 1
+
+[trainer.model.lora]
+rank = 8
+alpha = 32
+dropout = 0.0
+target_modules = [
+  "q_proj",
+  "k_proj",
+  "v_proj",
+  "o_proj",
+  "gate_proj",
+  "up_proj",
+  "down_proj"
+]
+
+[orchestrator]
+batch_size = 64
+rollouts_per_example = 4
+seq_len = 4096
+oversampling_factor = 1.5  # v2: reduced from 2.0, less wasted inference
+lora_name = "qwen25-3b-bs4-lora-5090-curriculum"
+
+[orchestrator.sampling]
+max_tokens = 2048
+temperature = 0.7
+
+[orchestrator.buffer]
+online_difficulty_filtering = true
+
+[[orchestrator.env]]
+id = "seconds-0/beautiful-soup-env"
+
+[orchestrator.env.args]
+split = "train"
+mode = "tiered"        # Use tiered mode for difficulty-weighted sampling
+difficulty = "mixed"   # Allow all difficulties
+seed = 42
+executor_backend = "local"
+network_access = true
+timeout_s = 30.0
+max_output_chars = 10000
+
+# =============================================================================
+# Auto-Curriculum Configuration
+# =============================================================================
+# Automatically progress through difficulty phases based on training step.
+# Each phase defines difficulty weights that control task distribution.
+# samples_per_step = batch_size(64) * rollouts_per_example(4) = 256
+curriculum_enabled = true
+samples_per_step = 256
+
+# Phase 1 (steps 0-150): Lock in tool format
+# 80% primer (ultra-simple), 20% easy
+[[orchestrator.env.args.curriculum_phases]]
+until_step = 150
+weights = { primer = 0.8, easy = 0.2, medium = 0.0, hard = 0.0 }
+
+# Phase 2 (steps 150-400): Build confidence
+# 60% easy, 40% medium
+[[orchestrator.env.args.curriculum_phases]]
+until_step = 400
+weights = { primer = 0.0, easy = 0.6, medium = 0.4, hard = 0.0 }
+
+# Phase 3 (steps 400-750): Breadth + hard exposure
+# 10% primer (prevent forgetting), 35% easy, 35% medium, 20% hard
+[[orchestrator.env.args.curriculum_phases]]
+until_step = 750
+weights = { primer = 0.1, easy = 0.35, medium = 0.35, hard = 0.2 }
+
+# Phase 4 (steps 750-1000): Specialize on hard
+# 15% easy, 35% medium, 50% hard
+[[orchestrator.env.args.curriculum_phases]]
+until_step = 1000
+weights = { primer = 0.0, easy = 0.15, medium = 0.35, hard = 0.5 }
+
+[inference]
+gpu_memory_utilization = 0.90  # v2: increased from 0.80, more room for KV cache
+
+[inference.model]
+# Qwen2.5 tool calling - use hermes parser
+enable_auto_tool_choice = true
+tool_call_parser = "hermes"
+# Disable CUDA graphs to avoid segfault in Ray workers
+enforce_eager = true
+# v2: Enable prefix caching for shared prompt tokens
+enable_prefix_caching = true

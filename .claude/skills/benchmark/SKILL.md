@@ -1189,4 +1189,172 @@ notes = "Speed optimizations: reduced max_tokens, rollouts, added prefix caching
 
 ---
 
-*Last updated: 2026-01-06 (added step counter desync bug documentation)*
+## Inference Bottleneck Optimization (2026-01-06)
+
+### The Problem
+
+When using 2-GPU setups (inference on GPU 0, trainer on GPU 1), the trainer often sits **idle at 0% utilization** while waiting for inference. This is a classic inference bottleneck.
+
+**Observed metrics:**
+- Step times: 81s to 215s (2.6x variance)
+- Throughput: 487-1229 tokens/s
+- GPU 0 (inference): 67% utilization
+- GPU 1 (trainer): 0% utilization (idle!)
+
+### Key Research Findings
+
+#### 1. RTX 5090 vs H100 for Small Models
+
+| GPU | Tokens/s (7-8B) | Price | Value |
+|-----|-----------------|-------|-------|
+| RTX 5090 | 5,841 tok/s | ~$4K | Best $/token |
+| H100 80GB | ~4,500 tok/s | ~$25K | 6x more expensive |
+| Dual 5090 | Matches H100 | ~$7K | 25% of H100 cost |
+
+**Conclusion:** For 3B-8B models, RTX 5090 matches or beats H100 at a fraction of the cost. The 5090's GDDR7 has excellent memory bandwidth for small models.
+
+Sources: [RTX 5090 LLM Benchmarks](https://www.runpod.io/blog/rtx-5090-llm-benchmarks), [Dual 5090 vs H100](https://www.hardware-corner.net/dual-rtx-5090-vs-h100-for-llm/)
+
+#### 2. Tensor Parallelism Hurts Small Models
+
+From vLLM benchmarks:
+- 1x 4090 on 7B model: **3,965 tok/s**
+- 2x 4090 with TP=2: **1,796 tok/s** (55% SLOWER!)
+
+**Why:** AllReduce communication overhead. For models that fit on one GPU, tensor parallelism adds latency without benefit.
+
+**Recommendation:** For <10B models, use **data parallelism** (multiple independent vLLM workers) instead of tensor parallelism.
+
+Sources: [vLLM Discussion #702](https://github.com/vllm-project/vllm/discussions/702), [vLLM Discussion #294](https://github.com/vllm-project/vllm/discussions/294)
+
+#### 3. vLLM Optimization Parameters
+
+| Setting | Default | Optimized | Impact |
+|---------|---------|-----------|--------|
+| `enable_prefix_caching` | false | **true** | 15-25% faster (reuse KV cache) |
+| `gpu_memory_utilization` | 0.80 | **0.90** | 10% faster (more KV cache) |
+| `enforce_eager` | true | **false** | 20-30% faster (CUDA graphs) |
+| `oversampling_factor` | 2.0 | **1.25** | 40% less work |
+
+Sources: [vLLM Optimization Guide](https://docs.vllm.ai/en/stable/configuration/optimization/)
+
+### Tiered Optimization Strategy
+
+#### Tier 1: Low-Risk, High-Impact (Apply Immediately)
+
+```toml
+[inference]
+gpu_memory_utilization = 0.90  # Was 0.80, more room for KV cache
+
+[inference.model]
+enable_prefix_caching = true   # Reuse KV cache for shared prompts
+
+[orchestrator]
+oversampling_factor = 1.25     # Was 2.0, 40% less inference work
+```
+
+**Expected improvement: ~40-50% faster steps (143s → ~95s)**
+
+#### Tier 2: Medium-Risk (Test First)
+
+```toml
+[inference.model]
+enforce_eager = false          # Enable CUDA graphs (may cause segfaults)
+```
+
+**Expected improvement: Additional ~20-30%**
+
+**Warning:** CUDA graphs can cause segfaults with dynamic shapes. Test thoroughly before deploying.
+
+#### Tier 3: Architecture Changes (Future Work)
+
+These require code changes, not just config changes:
+
+1. **Data-Parallel Inference** - Run 2+ independent vLLM workers on separate GPUs feeding the same trainer
+2. **Async Producer-Consumer Queue** - Decouple inference from training so trainer never blocks
+3. **Speculative Decoding** - Use a small draft model to generate candidates, verify with main model
+
+### When NOT to Optimize Inference
+
+If tool execution dominates (>80% of step time), inference optimization won't help. Check:
+
+```
+per_rollout_time = step_time / (batch_size × rollouts_per_example)
+```
+
+If per_rollout_time > 1 second, you're likely latency-bound by tool execution, not inference.
+
+---
+
+## TODO: Future Architecture Improvements
+
+### Data-Parallel Inference (Priority: High)
+
+**Problem:** Single inference GPU bottlenecks training; trainer sits idle at 0%.
+
+**Solution:** Run multiple vLLM workers that feed a shared trainer.
+
+**Example Architecture:**
+```
+GPU 0: vLLM Worker A ──┐
+                       ├──► Queue ──► GPU 2: Trainer
+GPU 1: vLLM Worker B ──┘
+```
+
+**Why This Works:**
+- 3B model easily fits on each GPU (~6GB weights)
+- Each worker generates samples independently (no communication)
+- Queue buffers samples so trainer never waits
+- Theoretical 2x throughput with 2 inference GPUs
+
+**Implementation Steps:**
+1. Modify `prime_rl/inference/` to support multiple workers
+2. Add a thread-safe queue between inference and trainer
+3. Worker round-robins examples from orchestrator
+4. Trainer pulls batches from queue when ready
+
+**Risk:** Requires prime-rl code changes. May introduce synchronization bugs.
+
+### Async Producer-Consumer Pipeline (Priority: Medium)
+
+**Problem:** Current architecture is synchronous - trainer blocks on inference.
+
+**Solution:** Inference continuously generates samples to a buffer; trainer pulls when ready.
+
+**Benefits:**
+- Trainer GPU never idles
+- Better overlap of inference and training compute
+- More predictable step times
+
+**Implementation Steps:**
+1. Create persistent `SampleBuffer` class with `push()` and `pop()` methods
+2. Inference workers run in separate process, continuously generating
+3. Trainer process pulls batches when ready for gradient update
+4. Buffer maintains sufficient samples to keep trainer busy
+
+**Risk:** Memory usage increases (buffer holds pending samples). Complex process coordination.
+
+### Speculative Decoding (Priority: Low)
+
+**Problem:** Long generation sequences have high latency.
+
+**Solution:** Use a small "draft" model to generate candidate tokens, verify with main model.
+
+**Requirements:**
+- Draft model must be fast (1-3B params)
+- Draft model must be aligned with main model
+- vLLM supports speculative decoding natively
+
+**Configuration (when supported):**
+```toml
+[inference.model]
+speculative_model = "Qwen/Qwen2.5-0.5B-Instruct"  # Small draft model
+speculative_max_model_len = 2048
+num_speculative_tokens = 5
+```
+
+**Risk:** Not currently supported in prime-rl. Requires vLLM integration work.
+
+---
+
+*Last updated: 2026-01-06 (added inference bottleneck optimization)*
