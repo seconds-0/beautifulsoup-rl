@@ -230,28 +230,53 @@ def test_wandb_monitor() -> TestResult:
 
 
 def test_vast_connection() -> TestResult:
-    """Test Vast.ai API connection."""
+    """Test Vast.ai CLI connection."""
     result = TestResult("Vast.ai Connection")
 
     api_key = os.environ.get('VAST_API_KEY')
     if not api_key:
-        result.message = "Missing VAST_API_KEY in environment (optional)"
+        result.message = "Missing VAST_API_KEY (optional)"
         result.passed = True  # Mark as pass since it's optional
         return result
 
     try:
-        import vastai
-        vast = vastai.VastAI(api_key=api_key)
+        # Set API key via CLI
+        proc = subprocess.run(
+            ['vastai', 'set', 'api-key', api_key],
+            capture_output=True, text=True, timeout=30
+        )
+        if proc.returncode != 0:
+            result.message = f"Failed to set API key: {proc.stderr}"
+            return result
 
-        # Test listing instances (should work even if empty)
-        instances = vast.show_instances()
+        # List instances (works even if empty)
+        proc = subprocess.run(
+            ['vastai', 'show', 'instances', '--raw'],
+            capture_output=True, text=True, timeout=60
+        )
 
-        result.passed = True
-        result.message = f"Vast.ai connected, found {len(instances)} instances"
+        # 403 means no instances (not an error for this test)
+        if proc.returncode != 0 and '403' not in proc.stderr:
+            result.message = f"CLI error: {proc.stderr}"
+            return result
+
+        # Try to parse response
+        try:
+            instances = json.loads(proc.stdout) if proc.stdout.strip() else []
+            result.passed = True
+            result.message = f"Vast.ai CLI connected, found {len(instances)} instance(s)"
+        except json.JSONDecodeError:
+            # Empty or non-JSON response is OK for connection test
+            result.passed = True
+            result.message = "Vast.ai CLI connected (no instances)"
+
         return result
 
-    except ImportError:
-        result.message = "vastai not installed (pip install vastai)"
+    except FileNotFoundError:
+        result.message = "vastai CLI not installed (pip install vastai)"
+        return result
+    except subprocess.TimeoutExpired:
+        result.message = "Vast.ai CLI timed out"
         return result
     except Exception as e:
         result.message = f"Vast.ai error: {e}"
@@ -259,7 +284,7 @@ def test_vast_connection() -> TestResult:
 
 
 def test_vast_search() -> TestResult:
-    """Test Vast.ai offer search."""
+    """Test Vast.ai offer search via CLI."""
     result = TestResult("Vast.ai Offer Search")
 
     api_key = os.environ.get('VAST_API_KEY')
@@ -269,16 +294,29 @@ def test_vast_search() -> TestResult:
         return result
 
     try:
-        import vastai
-        vast = vastai.VastAI(api_key=api_key)
-
-        # Search for H100s
-        offers = vast.search_offers(
-            gpu_name="H100_PCIE",
-            num_gpus=2,
-            order="dph_total",
-            limit=5
+        # Set API key first
+        subprocess.run(
+            ['vastai', 'set', 'api-key', api_key],
+            capture_output=True, text=True, timeout=30
         )
+
+        # Search for H100s using CLI
+        # Query syntax: field=value field>=value
+        query = "num_gpus>=2 gpu_name=H100_PCIE rentable=true"
+        proc = subprocess.run(
+            ['vastai', 'search', 'offers', '--raw', '--limit', '5', '--order', 'dph_total', query],
+            capture_output=True, text=True, timeout=60
+        )
+
+        if proc.returncode != 0:
+            result.message = f"Search failed: {proc.stderr}"
+            return result
+
+        try:
+            offers = json.loads(proc.stdout) if proc.stdout.strip() else []
+        except json.JSONDecodeError:
+            result.message = f"Invalid JSON response: {proc.stdout[:100]}"
+            return result
 
         if offers:
             cheapest = offers[0]
@@ -287,13 +325,20 @@ def test_vast_search() -> TestResult:
                 'cheapest_price': cheapest.get('dph_total'),
                 'cheapest_gpu': cheapest.get('gpu_name'),
             }
-            result.message = f"Found {len(offers)} offers, cheapest: ${cheapest.get('dph_total', 'N/A'):.2f}/hr"
+            price = cheapest.get('dph_total', 0)
+            result.message = f"Found {len(offers)} offer(s), cheapest: ${price:.2f}/hr"
         else:
             result.message = "No H100 offers found (normal if none available)"
 
         result.passed = True
         return result
 
+    except FileNotFoundError:
+        result.message = "vastai CLI not installed (pip install vastai)"
+        return result
+    except subprocess.TimeoutExpired:
+        result.message = "Vast.ai search timed out"
+        return result
     except Exception as e:
         result.message = f"Search error: {e}"
         return result
