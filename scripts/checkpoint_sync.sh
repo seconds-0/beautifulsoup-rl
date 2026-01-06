@@ -20,6 +20,7 @@ CKPT_DIR="${CKPT_DIR:-/root/checkpoints}"
 B2_BUCKET="${B2_BUCKET:-beautifulsoup-rl}"
 RUN_ID="${RUN_ID:-default}"
 SYNC_INTERVAL="${SYNC_INTERVAL:-300}"  # 5 minutes
+KEEP_LOCAL="${KEEP_LOCAL:-2}"  # Keep only N most recent checkpoints locally after sync
 LOCK_FILE="/tmp/checkpoint_sync.lock"
 
 # Logging
@@ -74,6 +75,49 @@ EOF
 
     log "Updating latest.json pointer to $latest_step"
     b2 file upload "$B2_BUCKET" /tmp/latest.json "$RUN_ID/latest.json"
+}
+
+# Delete old local checkpoints after successful sync to prevent disk filling up
+# Keeps only KEEP_LOCAL most recent checkpoints locally
+cleanup_old_checkpoints() {
+    log "Cleaning up old local checkpoints (keeping $KEEP_LOCAL)..."
+
+    # Get all step directories
+    local steps=()
+    for dir in "$CKPT_DIR"/step_*/; do
+        [[ -d "$dir" ]] || continue
+        steps+=("$(basename "$dir")")
+    done
+
+    # Need more than KEEP_LOCAL to have anything to delete
+    if (( ${#steps[@]} <= KEEP_LOCAL )); then
+        log "Only ${#steps[@]} checkpoint(s) locally, nothing to clean up"
+        return 0
+    fi
+
+    # Sort numerically by step number (step_5, step_10, step_15...)
+    IFS=$'\n' sorted=($(printf '%s\n' "${steps[@]}" | sort -t_ -k2 -n)); unset IFS
+
+    # Delete all but the last KEEP_LOCAL
+    local delete_count=$(( ${#sorted[@]} - KEEP_LOCAL ))
+    local deleted=0
+    for ((i=0; i<delete_count; i++)); do
+        local step="${sorted[$i]}"
+        local step_dir="$CKPT_DIR/$step"
+
+        # Only delete if this checkpoint was successfully synced to B2
+        if b2 ls "$B2_BUCKET" "$RUN_ID/$step/" 2>/dev/null | grep -q "optimizer.pt"; then
+            log "Deleting old local checkpoint: $step (verified in B2)"
+            rm -rf "$step_dir"
+            ((deleted++))
+        else
+            log "Keeping $step locally (not yet verified in B2)"
+        fi
+    done
+
+    if (( deleted > 0 )); then
+        log "Deleted $deleted old checkpoint(s), freed disk space"
+    fi
 }
 
 # Main sync function
@@ -133,6 +177,9 @@ do_sync() {
     else
         log "No new checkpoints to sync"
     fi
+
+    # Clean up old local checkpoints to prevent disk filling up
+    cleanup_old_checkpoints
 }
 
 # Signal handler for graceful shutdown
