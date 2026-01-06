@@ -29,10 +29,16 @@ echo "================================================"
 echo "Prime-RL Training Pod Setup"
 echo "================================================"
 
-# 1. Critical vLLM environment variables and system limits
+# 1. Critical environment variables and PATH setup
 # These prevent CUDA segfaults, multiprocessing issues, and FD exhaustion
 echo ""
-echo "[1/6] Setting vLLM environment variables and system limits..."
+echo "[1/6] Setting environment variables and PATH..."
+
+# Add ~/.local/bin to PATH (where uv is installed)
+export PATH="/root/.local/bin:$PATH"
+echo "  PATH updated: /root/.local/bin added"
+
+# vLLM environment variables
 export VLLM_USE_V1=0
 export VLLM_WORKER_MULTIPROC_METHOD=spawn
 echo "  VLLM_USE_V1=0 (disable V1 engine - has issues with LoRA)"
@@ -42,9 +48,10 @@ echo "  VLLM_WORKER_MULTIPROC_METHOD=spawn (prevent CUDA context inheritance)"
 ulimit -n 65536 2>/dev/null || echo "  (could not increase ulimit, may cause issues)"
 echo "  ulimit -n 65536 (prevent 'Too many open files' errors)"
 
-# Add to .bashrc for persistence
+# Add to .bashrc for persistence (CRITICAL: includes PATH!)
 cat >> ~/.bashrc << 'EOF'
-# Prime-RL vLLM fixes
+# Prime-RL environment setup
+export PATH="/root/.local/bin:$PATH"
 export VLLM_USE_V1=0
 export VLLM_WORKER_MULTIPROC_METHOD=spawn
 ulimit -n 65536 2>/dev/null
@@ -68,19 +75,43 @@ else
     echo "  ⚠️  B2 credentials not set (checkpoint sync disabled)"
 fi
 
-# 3. WandB configuration
+# 3. WandB configuration (CRITICAL - training will crash without this!)
 echo ""
 echo "[3/8] Checking WandB configuration..."
 if [ -z "$WANDB_API_KEY" ]; then
-    echo "  ⚠️  WANDB_API_KEY not set!"
-    echo "  Set it with: export WANDB_API_KEY=<your-key>"
-    echo "  Or add to ~/.bashrc for persistence"
+    echo ""
+    echo "  =============================================="
+    echo "  ERROR: WANDB_API_KEY not set!"
+    echo "  =============================================="
+    echo ""
+    echo "  Training WILL CRASH without a WandB API key."
+    echo ""
+    echo "  Fix options:"
+    echo "    1. Set via environment:"
+    echo "       export WANDB_API_KEY=<your-key>"
+    echo ""
+    echo "    2. Or create ~/.wandb_api_key file:"
+    echo "       echo 'export WANDB_API_KEY=<your-key>' > ~/.wandb_api_key"
+    echo "       source ~/.wandb_api_key"
+    echo ""
+    echo "    3. Get your key from: https://wandb.ai/authorize"
+    echo ""
+    WANDB_CONFIGURED=false
 else
     echo "  ✓ WANDB_API_KEY is set"
     # Configure .netrc for wandb
     echo -e "machine api.wandb.ai\n  login user\n  password $WANDB_API_KEY" > ~/.netrc
     chmod 600 ~/.netrc
     echo "  ✓ Configured ~/.netrc for WandB"
+
+    # Also save to ~/.wandb_api_key for easy sourcing
+    echo "export WANDB_API_KEY=\"$WANDB_API_KEY\"" > ~/.wandb_api_key
+    chmod 600 ~/.wandb_api_key
+    echo "  ✓ Saved to ~/.wandb_api_key for persistence"
+
+    # Add to .bashrc
+    echo 'source ~/.wandb_api_key 2>/dev/null || true' >> ~/.bashrc
+    WANDB_CONFIGURED=true
 fi
 
 # 4. Clone and install prime-rl
