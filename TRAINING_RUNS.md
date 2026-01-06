@@ -547,3 +547,117 @@ uv run rl @ configs/prime-rl/qwen2.5-7b-h100.toml \
 - **Trainer**: FSDP model shards, optimizer/scheduler state, progress metrics
 - **Orchestrator**: Progress (step, tokens, samples)
 - **Inference**: Nothing (stateless) - orchestrator reloads correct weights automatically
+
+---
+
+## Resilient Training System
+
+Automated checkpoint sync and recovery for spot instance training.
+
+### Architecture
+
+```
++-------------------------------------------------------------------+
+|                         TRAINING POD                              |
+|  +-------------+    +-------------+    +-----------------------+  |
+|  |  prime-rl   |--->| checkpoints |--->| checkpoint_sync.sh    |  |
+|  |  training   |    |   /ckpt/    |    | (every 5 min)         |  |
+|  +-------------+    +-------------+    +-----------+-----------+  |
+|                                                    |               |
+|                                                    v               |
+|                                          +-----------------------+ |
+|                                          |   Backblaze B2        | |
+|                                          |  beautifulsoup-rl     | |
+|                                          +-----------------------+ |
++-------------------------------------------------------------------+
+
++-------------------------------------------------------------------+
+|                   GITHUB ACTIONS (Always-On)                      |
+|  +-----------------------+    +-------------------------------+   |
+|  |  training-monitor.yml |--->|  training_controller.py       |   |
+|  |  (every 10 min)       |    |  Check WandB, auto-provision  |   |
+|  +-----------------------+    +-------------------------------+   |
++-------------------------------------------------------------------+
+```
+
+### Components
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/checkpoint_sync.sh` | Atomic sync of checkpoints to B2 with latest.json pointer |
+| `scripts/onstart.sh` | Vast.ai auto-start: pull checkpoint + resume |
+| `scripts/training.service` | Systemd unit for process supervision |
+| `scripts/training_controller.py` | GitHub Actions: monitor WandB + auto-provision |
+| `scripts/provision_vast.py` | Manual Vast.ai provisioning |
+| `scripts/wandb_monitor.py` | WandB health check with stall detection |
+
+### Quick Start
+
+```bash
+# 1. Set up environment (on pod)
+curl -sSL https://raw.githubusercontent.com/seconds-0/beautifulsoup-rl/main/scripts/pod_setup.sh | bash
+
+# 2. Start training (checkpoints auto-sync to B2)
+tmux new -s training
+uv run rl @ /tmp/config.toml --ckpt --ckpt.interval 5 --ckpt.keep-last 3
+```
+
+### After Spot Interruption (Automatic)
+
+1. Vast.ai pauses instance when outbid
+2. When price drops, instance resumes
+3. `onstart.sh` runs automatically:
+   - Pulls latest checkpoint from B2
+   - Resumes training from that step
+4. Training continues seamlessly
+
+### GitHub Actions Controller
+
+The `.github/workflows/training-monitor.yml` workflow runs every 10 minutes:
+- Checks WandB for training status (healthy/failed/stalled)
+- Auto-provisions new Vast.ai instance if training died
+- Idempotent (safe to run repeatedly)
+
+**Required GitHub Secrets:**
+- `WANDB_API_KEY`
+- `VAST_API_KEY`
+- `B2_APPLICATION_KEY_ID`
+- `B2_APPLICATION_KEY`
+
+### Manual Operations
+
+```bash
+# Check training status
+python scripts/wandb_monitor.py --run-id bs4-qwen3-8b
+
+# Search for Vast.ai instances
+python scripts/provision_vast.py search --gpu H100 --count 2 --max-price 2.50
+
+# Provision new instance
+python scripts/provision_vast.py create --run-id bs4-qwen3-8b --gpu H100 --count 2
+
+# Terminate instances
+python scripts/provision_vast.py terminate --run-id bs4-qwen3-8b --force
+```
+
+### Checkpoint Flow
+
+1. **Training writes**: `checkpoints/step_N/` (includes optimizer.pt when complete)
+2. **Sync script detects**: Only syncs directories with `optimizer.pt` (atomic)
+3. **Upload to B2**: `b2://beautifulsoup-rl/{RUN_ID}/step_N/`
+4. **Update pointer**: `latest.json` with step + WANDB_RUN_ID
+5. **On resume**: Download `latest.json`, then only the latest checkpoint
+
+### WandB Run Continuity
+
+The same WandB run ID is preserved across restarts:
+- `latest.json` includes `wandb_run_id` field
+- `onstart.sh` exports `WANDB_RUN_ID` before resuming
+- Metrics continue in the same WandB run (no fragmentation)
+
+### TODO: Multi-Provider Fallback
+
+If Vast.ai has no availability, fall back to RunPod:
+- [ ] Add RunPod API integration to `provision_vast.py`
+- [ ] Modify `training_controller.py` to try providers in order
+- [ ] Handle RunPod's 5s termination warning (SIGTERM → checkpoint → die)

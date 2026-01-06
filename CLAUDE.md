@@ -250,6 +250,32 @@ Resume from checkpoint:
 uv run rl @ config.toml --ckpt.resume-step 20 --max-steps 50
 ```
 
+### Resilient Training (Spot Instances)
+
+**See `TRAINING_RUNS.md` > "Resilient Training System" for full docs.**
+
+For spot instance training with auto-recovery:
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/pod_setup.sh` | Sets up pod with B2 CLI, checkpoint sync |
+| `scripts/checkpoint_sync.sh` | Syncs checkpoints to Backblaze B2 every 5 min |
+| `scripts/onstart.sh` | Auto-resumes from B2 checkpoint (Vast.ai) |
+| `scripts/wandb_monitor.py` | Check training health from WandB |
+| `scripts/provision_vast.py` | Provision/terminate Vast.ai instances |
+| `.github/workflows/training-monitor.yml` | Auto-recovery (checks every 10 min) |
+
+**Quick start:**
+```bash
+# On pod (sets up B2 sync automatically)
+curl -sSL https://raw.githubusercontent.com/seconds-0/beautifulsoup-rl/main/scripts/pod_setup.sh | bash
+
+# Start training with checkpointing
+uv run rl @ config.toml --ckpt --ckpt.interval 5 --ckpt.keep-last 3
+```
+
+**GitHub Secrets required for auto-recovery:** `WANDB_API_KEY`, `VAST_API_KEY`, `B2_APPLICATION_KEY_ID`, `B2_APPLICATION_KEY`
+
 ### Config Version Tracking
 
 **All training configs must be versioned.** This enables rollback, comparison, and reproducibility.
