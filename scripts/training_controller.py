@@ -277,20 +277,24 @@ def provision_instance(
 
         # Build create command
         onstart_url = "https://raw.githubusercontent.com/seconds-0/beautifulsoup-rl/main/scripts/onstart.sh"
+
+        # Build env string with docker-style -e flags
+        env_vars = [f'-e RUN_ID={run_id}', '-e B2_BUCKET=beautifulsoup-rl']
+        for var in ['B2_APPLICATION_KEY_ID', 'B2_APPLICATION_KEY', 'WANDB_API_KEY']:
+            if os.environ.get(var):
+                env_vars.append(f'-e {var}={os.environ[var]}')
+        env_string = ' '.join(env_vars)
+
         cmd = [
             'vastai', 'create', 'instance', str(offer_id),
             '--image', 'nvidia/cuda:12.1-devel-ubuntu22.04',
             '--disk', '100',
             '--label', f'bs4-training-{run_id}',
             '--onstart-cmd', f'curl -sSL {onstart_url} | bash',
+            '--ssh',
+            '--env', env_string,
             '--raw',
-            '-e', f'RUN_ID={run_id}',
-            '-e', 'B2_BUCKET=beautifulsoup-rl',
         ]
-
-        for var in ['B2_APPLICATION_KEY_ID', 'B2_APPLICATION_KEY', 'WANDB_API_KEY']:
-            if os.environ.get(var):
-                cmd.extend(['-e', f'{var}={os.environ[var]}'])
 
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
 

@@ -196,10 +196,8 @@ def create_instance(
         if os.environ.get(var):
             env_vars[var] = os.environ[var]
 
-    # Format as "-e KEY=VALUE" arguments
-    env_args = []
-    for key, value in env_vars.items():
-        env_args.extend(['-e', f'{key}={value}'])
+    # Format as single --env string with docker-style -e flags
+    env_string = ' '.join(f'-e {key}={value}' for key, value in env_vars.items())
 
     logger.info("Creating instance...")
 
@@ -210,8 +208,10 @@ def create_instance(
         '--disk', str(disk_gb),
         '--label', f'bs4-training-{run_id}',
         '--onstart-cmd', onstart_cmd,
+        '--ssh',  # Enable SSH access
+        '--env', env_string,
         '--raw'
-    ] + env_args
+    ]
 
     returncode, stdout, stderr = run_vastai_command(cmd, timeout=120)
 
