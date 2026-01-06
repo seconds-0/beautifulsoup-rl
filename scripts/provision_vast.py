@@ -51,25 +51,39 @@ GPU_TYPES = {
 }
 
 
+class VastAPIError(Exception):
+    """Error interacting with Vast.ai API."""
+    pass
+
+
 def setup_api_key():
-    """Ensure API key is configured for vastai CLI."""
+    """Ensure API key is configured for vastai CLI.
+
+    Raises:
+        VastAPIError: If API key is not set or cannot be configured.
+    """
     api_key = os.environ.get('VAST_API_KEY')
     if not api_key:
-        logger.error("VAST_API_KEY environment variable not set")
-        sys.exit(1)
+        raise VastAPIError("VAST_API_KEY environment variable not set")
 
     # Set API key via CLI
-    result = subprocess.run(
-        ['vastai', 'set', 'api-key', api_key],
-        capture_output=True, text=True, timeout=30
-    )
-    if result.returncode != 0:
-        logger.error(f"Failed to set API key: {result.stderr}")
-        sys.exit(1)
+    try:
+        result = subprocess.run(
+            ['vastai', 'set', 'api-key', api_key],
+            capture_output=True, text=True, timeout=30
+        )
+        if result.returncode != 0:
+            raise VastAPIError(f"Failed to set API key: {result.stderr}")
+    except FileNotFoundError:
+        raise VastAPIError("vastai CLI not installed. Run: pip install vastai")
 
 
 def run_vastai_command(args: list, timeout: int = 60) -> tuple[int, str, str]:
-    """Run a vastai CLI command and return (returncode, stdout, stderr)."""
+    """Run a vastai CLI command and return (returncode, stdout, stderr).
+
+    Raises:
+        VastAPIError: If vastai CLI is not installed.
+    """
     try:
         result = subprocess.run(
             ['vastai'] + args,
@@ -81,8 +95,7 @@ def run_vastai_command(args: list, timeout: int = 60) -> tuple[int, str, str]:
     except subprocess.TimeoutExpired:
         return -1, "", "Command timed out"
     except FileNotFoundError:
-        logger.error("vastai CLI not installed. Run: pip install vastai")
-        sys.exit(1)
+        raise VastAPIError("vastai CLI not installed. Run: pip install vastai")
 
 
 def search_offers(gpu_type: str, gpu_count: int, max_price: float, limit: int = 20) -> list:
@@ -361,4 +374,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except VastAPIError as e:
+        logger.error(str(e))
+        sys.exit(1)

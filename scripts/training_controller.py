@@ -166,10 +166,18 @@ def check_existing_instances(run_id: str) -> list:
     """
     try:
         # Import from our provision_vast module
-        from provision_vast import list_instances
+        from provision_vast import list_instances, VastAPIError
         return list_instances(run_id)
-    except ImportError:
-        # Fallback to direct CLI call
+    except (ImportError, VastAPIError) as e:
+        if isinstance(e, ImportError):
+            pass  # Fall through to fallback
+        else:
+            logger.warning(f"Vast API error: {e}, trying fallback")
+    except Exception as e:
+        logger.warning(f"Error using provision_vast: {e}, trying fallback")
+
+    # Fallback to direct CLI call
+    try:
         import subprocess
         import json
 
@@ -219,14 +227,16 @@ def provision_instance(
     """
     try:
         # Import from our provision_vast module
-        from provision_vast import create_instance
+        from provision_vast import create_instance, VastAPIError
         return create_instance(
             run_id=run_id,
             gpu_type=gpu_type,
             gpu_count=gpu_count,
             max_price=max_bid
         )
-    except ImportError:
+    except (ImportError, VastAPIError) as e:
+        if isinstance(e, VastAPIError):
+            logger.warning(f"Vast API error: {e}, trying fallback")
         # Fallback to direct CLI call
         import subprocess
         import json
@@ -320,9 +330,11 @@ def terminate_instances(run_id: str) -> int:
     """
     try:
         # Import from our provision_vast module
-        from provision_vast import terminate_instances as vast_terminate
+        from provision_vast import terminate_instances as vast_terminate, VastAPIError
         return vast_terminate(run_id, force=True)
-    except ImportError:
+    except (ImportError, VastAPIError) as e:
+        if isinstance(e, VastAPIError):
+            logger.warning(f"Vast API error: {e}, trying fallback")
         # Fallback to direct CLI call
         import subprocess
 
