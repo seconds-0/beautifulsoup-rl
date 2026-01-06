@@ -1,0 +1,17 @@
+[Unit]
+Description=Checkpoint Sync to B2 Timer
+Documentation=https://github.com/seconds-0/beautifulsoup-rl
+
+[Timer]
+# Run every 5 minutes
+OnBootSec=1min
+OnUnitActiveSec=5min
+
+# Add randomization to prevent thundering herd
+RandomizedDelaySec=30
+
+# Persist timer state across reboots
+Persistent=true
+
+[Install]
+WantedBy=timers.target

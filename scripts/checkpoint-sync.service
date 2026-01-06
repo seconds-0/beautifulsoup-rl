@@ -1,0 +1,22 @@
+[Unit]
+Description=Checkpoint Sync to B2 Service
+Documentation=https://github.com/seconds-0/beautifulsoup-rl
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/root/prime-rl
+
+# Environment configuration
+EnvironmentFile=/root/.env
+Environment=RUN_ID=bs4-qwen3-8b
+Environment=CKPT_DIR=/root/checkpoints
+
+# Execute single sync
+ExecStart=/root/prime-rl/scripts/checkpoint_sync.sh --once
+
+# Logging
+StandardOutput=append:/tmp/checkpoint_sync.log
+StandardError=append:/tmp/checkpoint_sync.log
