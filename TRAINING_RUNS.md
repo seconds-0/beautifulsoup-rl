@@ -632,13 +632,46 @@ python scripts/wandb_monitor.py --run-id bs4-qwen3-8b
 
 # Search for Vast.ai instances
 python scripts/provision_vast.py search --gpu H100 --count 2 --max-price 2.50
+python scripts/provision_vast.py search --gpu 4090 --count 2 --max-price 0.50  # Much cheaper!
 
 # Provision new instance
 python scripts/provision_vast.py create --run-id bs4-qwen3-8b --gpu H100 --count 2
+python scripts/provision_vast.py create --run-id bs4-qwen3-8b --gpu 4090 --count 2 --max-price 0.50
 
 # Terminate instances
 python scripts/provision_vast.py terminate --run-id bs4-qwen3-8b --force
 ```
+
+### Deployment Checklist
+
+Before deploying a training pod:
+
+1. **Vast.ai Account**
+   - [ ] Account has credit (check: `vastai show user --raw | jq .balance`)
+   - [ ] API key is set: `export VAST_API_KEY=...`
+
+2. **GitHub Secrets** (for auto-recovery)
+   - [ ] `WANDB_API_KEY` - WandB logging
+   - [ ] `VAST_API_KEY` - Auto-provisioning
+   - [ ] `B2_APPLICATION_KEY_ID` - Checkpoint storage
+   - [ ] `B2_APPLICATION_KEY` - Checkpoint storage
+
+3. **B2 Bucket**
+   - [ ] Bucket exists: `beautifulsoup-rl`
+   - [ ] B2 CLI authorized: `b2 authorize-account`
+
+4. **Config**
+   - [ ] Upload config.toml to B2: `b2 file upload beautifulsoup-rl config.toml $RUN_ID/config.toml`
+
+### GPU Pricing (2026-01-05)
+
+| GPU | Count | Price/hr | VRAM | Availability |
+|-----|-------|----------|------|--------------|
+| RTX 4090 | 2 | $0.45-0.72 | 48GB | Abundant |
+| H100 PCIE | 2 | $5.73 | 160GB | Limited |
+| H100 SXM5 | 2 | ~$4-6 | 160GB | Rare |
+
+**Recommendation:** Use 2x RTX 4090 for 7-8B models - 10x cheaper than H100 and sufficient VRAM.
 
 ### Checkpoint Flow
 
