@@ -1,8 +1,9 @@
 #!/bin/bash
 #
-# Pod Setup Script for Prime-RL Training
+# Pod Setup Script for Prime-RL Training with Resilient Checkpoint Sync
 #
 # Run this script on every new GPU pod to set up the training environment.
+# Includes B2 checkpoint sync for crash recovery.
 #
 # Usage:
 #   curl -sSL https://raw.githubusercontent.com/seconds-0/beautifulsoup-rl/main/scripts/pod_setup.sh | bash
@@ -11,9 +12,18 @@
 # Prerequisites:
 #   - GPU pod with CUDA
 #   - uv installed (pip install uv)
-#   - WANDB_API_KEY environment variable set
+#
+# Environment variables (set before running or pass via Vast.ai):
+#   - WANDB_API_KEY: WandB API key
+#   - B2_APPLICATION_KEY_ID: Backblaze B2 key ID
+#   - B2_APPLICATION_KEY: Backblaze B2 application key
+#   - RUN_ID: Training run identifier (default: "default")
 
 set -e  # Exit on error
+
+# Configuration
+REPO_COMMIT="${REPO_COMMIT:-main}"  # Pin to specific commit for reproducibility
+RUN_ID="${RUN_ID:-default}"
 
 echo "================================================"
 echo "Prime-RL Training Pod Setup"
@@ -40,9 +50,27 @@ export VLLM_WORKER_MULTIPROC_METHOD=spawn
 ulimit -n 65536 2>/dev/null
 EOF
 
-# 2. WandB configuration
+# 2. Install B2 CLI and jq for checkpoint sync
 echo ""
-echo "[2/5] Checking WandB configuration..."
+echo "[2/8] Installing B2 CLI and jq..."
+pip install --quiet b2
+apt-get update -qq && apt-get install -y -qq jq > /dev/null 2>&1 || {
+    echo "  (apt-get failed, trying pip for jq alternative)"
+}
+echo "  ✓ b2 CLI installed"
+
+# Configure B2 if credentials are set
+if [ -n "$B2_APPLICATION_KEY_ID" ] && [ -n "$B2_APPLICATION_KEY" ]; then
+    echo "  Authorizing B2..."
+    b2 authorize-account "$B2_APPLICATION_KEY_ID" "$B2_APPLICATION_KEY" > /dev/null 2>&1
+    echo "  ✓ B2 authorized"
+else
+    echo "  ⚠️  B2 credentials not set (checkpoint sync disabled)"
+fi
+
+# 3. WandB configuration
+echo ""
+echo "[3/8] Checking WandB configuration..."
 if [ -z "$WANDB_API_KEY" ]; then
     echo "  ⚠️  WANDB_API_KEY not set!"
     echo "  Set it with: export WANDB_API_KEY=<your-key>"
@@ -55,9 +83,9 @@ else
     echo "  ✓ Configured ~/.netrc for WandB"
 fi
 
-# 3. Clone and install prime-rl
+# 4. Clone and install prime-rl
 echo ""
-echo "[3/5] Setting up prime-rl..."
+echo "[4/8] Setting up prime-rl..."
 if [ -d "/root/prime-rl" ] || [ -d "$HOME/prime-rl" ]; then
     echo "  prime-rl directory already exists, skipping clone"
     cd ~/prime-rl || cd /root/prime-rl
@@ -71,38 +99,93 @@ echo "  Installing dependencies..."
 uv sync --all-extras
 echo "  ✓ prime-rl installed"
 
-# 4. Install BeautifulSoup environment
+# 5. Install BeautifulSoup environment
 echo ""
-echo "[4/5] Installing BeautifulSoup RL environment..."
+echo "[5/8] Installing BeautifulSoup RL environment..."
 prime env install seconds-0/beautiful-soup-env
 echo "  ✓ Environment installed"
 
-# 5. Verify installation
+# 6. Download training scripts
 echo ""
-echo "[5/5] Verifying installation..."
+echo "[6/8] Downloading training scripts..."
+SCRIPTS_BASE="https://raw.githubusercontent.com/seconds-0/beautifulsoup-rl/${REPO_COMMIT}/scripts"
+mkdir -p ~/prime-rl/scripts
+
+for script in checkpoint_sync.sh onstart.sh; do
+    curl -sSL "$SCRIPTS_BASE/$script" -o ~/prime-rl/scripts/$script
+    chmod +x ~/prime-rl/scripts/$script
+    echo "  ✓ Downloaded $script"
+done
+
+# 7. Set up checkpoint sync (if B2 configured)
+echo ""
+echo "[7/8] Setting up checkpoint sync..."
+if [ -n "$B2_APPLICATION_KEY_ID" ]; then
+    # Create checkpoint directory
+    mkdir -p /root/checkpoints
+
+    # Save environment to .env for systemd
+    cat > /root/.env << EOF
+RUN_ID=$RUN_ID
+B2_APPLICATION_KEY_ID=$B2_APPLICATION_KEY_ID
+B2_APPLICATION_KEY=$B2_APPLICATION_KEY
+B2_BUCKET=beautifulsoup-rl
+WANDB_API_KEY=$WANDB_API_KEY
+WANDB_RUN_ID=${WANDB_RUN_ID:-}
+VLLM_USE_V1=0
+VLLM_WORKER_MULTIPROC_METHOD=spawn
+EOF
+    chmod 600 /root/.env
+    echo "  ✓ Environment saved to /root/.env"
+
+    # Start checkpoint sync daemon in background
+    nohup ~/prime-rl/scripts/checkpoint_sync.sh >> /tmp/checkpoint_sync.log 2>&1 &
+    echo "  ✓ Checkpoint sync daemon started"
+else
+    echo "  ⚠️  Skipping (B2 not configured)"
+fi
+
+# 8. Verify installation
+echo ""
+echo "[8/8] Verifying installation..."
 uv run python -c "import beautiful_soup_env; print('  ✓ Environment imports successfully')"
+command -v b2 >/dev/null && echo "  ✓ b2 CLI available"
+command -v jq >/dev/null && echo "  ✓ jq available"
 
 echo ""
 echo "================================================"
 echo "Setup Complete!"
 echo "================================================"
 echo ""
+echo "Run ID: $RUN_ID"
+echo "Checkpoint sync: $([ -n "$B2_APPLICATION_KEY_ID" ] && echo "ENABLED" || echo "DISABLED")"
+echo ""
 echo "Next steps:"
 echo ""
-echo "1. Copy your training config to /tmp/config.toml"
+echo "1. Copy your training config:"
+echo "   # Upload config to B2 for persistence across restarts"
+echo "   b2 file upload beautifulsoup-rl /path/to/config.toml $RUN_ID/config.toml"
+echo "   b2 file download b2://beautifulsoup-rl/$RUN_ID/config.toml /root/config.toml"
 echo ""
 echo "2. Start training with checkpointing:"
 echo "   tmux new -s training"
 echo "   cd ~/prime-rl"
-echo "   uv run rl @ /tmp/config.toml --ckpt --ckpt.interval 5 --ckpt.keep-last 3 2>&1 | tee /tmp/training.log"
+echo "   export WANDB_RUN_ID=\$(uuidgen)  # Generate unique run ID"
+echo "   uv run rl @ /root/config.toml --ckpt --ckpt.interval 5 --ckpt.keep-last 3 2>&1 | tee /tmp/training.log"
 echo ""
 echo "3. Monitor training:"
-echo "   # In another terminal:"
+echo "   # Watch logs:"
 echo "   tail -f /tmp/training.log"
+echo "   # Check checkpoint sync:"
+echo "   tail -f /tmp/checkpoint_sync.log"
 echo "   # Check GPU usage:"
 echo "   nvidia-smi"
 echo ""
-echo "Single-GPU memory checklist (already in config if using qwen2.5-7b-h100.toml):"
+echo "4. If training crashes, it will auto-resume from checkpoint:"
+echo "   # Checkpoints are synced to B2 every 5 minutes"
+echo "   # On restart, onstart.sh will pull the latest checkpoint"
+echo ""
+echo "Single-GPU memory checklist:"
 echo "  - [inference] gpu_memory_utilization = 0.50"
 echo "  - [trainer.model.ac] freq = 1"
 echo "  - [orchestrator.sampling] max_tokens = 2000"
