@@ -1,0 +1,45 @@
+[Unit]
+Description=Prime-RL Training Service
+Documentation=https://github.com/seconds-0/beautifulsoup-rl
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/prime-rl
+
+# Environment configuration
+EnvironmentFile=/root/.env
+Environment=RUN_ID=bs4-qwen3-8b
+Environment=CKPT_DIR=/root/checkpoints
+Environment=CONFIG_PATH=/root/config.toml
+
+# vLLM requirements
+Environment=VLLM_USE_V1=0
+Environment=VLLM_WORKER_MULTIPROC_METHOD=spawn
+
+# Execution
+ExecStart=/root/prime-rl/scripts/onstart.sh
+
+# Restart policy: restart on failure, but not immediately
+Restart=on-failure
+RestartSec=60
+StartLimitIntervalSec=600
+StartLimitBurst=5
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=65536
+
+# Logging
+StandardOutput=append:/tmp/training.log
+StandardError=append:/tmp/training.log
+
+# Graceful shutdown: give training time to save checkpoint
+TimeoutStopSec=120
+KillMode=mixed
+KillSignal=SIGTERM
+
+[Install]
+WantedBy=multi-user.target
