@@ -28,7 +28,7 @@ echo "================================================"
 echo ""
 
 # 1. Check GPU availability and memory
-echo "[1/7] Checking GPUs..."
+echo "[1/8] Checking GPUs..."
 if ! command -v nvidia-smi &> /dev/null; then
     echo -e "  ${RED}FAIL: nvidia-smi not found - no GPU available${NC}"
     ((ERRORS++))
@@ -51,7 +51,7 @@ fi
 
 # 2. Check PATH includes uv
 echo ""
-echo "[2/7] Checking PATH..."
+echo "[2/8] Checking PATH..."
 if ! command -v uv &> /dev/null; then
     echo -e "  ${RED}FAIL: 'uv' not in PATH${NC}"
     echo "    Fix: export PATH=\"/root/.local/bin:\$PATH\""
@@ -63,7 +63,7 @@ fi
 
 # 3. Check WANDB_API_KEY
 echo ""
-echo "[3/7] Checking WANDB_API_KEY..."
+echo "[3/8] Checking WANDB_API_KEY..."
 if [ -z "$WANDB_API_KEY" ]; then
     # Check if it's in ~/.wandb_api_key
     if [ -f ~/.wandb_api_key ]; then
@@ -81,7 +81,7 @@ fi
 
 # 4. Check vLLM environment variables
 echo ""
-echo "[4/7] Checking vLLM environment..."
+echo "[4/8] Checking vLLM environment..."
 if [ "$VLLM_USE_V1" != "0" ]; then
     echo -e "  ${YELLOW}WARNING: VLLM_USE_V1 not set to 0${NC}"
     echo "    Fix: export VLLM_USE_V1=0"
@@ -100,7 +100,7 @@ fi
 
 # 5. Check for stale checkpoints
 echo ""
-echo "[5/7] Checking for stale state..."
+echo "[5/8] Checking for stale state..."
 PRIME_RL_DIR="${PRIME_RL_DIR:-/root/prime-rl-official}"
 
 STALE_DIRS=""
@@ -125,9 +125,72 @@ else
     echo -e "  ${GREEN}No stale state found (OK)${NC}"
 fi
 
-# 6. Check disk space
+# 6. Check for step counter desync (CRITICAL for resume)
 echo ""
-echo "[6/7] Checking disk space..."
+echo "[6/8] Checking for step counter desync risk..."
+
+# Get max trainer checkpoint step
+TRAINER_CKPT_DIR="$PRIME_RL_DIR/outputs/checkpoints"
+ORCH_CKPT_DIR="$PRIME_RL_DIR/outputs/run_default/checkpoints"
+
+TRAINER_MAX_STEP=0
+ORCH_MAX_STEP=0
+
+if [ -d "$TRAINER_CKPT_DIR" ]; then
+    for step_dir in "$TRAINER_CKPT_DIR"/step_*; do
+        if [ -d "$step_dir" ]; then
+            step_num=$(basename "$step_dir" | sed 's/step_//')
+            if [ "$step_num" -gt "$TRAINER_MAX_STEP" ] 2>/dev/null; then
+                TRAINER_MAX_STEP=$step_num
+            fi
+        fi
+    done
+fi
+
+if [ -d "$ORCH_CKPT_DIR" ]; then
+    for step_dir in "$ORCH_CKPT_DIR"/step_*; do
+        if [ -d "$step_dir" ]; then
+            step_num=$(basename "$step_dir" | sed 's/step_//')
+            if [ "$step_num" -gt "$ORCH_MAX_STEP" ] 2>/dev/null; then
+                ORCH_MAX_STEP=$step_num
+            fi
+        fi
+    done
+fi
+
+if [ "$TRAINER_MAX_STEP" -gt 0 ] && [ "$ORCH_MAX_STEP" -gt 0 ]; then
+    if [ "$ORCH_MAX_STEP" -gt "$TRAINER_MAX_STEP" ]; then
+        echo -e "  ${RED}FAIL: Step counter desync detected!${NC}"
+        echo "    Trainer checkpoint: step_$TRAINER_MAX_STEP"
+        echo "    Orchestrator checkpoint: step_$ORCH_MAX_STEP (AHEAD!)"
+        echo ""
+        echo "    This WILL cause training to hang after 1 step if resumed."
+        echo "    The runs.progress will init to $ORCH_MAX_STEP but DataLoader to $TRAINER_MAX_STEP."
+        echo ""
+        echo "    Fix: Clean ALL state before resuming:"
+        echo "      bash scripts/clean_training_state.sh"
+        echo "    Or: Remove orchestrator checkpoints ahead of trainer:"
+        echo "      rm -rf $ORCH_CKPT_DIR/step_$ORCH_MAX_STEP"
+        ((ERRORS++))
+    elif [ "$TRAINER_MAX_STEP" -ne "$ORCH_MAX_STEP" ]; then
+        echo -e "  ${YELLOW}WARNING: Checkpoint steps differ (trainer=$TRAINER_MAX_STEP, orch=$ORCH_MAX_STEP)${NC}"
+        echo "    This may cause issues. Consider cleaning state."
+        ((WARNINGS++))
+    else
+        echo -e "  ${GREEN}Checkpoints aligned at step $TRAINER_MAX_STEP (OK)${NC}"
+    fi
+elif [ "$TRAINER_MAX_STEP" -gt 0 ] || [ "$ORCH_MAX_STEP" -gt 0 ]; then
+    echo -e "  ${YELLOW}WARNING: Only partial checkpoints exist${NC}"
+    echo "    Trainer: step_$TRAINER_MAX_STEP, Orchestrator: step_$ORCH_MAX_STEP"
+    echo "    Consider cleaning state for fresh start."
+    ((WARNINGS++))
+else
+    echo -e "  ${GREEN}No checkpoints (fresh start OK)${NC}"
+fi
+
+# 7. Check disk space
+echo ""
+echo "[7/8] Checking disk space..."
 DISK_AVAIL=$(df -BG /root 2>/dev/null | tail -1 | awk '{print $4}' | tr -d 'G')
 if [ -n "$DISK_AVAIL" ]; then
     if [ "$DISK_AVAIL" -lt 30 ]; then
@@ -141,9 +204,9 @@ if [ -n "$DISK_AVAIL" ]; then
     fi
 fi
 
-# 7. Check environment is installed
+# 8. Check environment is installed
 echo ""
-echo "[7/7] Checking environment installation..."
+echo "[8/8] Checking environment installation..."
 if python3 -c "from verifiers import load_environment; load_environment('seconds-0/beautiful-soup-env')" 2>/dev/null; then
     echo -e "  ${GREEN}Environment installed (OK)${NC}"
 else
