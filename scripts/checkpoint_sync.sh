@@ -21,6 +21,8 @@ B2_BUCKET="${B2_BUCKET:-beautifulsoup-rl}"
 RUN_ID="${RUN_ID:-default}"
 SYNC_INTERVAL="${SYNC_INTERVAL:-300}"  # 5 minutes
 KEEP_LOCAL="${KEEP_LOCAL:-2}"  # Keep only N most recent checkpoints locally after sync
+KEEP_B2="${KEEP_B2:-3}"  # Keep last N checkpoints in B2
+MILESTONE_INTERVAL="${MILESTONE_INTERVAL:-50}"  # Keep checkpoints every N steps as milestones
 LOCK_FILE="/tmp/checkpoint_sync.lock"
 
 # Logging
@@ -36,7 +38,7 @@ is_checkpoint_complete() {
 
 # Get list of already-synced checkpoints
 get_synced_checkpoints() {
-    b2 ls "$B2_BUCKET" "$RUN_ID/" 2>/dev/null | grep -oP 'step_\d+' | sort -u || true
+    b2 ls "b2://$B2_BUCKET/$RUN_ID/" 2>/dev/null | grep -o 'step_[0-9]*' | sort -t_ -k2 -n | uniq || true
 }
 
 # Sync a single checkpoint directory to B2
@@ -120,6 +122,68 @@ cleanup_old_checkpoints() {
     fi
 }
 
+# Prune old checkpoints from B2 to save storage costs
+# Keeps: last KEEP_B2 checkpoints + milestones every MILESTONE_INTERVAL steps
+prune_b2_checkpoints() {
+    log "Pruning old B2 checkpoints (keeping last $KEEP_B2 + milestones every $MILESTONE_INTERVAL steps)..."
+
+    # Get all checkpoints in B2
+    local b2_steps=()
+    while IFS= read -r step; do
+        [[ -n "$step" ]] && b2_steps+=("$step")
+    done < <(b2 ls "b2://$B2_BUCKET/$RUN_ID/" 2>/dev/null | grep -o 'step_[0-9]*' | sort -t_ -k2 -n | uniq)
+
+    if (( ${#b2_steps[@]} == 0 )); then
+        log "No checkpoints in B2, nothing to prune"
+        return 0
+    fi
+
+    # Sort by step number
+    IFS=$'\n' sorted=($(printf '%s\n' "${b2_steps[@]}" | sort -t_ -k2 -n)); unset IFS
+
+    # Determine which checkpoints to keep
+    local keep=()
+    local total=${#sorted[@]}
+
+    # Keep last KEEP_B2 checkpoints
+    for ((i = total - KEEP_B2; i < total && i >= 0; i++)); do
+        keep+=("${sorted[$i]}")
+    done
+
+    # Keep milestones (step % MILESTONE_INTERVAL == 0)
+    for step in "${sorted[@]}"; do
+        local step_num="${step#step_}"
+        if (( step_num % MILESTONE_INTERVAL == 0 )); then
+            # Add if not already in keep list
+            if [[ ! " ${keep[*]} " =~ " ${step} " ]]; then
+                keep+=("$step")
+            fi
+        fi
+    done
+
+    log "Keeping ${#keep[@]} checkpoint(s): ${keep[*]}"
+
+    # Delete checkpoints not in keep list
+    local deleted=0
+    for step in "${sorted[@]}"; do
+        if [[ ! " ${keep[*]} " =~ " ${step} " ]]; then
+            log "Deleting old B2 checkpoint: $step"
+            # Delete all files in this checkpoint folder
+            if b2 rm --recursive "b2://$B2_BUCKET/$RUN_ID/$step/" 2>/dev/null; then
+                ((deleted++))
+            else
+                log "WARNING: Failed to delete $step from B2"
+            fi
+        fi
+    done
+
+    if (( deleted > 0 )); then
+        log "Deleted $deleted old B2 checkpoint(s), saved ~$((deleted * 33))GB storage"
+    else
+        log "No B2 checkpoints to prune"
+    fi
+}
+
 # Main sync function
 do_sync() {
     # Ensure checkpoint directory exists
@@ -180,6 +244,9 @@ do_sync() {
 
     # Clean up old local checkpoints to prevent disk filling up
     cleanup_old_checkpoints
+
+    # Prune old B2 checkpoints to save storage costs
+    prune_b2_checkpoints
 }
 
 # Signal handler for graceful shutdown
