@@ -614,6 +614,56 @@ For models with 0% baseline, use staged training:
 3. **Phase 3**: `mode="tiered"` - 30% to 50%
 4. **Phase 4**: `mode="all"` - 50% to 65%
 
+### Auto-Curriculum (Recommended)
+
+**Use `curriculum_enabled=true` for automatic phase progression without manual config switching.**
+
+The environment tracks samples via `setup_state()` calls and automatically adjusts `difficulty_weights` based on training step.
+
+#### Config Format
+
+```toml
+[orchestrator.env.args]
+split = "train"
+mode = "tiered"
+difficulty = "mixed"
+curriculum_enabled = true
+samples_per_step = 256  # batch_size(64) * rollouts_per_example(4)
+
+# Phase 1 (steps 0-150): Lock in tool format
+[[orchestrator.env.args.curriculum_phases]]
+until_step = 150
+weights = { primer = 0.8, easy = 0.2, medium = 0.0, hard = 0.0 }
+
+# Phase 2 (steps 150-400): Build confidence
+[[orchestrator.env.args.curriculum_phases]]
+until_step = 400
+weights = { primer = 0.0, easy = 0.6, medium = 0.4, hard = 0.0 }
+
+# Phase 3 (steps 400-750): Breadth + hard exposure
+[[orchestrator.env.args.curriculum_phases]]
+until_step = 750
+weights = { primer = 0.1, easy = 0.35, medium = 0.35, hard = 0.2 }
+
+# Phase 4 (steps 750-1000): Specialize on hard
+[[orchestrator.env.args.curriculum_phases]]
+until_step = 1000
+weights = { primer = 0.0, easy = 0.15, medium = 0.35, hard = 0.5 }
+```
+
+#### Key Parameters
+
+| Parameter | Description |
+|-----------|-------------|
+| `curriculum_enabled` | Enable auto-curriculum (default: false) |
+| `samples_per_step` | Samples per training step for step estimation |
+| `curriculum_phases` | List of phases with `until_step` and `weights` |
+| `weights` | Dict of difficulty weights: `primer`, `easy`, `medium`, `hard` |
+
+#### Example Config
+
+See `configs/prime-rl/qwen25-3b-2x5090-curriculum.toml` for a complete example.
+
 ---
 
 ## Pre-flight Checks
@@ -683,6 +733,191 @@ for arch, avg in sorted(data['by_archetype'].items(), key=lambda x: x[1]):
 | Model not found | Wrong model ID | Verify with `prime inference models` |
 | Empty response | API error | Check retry logic, increase backoff |
 | JSON truncation | Token limit | Use `-t 10000` flag |
+
+---
+
+## Common Training Failure Modes (Postmortem 2026-01-06)
+
+These issues caused significant debugging time. Run `scripts/validate_training_ready.sh` before starting training!
+
+### 1. WANDB_API_KEY Not Configured
+
+**Symptom:** Training crashes immediately with `wandb.errors.errors.UsageError: api_key not configured (no-tty)`
+
+**Cause:** WANDB_API_KEY environment variable not set.
+
+**Fix:**
+```bash
+export WANDB_API_KEY="your-key-here"
+# Or persist it:
+echo 'export WANDB_API_KEY="your-key"' > ~/.wandb_api_key
+source ~/.wandb_api_key
+```
+
+### 2. Stale vLLM Process Hogging GPU
+
+**Symptom:** New training gets SIGTERM, GPU shows high memory usage before training starts.
+
+**Cause:** Previous training run left vLLM inference server running.
+
+**Fix:**
+```bash
+pkill -9 -f vllm
+pkill -9 -f VLLM
+nvidia-smi  # Verify GPU memory is ~1MB
+```
+
+### 3. `uv` Not in PATH
+
+**Symptom:** Subprocesses fail with `FileNotFoundError: [Errno 2] No such file or directory: 'uv'`
+
+**Cause:** PATH doesn't include `/root/.local/bin` where uv is installed.
+
+**Fix:**
+```bash
+export PATH="/root/.local/bin:$PATH"
+# Add to .bashrc for persistence
+```
+
+### 4. Stale Checkpoints Causing Deadlock (MOST COMMON!)
+
+**Symptom:**
+- Trainer shows "Starting training loop" but never completes any steps
+- Orchestrator completes steps but trainer doesn't respond
+- Orchestrator hits async barrier waiting for checkpoint that never comes
+
+**Cause:** Old checkpoints in `outputs/run_default/checkpoints/` from previous run. The startup script cleans `outputs/checkpoints/` but NOT `outputs/run_default/checkpoints/`.
+
+**Fix:**
+```bash
+# Run the comprehensive cleanup script:
+bash scripts/clean_training_state.sh
+
+# Or manually clean ALL checkpoint locations:
+rm -rf outputs/checkpoints/*
+rm -rf outputs/run_default/checkpoints/*  # CRITICAL - often missed!
+rm -rf outputs/run_default/rollouts/*
+rm -rf outputs/run_default/broadcasts/*
+rm -rf outputs/weights/*
+```
+
+### 5. Missing `--ckpt.keep-last N`
+
+**Symptom:** Disk fills up rapidly (each checkpoint is ~12GB for 3B model).
+
+**Cause:** Checkpointing enabled but no cleanup configured - keeps ALL checkpoints.
+
+**Fix:**
+```bash
+# Always include --ckpt.keep-last:
+uv run rl @ config.toml --ckpt --ckpt.interval 5 --ckpt.keep-last 3
+```
+
+### Pre-Training Checklist
+
+Run this before EVERY training start:
+
+```bash
+# 1. Validate readiness (catches all common issues)
+bash scripts/validate_training_ready.sh
+
+# 2. If validation fails, clean state:
+bash scripts/clean_training_state.sh
+
+# 3. Set environment
+export PATH="/root/.local/bin:$PATH"
+source ~/.wandb_api_key
+export VLLM_USE_V1=0
+export VLLM_WORKER_MULTIPROC_METHOD=spawn
+
+# 4. Start with ALL required flags
+nohup uv run rl @ config.toml \
+  --ckpt --ckpt.interval 5 --ckpt.keep-last 3 \
+  > /root/training.log 2>&1 &
+
+# 5. Verify training is progressing (wait 5 min, check both logs)
+tail outputs/run_default/logs/orchestrator.log | grep SUCCESS
+tail outputs/logs/trainer/rank_0.log | grep SUCCESS
+```
+
+### Quick Diagnostic Commands
+
+```bash
+# Check GPU memory (should be ~1MB before starting)
+nvidia-smi --query-gpu=memory.used --format=csv,noheader
+
+# Check for stale processes
+ps aux | grep -E "vllm|prime_rl|torchrun" | grep -v grep
+
+# Check for stale checkpoints (should be empty before fresh start)
+ls outputs/run_default/checkpoints/
+ls outputs/checkpoints/
+
+# Check trainer is actually processing (should show step completions)
+tail -f outputs/logs/trainer/rank_0.log | grep SUCCESS
+```
+
+### 6. Step Counter Desynchronization on Resume (BUG - 2026-01-06)
+
+**Symptom:**
+- Training resumes from checkpoint (e.g., step 10)
+- Trainer completes ONE step then hangs forever
+- GPU utilization drops to 0%
+- Orchestrator shows "Hit async barrier waiting for checkpoint N"
+
+**Root Cause (prime-rl bug):**
+
+When resuming training, two different step counters are initialized from DIFFERENT sources:
+
+| Component | Source | Initialized To |
+|-----------|--------|----------------|
+| DataLoader (packer sender/receiver) | Trainer checkpoint (`--ckpt.resume-step`) | Resume step (e.g., 10) |
+| `runs.progress` (packer's batch reader) | `max(orchestrator checkpoints)` | Highest checkpoint (e.g., 15) |
+
+In `prime_rl/trainer/runs.py` lines 114-116:
+```python
+prev_ckpt_steps = set(
+    int(i.stem.split("_")[-1]) for i in (self.get_run_dir(new_id) / "checkpoints").glob("step_*")
+)
+self.progress[new_id].step = max(prev_ckpt_steps)  # Uses ORCHESTRATOR checkpoints!
+```
+
+This causes a mismatch where:
+- Packer's **sender** writes to `outputs/rollouts/step_10/rank_0.bin`
+- Packer's **receiver** reads from `outputs/run_default/rollouts/step_15/rollouts.bin`
+- After one iteration: receiver looks for `step_16/rollouts.bin` which DOESN'T EXIST
+- Trainer waits forever for `step_11/rank_0.bin` that never gets written
+
+**How to Detect:**
+
+```bash
+# Check if step counters are mismatched
+ls outputs/run_default/checkpoints/  # Shows step_5, step_10, step_15
+ls outputs/rollouts/                  # Shows only step_10 (one step processed)
+ls outputs/run_default/rollouts/      # Shows step_10 through step_15 (orchestrator ahead)
+```
+
+If trainer processed only ONE step and is hanging, and orchestrator has more checkpoints than trainer's resume step, this is the bug.
+
+**Fix (before restarting):**
+
+```bash
+# Option 1: Clean ALL state and start fresh (safest)
+bash scripts/clean_training_state.sh
+# Remove --ckpt.resume-step flag
+
+# Option 2: Sync orchestrator checkpoints to trainer resume step
+# Delete orchestrator checkpoints that are AHEAD of trainer checkpoint
+rm -rf outputs/run_default/checkpoints/step_15  # Keep only step_10
+rm -rf outputs/run_default/checkpoints/step_5   # Optional cleanup
+# Now runs.progress will initialize to step_10 (matching trainer)
+```
+
+**Prevention:**
+
+1. Always clean state before resuming: `bash scripts/clean_training_state.sh`
+2. Don't mix checkpoint resume with stale orchestrator checkpoints
+3. Long-term fix needed in prime-rl: `runs.progress` should accept start_step from checkpoint loading
 
 ---
 
@@ -954,4 +1189,4 @@ notes = "Speed optimizations: reduced max_tokens, rollouts, added prefix caching
 
 ---
 
-*Last updated: 2026-01-05 (added config version tracking, speed optimizations)*
+*Last updated: 2026-01-06 (added step counter desync bug documentation)*
