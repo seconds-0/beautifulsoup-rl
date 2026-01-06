@@ -165,20 +165,41 @@ def check_existing_instances(run_id: str) -> list:
     Returns list of instance dicts.
     """
     try:
-        import vastai
-        vast = vastai.VastAI(api_key=os.environ.get('VAST_API_KEY'))
+        # Import from our provision_vast module
+        from provision_vast import list_instances
+        return list_instances(run_id)
+    except ImportError:
+        # Fallback to direct CLI call
+        import subprocess
+        import json
 
-        # List all instances
-        instances = vast.show_instances()
+        api_key = os.environ.get('VAST_API_KEY')
+        if not api_key:
+            logger.error("VAST_API_KEY not set")
+            return []
+
+        # Set API key
+        subprocess.run(['vastai', 'set', 'api-key', api_key],
+                      capture_output=True, timeout=30)
+
+        # List instances
+        result = subprocess.run(['vastai', 'show', 'instances', '--raw'],
+                               capture_output=True, text=True, timeout=60)
+
+        if result.returncode != 0:
+            if '403' in result.stderr:
+                return []  # No instances
+            logger.error(f"Error listing instances: {result.stderr}")
+            return []
+
+        try:
+            instances = json.loads(result.stdout)
+        except json.JSONDecodeError:
+            return []
 
         # Filter by our label
         label = f"bs4-training-{run_id}"
-        our_instances = [
-            inst for inst in instances
-            if inst.get('label', '').startswith(label)
-        ]
-
-        return our_instances
+        return [inst for inst in instances if inst.get('label', '').startswith(label)]
 
     except Exception as e:
         logger.error(f"Error checking Vast.ai instances: {e}")
@@ -197,56 +218,90 @@ def provision_instance(
     Returns instance info dict or None on failure.
     """
     try:
-        import vastai
-        vast = vastai.VastAI(api_key=os.environ.get('VAST_API_KEY'))
-
-        # Search for suitable offers
-        logger.info(f"Searching for {gpu_count}x {gpu_type} instances under ${max_bid}/hr")
-
-        offers = vast.search_offers(
-            gpu_name=gpu_type,
-            num_gpus=gpu_count,
-            order="dph_total",  # Sort by price
-            limit=10
+        # Import from our provision_vast module
+        from provision_vast import create_instance
+        return create_instance(
+            run_id=run_id,
+            gpu_type=gpu_type,
+            gpu_count=gpu_count,
+            max_price=max_bid
         )
+    except ImportError:
+        # Fallback to direct CLI call
+        import subprocess
+        import json
+
+        api_key = os.environ.get('VAST_API_KEY')
+        if not api_key:
+            logger.error("VAST_API_KEY not set")
+            return None
+
+        # Set API key
+        subprocess.run(['vastai', 'set', 'api-key', api_key],
+                      capture_output=True, timeout=30)
+
+        # Search for offers
+        logger.info(f"Searching for {gpu_count}x {gpu_type} instances under ${max_bid}/hr")
+        query = f"num_gpus>={gpu_count} gpu_name={gpu_type} rentable=true"
+
+        result = subprocess.run([
+            'vastai', 'search', 'offers', '--raw',
+            '--limit', '10', '--order', 'dph_total', query
+        ], capture_output=True, text=True, timeout=60)
+
+        if result.returncode != 0:
+            logger.error(f"Search failed: {result.stderr}")
+            return None
+
+        try:
+            offers = json.loads(result.stdout)
+        except json.JSONDecodeError:
+            logger.error(f"Invalid JSON: {result.stdout[:200]}")
+            return None
 
         if not offers:
-            logger.error("No suitable offers found")
+            logger.error("No offers found")
             return None
 
         # Filter by price
-        suitable_offers = [
-            o for o in offers
-            if o.get('dph_total', float('inf')) <= max_bid * gpu_count
-        ]
+        max_total = max_bid * gpu_count
+        suitable = [o for o in offers if o.get('dph_total', float('inf')) <= max_total]
 
-        if not suitable_offers:
-            logger.error(f"No offers under ${max_bid}/GPU/hr")
+        if not suitable:
+            logger.error(f"No offers under ${max_total:.2f}/hr")
             return None
 
-        best_offer = suitable_offers[0]
-        logger.info(f"Selected offer: {best_offer['id']} at ${best_offer['dph_total']:.2f}/hr")
+        best = suitable[0]
+        offer_id = best['id']
+        logger.info(f"Selected offer {offer_id} at ${best['dph_total']:.2f}/hr")
 
-        # Create instance
-        # Note: onstart.sh URL should be from the repo
+        # Build create command
         onstart_url = "https://raw.githubusercontent.com/seconds-0/beautifulsoup-rl/main/scripts/onstart.sh"
+        cmd = [
+            'vastai', 'create', 'instance', str(offer_id),
+            '--image', 'nvidia/cuda:12.1-devel-ubuntu22.04',
+            '--disk', '100',
+            '--label', f'bs4-training-{run_id}',
+            '--onstart-cmd', f'curl -sSL {onstart_url} | bash',
+            '--raw',
+            '-e', f'RUN_ID={run_id}',
+            '-e', 'B2_BUCKET=beautifulsoup-rl',
+        ]
 
-        instance = vast.create_instance(
-            offer_id=best_offer['id'],
-            image="nvidia/cuda:12.1-devel-ubuntu22.04",
-            label=f"bs4-training-{run_id}",
-            onstart=f"curl -sSL {onstart_url} | bash",
-            env={
-                'RUN_ID': run_id,
-                'B2_APPLICATION_KEY_ID': os.environ.get('B2_APPLICATION_KEY_ID', ''),
-                'B2_APPLICATION_KEY': os.environ.get('B2_APPLICATION_KEY', ''),
-                'B2_BUCKET': 'beautifulsoup-rl',
-                'WANDB_API_KEY': os.environ.get('WANDB_API_KEY', ''),
-            }
-        )
+        for var in ['B2_APPLICATION_KEY_ID', 'B2_APPLICATION_KEY', 'WANDB_API_KEY']:
+            if os.environ.get(var):
+                cmd.extend(['-e', f'{var}={os.environ[var]}'])
 
-        logger.info(f"Created instance: {instance}")
-        return instance
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+
+        if result.returncode != 0:
+            logger.error(f"Create failed: {result.stderr}")
+            return None
+
+        try:
+            return json.loads(result.stdout)
+        except json.JSONDecodeError:
+            return {'status': 'created', 'raw': result.stdout}
 
     except Exception as e:
         logger.error(f"Error provisioning instance: {e}")
@@ -260,19 +315,29 @@ def terminate_instances(run_id: str) -> int:
     Returns number of instances terminated.
     """
     try:
-        import vastai
-        vast = vastai.VastAI(api_key=os.environ.get('VAST_API_KEY'))
+        # Import from our provision_vast module
+        from provision_vast import terminate_instances as vast_terminate
+        return vast_terminate(run_id, force=True)
+    except ImportError:
+        # Fallback to direct CLI call
+        import subprocess
 
         instances = check_existing_instances(run_id)
         terminated = 0
 
         for inst in instances:
-            try:
-                logger.info(f"Terminating instance {inst['id']}")
-                vast.destroy_instance(inst['id'])
+            inst_id = inst['id']
+            logger.info(f"Terminating instance {inst_id}")
+
+            result = subprocess.run(
+                ['vastai', 'destroy', 'instance', str(inst_id)],
+                capture_output=True, text=True, timeout=60
+            )
+
+            if result.returncode == 0:
                 terminated += 1
-            except Exception as e:
-                logger.error(f"Failed to terminate {inst['id']}: {e}")
+            else:
+                logger.error(f"Failed to terminate {inst_id}: {result.stderr}")
 
         return terminated
 
