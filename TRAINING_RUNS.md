@@ -4,6 +4,122 @@ Track all RL training experiments for BeautifulSoup environment.
 
 ## Active Runs
 
+### Run: bs4-rl-qwen3-8b-2xh100-v4-resilient (2026-01-06) - RUNNING ✅
+
+- **Model**: Qwen/Qwen3-8B (8.2B params)
+- **Config**: /root/config.toml (2x H100 Prime pod)
+- **Pod**: Prime Intellect 2x H100 80GB (86.38.238.54:1234)
+- **Status**: RUNNING ✅
+- **W&B Project**: beautiful-soup-env
+- **Step Time**: ~3-5 minutes
+- **Current Step**: 80 (as of 09:20 UTC on 2026-01-06)
+- **Rewards**: Training progressing well
+
+#### Incidents and Recovery
+
+**1. vLLM Crash After Step 6 (03:00 UTC)**
+- Inference server on GPU 0 died silently
+- GPU 0 showed 0 MiB memory
+- Trainer stuck waiting for batches
+
+**Recovery:**
+```bash
+# Kill all processes
+pkill -9 python
+
+# Restart from checkpoint step 5
+uv run rl @ /root/config.toml --ckpt --ckpt.resume-step 5 --ckpt.interval 5 --ckpt.keep-last 2
+```
+
+Training resumed successfully from step 5 at 03:15 UTC.
+
+**2. Disk Space Management (RESOLVED)**
+- Checkpoints are ~47GB each (31GB checkpoint + 16GB weights)
+- `--ckpt.keep-last 2` does NOT auto-delete old checkpoints
+
+**Solution deployed (2026-01-06 09:22 UTC):**
+1. **Disk cleanup daemon** (`/root/disk_cleanup.sh`): Automatically deletes oldest checkpoint when disk > 85%
+2. **B2 sync daemon** (`/root/periodic_sync.sh`): Syncs latest checkpoint to Backblaze B2 every 10 min
+3. **Updated `scripts/checkpoint_sync.sh`**: Now cleans up old local checkpoints after successful B2 sync
+
+**Daemons running:**
+```bash
+# Verify with:
+ps aux | grep -E "(cleanup|sync)" | grep -v grep
+```
+
+#### Config (v4 - Resilient)
+
+```toml
+inference_gpu_ids = [0]
+trainer_gpu_ids = [1]
+max_steps = 1000
+
+[model]
+name = "Qwen/Qwen3-8B"
+
+[wandb]
+project = "beautiful-soup-env"
+name = "bs4-rl-qwen3-8b-2xh100-v4-resilient"
+
+[trainer.optim]
+lr = 1e-5
+weight_decay = 0.0
+
+[trainer.model]
+seq_len = 4096
+
+[trainer.model.lora]
+rank = 8
+alpha = 32
+dropout = 0.0
+target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+
+[orchestrator]
+batch_size = 128
+rollouts_per_example = 8
+seq_len = 4096
+oversampling_factor = 2.0
+lora_name = "qwen3-8b-bs4-lora"
+
+[orchestrator.sampling]
+max_tokens = 4096
+temperature = 0.7
+
+[orchestrator.buffer]
+online_difficulty_filtering = true
+
+[[orchestrator.env]]
+id = "seconds-0/beautiful-soup-env"
+
+[orchestrator.env.args]
+split = "train"
+mode = "tiered"
+difficulty = "mixed"
+seed = 42
+executor_backend = "local"
+network_access = true
+timeout_s = 30.0
+max_output_chars = 10000
+
+[inference]
+gpu_memory_utilization = 0.90
+
+[inference.model]
+enable_auto_tool_choice = true
+tool_call_parser = "hermes"
+enforce_eager = true
+```
+
+#### Lessons Learned
+
+1. **vLLM can crash silently** - Monitor GPU memory, not just process count
+2. **Checkpoint cleanup doesn't work** - `--ckpt.keep-last N` doesn't delete old checkpoints
+3. **47GB per checkpoint** - Plan for manual cleanup every 5 steps with 65GB free disk
+4. **Resume works well** - Training successfully resumes from checkpoint with full continuity
+
+---
+
 ### Run: bs4-rl-qwen3-8b-2xh100-v3 (2026-01-05) - RUNNING ✅
 
 - **Model**: Qwen/Qwen3-8B (8.2B params)
@@ -547,6 +663,21 @@ uv run rl @ configs/prime-rl/qwen2.5-7b-h100.toml \
 - **Trainer**: FSDP model shards, optimizer/scheduler state, progress metrics
 - **Orchestrator**: Progress (step, tokens, samples)
 - **Inference**: Nothing (stateless) - orchestrator reloads correct weights automatically
+
+**WARNING: `--ckpt.keep-last N` does NOT auto-delete old checkpoints!**
+
+As of 2026-01-06, the `--ckpt.keep-last` flag does not actually clean up old checkpoints. Both checkpoints and weights directories accumulate:
+- Each checkpoint: ~31GB (optimizer state, model shards)
+- Each weight save: ~16GB (model weights)
+- Total per step: ~47GB
+
+**Manual cleanup required:**
+```bash
+# After step 15 checkpoint is saved, delete step 10
+rm -rf /app/outputs/checkpoints/step_10 /app/outputs/weights/step_10
+```
+
+Plan for disk to fill to ~90% at each checkpoint save, then manually clean up to recover space.
 
 ---
 
