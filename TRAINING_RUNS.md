@@ -4,16 +4,34 @@ Track all RL training experiments for BeautifulSoup environment.
 
 ## Active Runs
 
-### Run: bs4-rl-qwen3-8b-2xh100-v4-resilient (2026-01-06) - RUNNING ✅
+### Run: bs4-rl-qwen3-8b-vastai (2026-01-06) - LOADING ⏳
+
+- **Model**: Qwen/Qwen3-8B (8.2B params)
+- **Config**: Will resume from B2 checkpoint
+- **Pod**: Vast.ai 2x RTX 4090 (ssh7.vast.ai:27800)
+- **Instance ID**: 29547800
+- **Status**: LOADING ⏳ (onstart script running)
+- **Cost**: $0.51/hr
+- **Location**: Netherlands
+- **W&B Project**: beautiful-soup-env
+- **Resume from**: Step 98 (from B2 checkpoint)
+
+**SSH**: `ssh root@ssh7.vast.ai -p 27800`
+
+**Monitor**: `vastai show instances --raw | jq '.[0].actual_status'`
+
+---
+
+### Run: bs4-rl-qwen3-8b-2xh100-v4-resilient (2026-01-06) - STALLED ⚠️
 
 - **Model**: Qwen/Qwen3-8B (8.2B params)
 - **Config**: /root/config.toml (2x H100 Prime pod)
 - **Pod**: Prime Intellect 2x H100 80GB (86.38.238.54:1234)
-- **Status**: RUNNING ✅
+- **Status**: STALLED ⚠️ (no progress for 140+ minutes at step 98)
 - **W&B Project**: beautiful-soup-env
 - **Step Time**: ~3-5 minutes
-- **Current Step**: 80 (as of 09:20 UTC on 2026-01-06)
-- **Rewards**: Training progressing well
+- **Last Step**: 98 (stalled since ~01:00 UTC)
+- **Replaced by**: bs4-rl-qwen3-8b-vastai
 
 #### Incidents and Recovery
 
