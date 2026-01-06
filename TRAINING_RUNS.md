@@ -4,34 +4,25 @@ Track all RL training experiments for BeautifulSoup environment.
 
 ## Active Runs
 
-### Run: bs4-rl-qwen3-8b-vastai (2026-01-06) - LOADING ⏳
-
-- **Model**: Qwen/Qwen3-8B (8.2B params)
-- **Config**: Will resume from B2 checkpoint
-- **Pod**: Vast.ai 2x RTX 4090 (ssh7.vast.ai:27800)
-- **Instance ID**: 29547800
-- **Status**: LOADING ⏳ (onstart script running)
-- **Cost**: $0.51/hr
-- **Location**: Netherlands
-- **W&B Project**: beautiful-soup-env
-- **Resume from**: Step 98 (from B2 checkpoint)
-
-**SSH**: `ssh root@ssh7.vast.ai -p 27800`
-
-**Monitor**: `vastai show instances --raw | jq '.[0].actual_status'`
-
----
-
-### Run: bs4-rl-qwen3-8b-2xh100-v4-resilient (2026-01-06) - STALLED ⚠️
+### Run: bs4-rl-qwen3-8b-2xh100-v4-resilient (2026-01-06) - RUNNING ✅
 
 - **Model**: Qwen/Qwen3-8B (8.2B params)
 - **Config**: /root/config.toml (2x H100 Prime pod)
 - **Pod**: Prime Intellect 2x H100 80GB (86.38.238.54:1234)
-- **Status**: STALLED ⚠️ (no progress for 140+ minutes at step 98)
+- **Status**: RUNNING ✅
 - **W&B Project**: beautiful-soup-env
-- **Step Time**: ~3-5 minutes
-- **Last Step**: 98 (stalled since ~01:00 UTC)
-- **Replaced by**: bs4-rl-qwen3-8b-vastai
+- **Step Time**: Variable (5-25 min, some steps have 30+ min gaps)
+- **Current Step**: 101 (as of 11:30 UTC)
+- **Rewards**: Training progressing well
+
+#### Recent Investigation (2026-01-06 11:30 UTC)
+
+Training appeared stalled at step 98 but actually was progressing. Investigation showed:
+- WandB sampling lag caused apparent 141-min gap
+- Actual gaps were 30-33 min (checkpointing/disk cleanup)
+- Training continued to step 101
+
+A backup Vast.ai pod (instance 29547800) was provisioned but terminated after confirming Prime pod was healthy
 
 #### Incidents and Recovery
 
