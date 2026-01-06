@@ -30,7 +30,7 @@
 # Changes from v1:
 #   - gpu_memory_utilization: 0.80 → 0.90 (more KV cache)
 #   - enable_prefix_caching: added (reuse KV cache for shared prompts)
-#   - oversampling_factor: 2.0 → 1.5 (less wasted inference)
+#   - oversampling_factor: 2.0 → 1.25 (Codex recommended, 38% less inference)
 # Expected improvement: ~30-40% faster inference
 
 # 2-GPU layout: inference on GPU 0, trainer on GPU 1
@@ -76,7 +76,7 @@ target_modules = [
 batch_size = 64
 rollouts_per_example = 4
 seq_len = 4096
-oversampling_factor = 1.5  # v2: reduced from 2.0, less wasted inference
+oversampling_factor = 1.25  # v2: reduced from 2.0, Codex recommended minimum
 lora_name = "qwen25-3b-bs4-lora-5090-curriculum"
 
 [orchestrator.sampling]
