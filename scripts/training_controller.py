@@ -207,7 +207,7 @@ def check_existing_instances(run_id: str) -> list:
 
         # Filter by our label
         label = f"bs4-training-{run_id}"
-        return [inst for inst in instances if inst.get('label', '').startswith(label)]
+        return [inst for inst in instances if (inst.get('label') or '').startswith(label)]
 
     except Exception as e:
         logger.error(f"Error checking Vast.ai instances: {e}")

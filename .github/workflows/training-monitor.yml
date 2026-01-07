@@ -17,7 +17,7 @@ on:
           - terminate    # Terminate all training instances
 
 env:
-  RUN_ID: bs4-qwen3-8b
+  RUN_ID: bs4-rl-qwen3-8b-2xh100-v4-resilient
   WANDB_PROJECT: beautiful-soup-env
   WANDB_ENTITY: seconds-0-domus-magna-inc
   GPU_TYPE: H100_PCIE

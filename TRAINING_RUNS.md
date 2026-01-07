@@ -11,11 +11,25 @@ Track all RL training experiments for BeautifulSoup environment.
 - **Pod**: Prime Intellect 2x H100 80GB (86.38.238.54:1234)
 - **Status**: RUNNING ✅
 - **W&B Project**: beautiful-soup-env
-- **Step Time**: Variable (5-25 min, some steps have 30+ min gaps)
-- **Current Step**: 101 (as of 11:30 UTC)
+- **Step Time**: Variable (5-8 min average)
+- **Current Step**: 395+ (as of 2026-01-07 16:55 UTC)
 - **Rewards**: Training progressing well
 
-#### Recent Investigation (2026-01-06 11:30 UTC)
+#### Recent Investigation (2026-01-07 16:55 UTC)
+
+WandB monitoring reported training stalled at step 390 for ~100 minutes. SSH investigation showed:
+- **Training is HEALTHY** - step 395 completed at 16:54 UTC
+- Both GPUs active (GPU0: 66% util, GPU1: trainer running)
+- Disk at 71% (53GB free) - healthy
+- Cleanup/sync daemons running
+
+**Root cause**: WandB metrics not syncing to API (one 502 error logged on Jan 6). Training continued locally but WandB dashboard lagged behind.
+
+**Also fixed** workflow bugs that prevented auto-recovery from detecting the run:
+- RUN_ID mismatch in `.github/workflows/training-monitor.yml` (was `bs4-qwen3-8b`, should be `bs4-rl-qwen3-8b-2xh100-v4-resilient`)
+- NoneType bug in `training_controller.py` and `provision_vast.py` when instance has null label
+
+#### Previous Investigation (2026-01-06 11:30 UTC)
 
 Training appeared stalled at step 98 but actually was progressing. Investigation showed:
 - WandB sampling lag caused apparent 141-min gap

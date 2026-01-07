@@ -166,7 +166,7 @@ def list_instances(run_id: Optional[str] = None) -> list:
 
     if run_id:
         label_prefix = f"bs4-training-{run_id}"
-        instances = [i for i in instances if i.get('label', '').startswith(label_prefix)]
+        instances = [i for i in instances if (i.get('label') or '').startswith(label_prefix)]
 
     return instances
 
