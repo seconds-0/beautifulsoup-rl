@@ -7,6 +7,40 @@ from typing import Literal
 
 
 @dataclass
+class CurriculumPhase:
+    """Single phase in a curriculum schedule (for future implementation).
+
+    NOTE: Curriculum learning is not yet implemented. This dataclass is
+    preserved for future use. See verifiers_adapter.py for architecture notes.
+
+    Defines difficulty weights to use until a specific training step.
+    Phases should be ordered by `until_step` in ascending order.
+
+    Attributes:
+        until_step: Training step at which this phase ends (exclusive).
+            The last phase should use a high value (e.g., 999999) or the max_steps.
+        weights: Difficulty weights for this phase. Keys are difficulty names
+            ("primer", "easy", "medium", "hard"), values are relative weights.
+            Weights are normalized so they don't need to sum to 1.0.
+
+    Example:
+        CurriculumPhase(until_step=150, weights={"primer": 0.8, "easy": 0.2})
+    """
+
+    until_step: int
+    weights: dict[str, float] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        """Validate phase configuration."""
+        if self.until_step <= 0:
+            raise ValueError(f"until_step must be positive, got {self.until_step}")
+        valid_difficulties = {"primer", "easy", "medium", "hard"}
+        for key in self.weights:
+            if key not in valid_difficulties:
+                raise ValueError(f"Invalid difficulty '{key}', must be one of {valid_difficulties}")
+
+
+@dataclass
 class EnvConfig:
     """Configuration for the BeautifulSoup RL environment.
 
@@ -80,6 +114,12 @@ class EnvConfig:
     cache_datasets: bool = True
     cache_dir: str | None = None  # Custom cache dir (default: ~/.cache/bs4_env/datasets/)
     force_rebuild_cache: bool = False  # Force regeneration even if cache exists
+
+    # Curriculum learning (NOT YET IMPLEMENTED - see verifiers_adapter.py for notes)
+    # These fields are preserved for future implementation
+    curriculum_enabled: bool = False
+    curriculum_phases: list[CurriculumPhase] = field(default_factory=list)
+    samples_per_step: int = 256  # batch_size * rollouts_per_example (for step estimation)
 
     def __post_init__(self) -> None:
         """Validate configuration after initialization."""

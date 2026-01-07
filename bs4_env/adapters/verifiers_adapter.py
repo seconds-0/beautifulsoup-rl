@@ -304,6 +304,27 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any, **env_kwargs: Any) -> 
     class BeautifulSoupEnv(vf.StatefulToolEnv):
         """BeautifulSoup RL environment with per-task state."""
 
+        # TODO: Curriculum Learning (Future Implementation)
+        #
+        # A previous curriculum implementation was removed because it used class-level
+        # state that doesn't work with multi-process training. A proper implementation needs:
+        #
+        # 1. EXTERNAL STEP INJECTION: Training step must come from orchestrator, not internal counter
+        #    - Add `step: int` parameter to reset() or setup_state()
+        #    - Orchestrator passes current global step to all workers
+        #
+        # 2. IMMUTABLE WEIGHTS: Difficulty weights should not mutate shared config
+        #    - CurriculumScheduler.get_weights(step) -> dict (pure function)
+        #    - Pass weights to dataset at creation, not modify at runtime
+        #
+        # 3. NO CLASS-LEVEL STATE: All state must be instance-level or external
+        #    - Don't use class variables like _sample_count, _current_phase_idx
+        #    - Step count lives in orchestrator, not environment
+        #
+        # 4. DETERMINISTIC: Same step -> same weights, regardless of which worker
+        #
+        # See: https://github.com/seconds-0/beautifulsoup-rl/issues/16
+
         async def setup_state(self, state: dict, **kwargs) -> dict:
             """Set up task-specific state from the dataset row."""
             state = await super().setup_state(state, **kwargs)
