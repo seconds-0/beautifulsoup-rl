@@ -188,16 +188,36 @@ else
     echo -e "  ${GREEN}No checkpoints (fresh start OK)${NC}"
 fi
 
-# 7. Check disk space
+# 7. Check disk space (CRITICAL: checkpoints are ~13GB each!)
 echo ""
 echo "[7/8] Checking disk space..."
 DISK_AVAIL=$(df -BG /root 2>/dev/null | tail -1 | awk '{print $4}' | tr -d 'G')
+DISK_TOTAL=$(df -BG /root 2>/dev/null | tail -1 | awk '{print $2}' | tr -d 'G')
 if [ -n "$DISK_AVAIL" ]; then
-    if [ "$DISK_AVAIL" -lt 30 ]; then
-        echo -e "  ${RED}FAIL: Only ${DISK_AVAIL}GB free (need 30GB+)${NC}"
+    # Calculate existing checkpoint usage
+    CKPT_SIZE=$(du -s "$PRIME_RL_DIR/outputs/checkpoints" 2>/dev/null | cut -f1)
+    CKPT_SIZE_GB=$((CKPT_SIZE / 1024 / 1024))
+    CKPT_COUNT=$(ls -d "$PRIME_RL_DIR/outputs/checkpoints"/step_* 2>/dev/null | wc -l)
+
+    echo "  Disk: ${DISK_AVAIL}GB free of ${DISK_TOTAL}GB"
+    if [ "$CKPT_COUNT" -gt 0 ]; then
+        echo "  Checkpoints: ${CKPT_COUNT} saved (${CKPT_SIZE_GB}GB total)"
+    fi
+
+    # Each checkpoint is ~13GB, need room for 4 during rotation (keep-last 3 + new)
+    MIN_FREE=52  # 4 * 13GB
+    WARN_FREE=65  # 5 * 13GB
+
+    if [ "$DISK_AVAIL" -lt "$MIN_FREE" ]; then
+        echo -e "  ${RED}FAIL: Only ${DISK_AVAIL}GB free (need ${MIN_FREE}GB+ for checkpoints)${NC}"
+        echo "    Each checkpoint is ~13GB. With keep-last 3, you need room for 4 during rotation."
+        echo "    Fix: Clean old checkpoints or increase disk size"
+        echo "    Run: bash scripts/cleanup_local_checkpoints.sh"
         ((ERRORS++))
-    elif [ "$DISK_AVAIL" -lt 50 ]; then
-        echo -e "  ${YELLOW}WARNING: ${DISK_AVAIL}GB free (recommend 50GB+)${NC}"
+    elif [ "$DISK_AVAIL" -lt "$WARN_FREE" ]; then
+        echo -e "  ${YELLOW}WARNING: ${DISK_AVAIL}GB free (recommend ${WARN_FREE}GB+)${NC}"
+        echo "    Consider running cleanup daemon during training:"
+        echo "    nohup bash scripts/cleanup_local_checkpoints.sh --daemon 5 > /tmp/cleanup.log 2>&1 &"
         ((WARNINGS++))
     else
         echo -e "  ${GREEN}${DISK_AVAIL}GB available (OK)${NC}"
