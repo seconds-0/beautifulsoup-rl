@@ -79,7 +79,9 @@ dmypy.json
 
 # Project specific
 results/
+results_*.json
 checkpoints/
+test_*.sh
 *.json.bak
 bench_manifest.json.local
 
