@@ -29,7 +29,7 @@
 # Config version: v2 (2026-01-06)
 # Changes from v1:
 #   - gpu_memory_utilization: 0.80 → 0.90 (more KV cache)
-#   - enable_prefix_caching: added (reuse KV cache for shared prompts)
+#   - enable_prefix_caching: NOT SUPPORTED by prime-rl (removed)
 #   - oversampling_factor: 2.0 → 1.25 (Codex recommended, 38% less inference)
 # Expected improvement: ~30-40% faster inference
 
@@ -141,5 +141,4 @@ enable_auto_tool_choice = true
 tool_call_parser = "hermes"
 # Disable CUDA graphs to avoid segfault in Ray workers
 enforce_eager = true
-# v2: Enable prefix caching for shared prompt tokens
-enable_prefix_caching = true
+# NOTE: enable_prefix_caching is NOT supported by prime-rl (vLLM-only param)
