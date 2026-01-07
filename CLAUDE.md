@@ -57,7 +57,17 @@ bs4_env/
 
 ## Critical Rules
 
-### 0. Prime-First Testing (Dogfood on Production)
+### 0. Always Check .env First
+**Before setting up credentials or environment variables, ALWAYS check `.env` in the project root.**
+
+This file contains:
+- API keys (PRIME_API_KEY, OPENROUTER_API_KEY, WANDB_API_KEY, VAST_API_KEY)
+- Cloud storage credentials (B2_APPLICATION_KEY_ID, B2_APPLICATION_KEY, B2_BUCKET)
+- Training configuration (RUN_ID, VLLM_* settings)
+
+Don't ask the user for credentials that are already in `.env`.
+
+### 1. Prime-First Testing (Dogfood on Production)
 **Test on Prime's actual infrastructure whenever possible.** Local testing is for rapid iteration only.
 
 **Why Prime-first:**
@@ -86,7 +96,7 @@ temperature = 0.7
 
 If local eval shows different results than Prime, check config alignment first.
 
-### 1. Never Derive Ground Truth by Parsing
+### 2. Never Derive Ground Truth by Parsing
 Ground truth must come from structured data BEFORE HTML rendering. Never do this:
 ```python
 # WRONG - label leakage
@@ -102,7 +112,7 @@ html = render_to_html(data)  # Render data to HTML
 ground_truth = data["title"]  # Ground truth from source data
 ```
 
-### 2. Deterministic Generation
+### 3. Deterministic Generation
 All generators must be deterministic given a seed:
 ```python
 def generate(self, seed: int) -> TaskInstance:
@@ -112,12 +122,12 @@ def generate(self, seed: int) -> TaskInstance:
 
 Use `stable_int_seed()` (SHA-256 based), NOT Python's `hash()` which is salted.
 
-### 3. Test Every Archetype
+### 4. Test Every Archetype
 Each archetype needs:
 - Determinism test (same seed → same output)
 - Grading test (correct answer → +1.0, wrong answer → 0.0)
 
-### 4. Local Development, Prime Validation
+### 5. Local Development, Prime Validation
 Use local executor for development, but validate on Prime:
 ```python
 # Development (fast iteration)
@@ -133,7 +143,7 @@ prime env eval seconds-0/beautiful-soup-env -m <model> -n 50
 - No sandboxing (security behaviors may differ)
 - Token counting may differ from Prime's tokenizer
 
-### 5. Normalization is Dangerous
+### 6. Normalization is Dangerous
 Start with strict exact-match. Only add normalization when demonstrably needed. Over-normalization enables reward hacking.
 
 ## Running Tests
@@ -227,6 +237,11 @@ export VLLM_USE_V1=0                      # Disable V1 engine (has LoRA issues)
 export VLLM_WORKER_MULTIPROC_METHOD=spawn # Prevent CUDA context inheritance
 export WANDB_API_KEY=<key>                # For logging
 ```
+
+**Finding API Keys**: Always check `.env` file in the repo root and `~/.netrc` for stored credentials before asking the user. Keys for this project:
+- `WANDB_API_KEY` → `.env` and GitHub secrets
+- `B2_APPLICATION_KEY_ID`, `B2_APPLICATION_KEY` → GitHub secrets
+- `VAST_API_KEY` → GitHub secrets
 
 ### Single-GPU Training Constraints
 
