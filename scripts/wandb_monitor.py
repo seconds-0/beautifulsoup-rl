@@ -147,8 +147,12 @@ def check_run_health(
         }
 
     # Check for stall (running but no progress)
+    # NOTE: run.history(samples=N) returns evenly-spaced samples across ALL history,
+    # NOT the last N entries. Use a high sample count to get recent data with better
+    # resolution. The max() will find the actual latest timestamp.
     try:
-        history = run.history(samples=5)
+        # Use high sample count for better resolution on recent data
+        history = run.history(samples=500)
         if not history.empty and '_timestamp' in history.columns:
             last_timestamp = history['_timestamp'].max()
             if last_timestamp:
