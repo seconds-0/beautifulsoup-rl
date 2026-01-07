@@ -919,6 +919,52 @@ rm -rf outputs/run_default/checkpoints/step_5   # Optional cleanup
 2. Don't mix checkpoint resume with stale orchestrator checkpoints
 3. Long-term fix needed in prime-rl: `runs.progress` should accept start_step from checkpoint loading
 
+### 5. Disk Full During Checkpoint Save (2026-01-07)
+
+**Symptom:**
+- Training crashes during "Saving checkpoint at step N"
+- Error: `RuntimeError: [enforce fail at inline_container.cc:664] . unexpected pos 704 vs 598`
+- `torch.distributed.checkpoint.api.CheckpointException`
+
+**Root Cause:**
+Each checkpoint is **~13GB** (model + optimizer state for 3B model with LoRA). With `--ckpt.keep-last 3`:
+- 3 existing checkpoints = 39GB
+- New checkpoint being written = 13GB
+- Total during rotation = **52GB minimum**
+
+Prime-rl's cleanup runs AFTER save completes. If disk is nearly full, save fails BEFORE cleanup can run.
+
+**Detection:**
+```bash
+df -h /root                                    # Check disk usage
+du -sh outputs/checkpoints/*                   # Check checkpoint sizes
+ls outputs/checkpoints/                        # Count checkpoints
+```
+
+**Immediate Fix:**
+```bash
+# Clean old checkpoints manually
+rm -rf outputs/checkpoints/step_5
+rm -rf outputs/checkpoints/step_10
+rm -rf outputs/run_default/checkpoints/step_5
+rm -rf outputs/run_default/checkpoints/step_10
+```
+
+**Prevention:**
+```bash
+# Run cleanup daemon during training (recommended)
+nohup bash scripts/cleanup_local_checkpoints.sh --daemon 5 --keep 2 > /tmp/cleanup.log 2>&1 &
+```
+
+**Disk Space Requirements:**
+| Checkpoints Kept | Min Free Space | Recommended |
+|------------------|----------------|-------------|
+| 2 | 39GB | 52GB |
+| 3 | 52GB | 65GB |
+| 4 | 65GB | 78GB |
+
+For 100GB disk with 3B model: Keep only 2 checkpoints, or use 150GB+ disk.
+
 ---
 
 ## Performance Optimization & Debugging
