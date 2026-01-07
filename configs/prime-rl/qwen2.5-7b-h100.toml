@@ -1,0 +1,110 @@
+# PRIME-RL config for Qwen2.5-7B on single H100 80GB
+# Model: Qwen/Qwen2.5-7B-Instruct
+#
+# CHECKPOINTING (via CLI flags, not TOML):
+#   --ckpt                  Enable checkpointing (OFF by default!)
+#   --ckpt.interval N       Save every N steps (e.g., 5 for validation runs)
+#   --ckpt.keep-last N      Keep only last N checkpoints (e.g., 3)
+#   --ckpt.save-async       Non-blocking checkpoint saves
+#   --ckpt.resume-step N    Resume training from step N
+#
+# Example launch command for 25-step validation with checkpointing:
+#   export VLLM_USE_V1=0
+#   export VLLM_WORKER_MULTIPROC_METHOD=spawn
+#   uv run rl @ configs/prime-rl/qwen2.5-7b-h100.toml \
+#     --ckpt --ckpt.interval 5 --ckpt.keep-last 3 \
+#     --max-steps 25
+#
+# Checkpoints saved to: checkpoints/step_N/
+#
+# Resume from checkpoint example:
+#   uv run rl @ configs/prime-rl/qwen2.5-7b-h100.toml \
+#     --ckpt.resume-step 20 --max-steps 50
+
+# Single H100 layout - inference and training share the GPU
+# CRITICAL: Both must fit in 80GB - see memory settings below
+inference_gpu_ids = [0]
+trainer_gpu_ids = [0]
+
+# Start with 25 steps for validation, increase once stable
+max_steps = 25
+
+[model]
+name = "Qwen/Qwen2.5-7B-Instruct"
+
+[wandb]
+project = "beautiful-soup-env"
+name = "bs4-rl-qwen2.5-7b-h100"
+
+[trainer.optim]
+lr = 1e-5
+weight_decay = 0.0
+
+[trainer.model]
+# Reduced seq_len for single-GPU memory constraints
+seq_len = 2048
+
+[trainer.model.ac]
+# CRITICAL: Full activation checkpointing - saves ~20GB on 7B model
+# Without this, trainer will OOM on single GPU with vLLM
+freq = 1
+
+[trainer.model.lora]
+rank = 8
+alpha = 32
+dropout = 0.0
+target_modules = [
+  "q_proj",
+  "k_proj",
+  "v_proj",
+  "o_proj",
+  "gate_proj",
+  "up_proj",
+  "down_proj"
+]
+
+[orchestrator]
+# Reduced for single GPU - vLLM needs memory headroom
+batch_size = 8
+rollouts_per_example = 2
+seq_len = 2048
+oversampling_factor = 2.0
+lora_name = "qwen2.5-7b-bs4-lora"
+
+[orchestrator.sampling]
+# CRITICAL: max_tokens + input_tokens must be <= max_model_len
+# With max_model_len=4096 and typical inputs of ~1300-1500 tokens,
+# max_tokens=2000 is safe. Using 4000 will cause:
+#   ValueError: 'max_tokens' is too large: 4000. This model's maximum
+#   context length is 4096 tokens and your request has 1297 input tokens
+max_tokens = 2000
+
+[orchestrator.buffer]
+online_difficulty_filtering = true
+
+[[orchestrator.env]]
+id = "seconds-0/beautiful-soup-env"
+
+[orchestrator.env.args]
+split = "train"
+mode = "tiered"
+difficulty = "mixed"
+seed = 42
+executor_backend = "prime"
+network_access = true
+timeout_s = 30.0
+max_output_chars = 10000
+
+[inference]
+# CRITICAL: Leave room for trainer! Default 0.9 will OOM.
+# Trainer loads first (~30GB for 7B), then vLLM tries to claim memory.
+gpu_memory_utilization = 0.50
+
+[inference.model]
+# Qwen2.5 uses Hermes-style tool calling (not mistral)
+enable_auto_tool_choice = true
+tool_call_parser = "hermes"
+# Disable CUDA graphs to avoid segfault in Ray workers
+enforce_eager = true
+# Context window - must be >= max_tokens + max expected input
+max_model_len = 4096

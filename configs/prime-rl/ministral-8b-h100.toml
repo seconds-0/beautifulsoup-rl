@@ -1,0 +1,71 @@
+# PRIME-RL config for Ministral-8B on single H100
+# Model: mistralai/Ministral-3-8B-Instruct-2512
+# Baseline: 63.2% (only model that actually uses tools)
+
+# Single H100 layout - inference and training share the GPU
+inference_gpu_ids = [0]
+trainer_gpu_ids = [0]
+
+max_steps = 1000
+
+[model]
+name = "mistralai/Ministral-3-8B-Instruct-2512"
+
+[wandb]
+project = "beautiful-soup-env"
+name = "bs4-rl-ministral-8b-h100"
+
+[trainer.optim]
+lr = 1e-5
+weight_decay = 0.0
+
+[trainer.model]
+seq_len = 4096
+
+[trainer.model.lora]
+rank = 8
+alpha = 32
+dropout = 0.0
+target_modules = [
+  "q_proj",
+  "k_proj",
+  "v_proj",
+  "o_proj",
+  "gate_proj",
+  "up_proj",
+  "down_proj"
+]
+
+[orchestrator]
+batch_size = 64  # Reduced for single GPU
+rollouts_per_example = 8
+seq_len = 4096
+oversampling_factor = 2.0
+lora_name = "ministral-8b-bs4-lora"
+
+[orchestrator.sampling]
+max_tokens = 10000
+
+[orchestrator.buffer]
+online_difficulty_filtering = true
+
+[[orchestrator.env]]
+id = "seconds-0/beautiful-soup-env"
+
+[orchestrator.env.args]
+split = "train"
+mode = "tiered"
+difficulty = "mixed"
+seed = 42
+executor_backend = "prime"
+network_access = true
+timeout_s = 30.0
+max_output_chars = 10000
+
+[inference.model]
+enable_auto_tool_choice = true
+tool_call_parser = "mistral"
+tokenizer_mode = "mistral"
+config_format = "mistral"
+load_format = "mistral"
+enforce_eager = true

@@ -1,0 +1,85 @@
+# PRIME-RL Bootstrap config for Qwen3-8B on 2x H100
+#
+# Bootstrap approach: Start with easy tasks, ramp to harder
+# Phase 1: mode="bootstrap", difficulty="easy" (this config)
+# Phase 2: mode="tiered", difficulty="mixed" (standard config)
+#
+# Launch:
+#   export VLLM_USE_V1=0
+#   export VLLM_WORKER_MULTIPROC_METHOD=spawn
+#   export WANDB_API_KEY=<key>
+#   export HF_TOKEN=<token>
+#   uv run rl @ configs/prime-rl/qwen3-8b-bootstrap.toml \
+#     --ckpt --ckpt.interval 5 --ckpt.keep-last 3
+
+# 2-GPU layout: inference on GPU 0, trainer on GPU 1
+inference_gpu_ids = [0]
+trainer_gpu_ids = [1]
+
+# Bootstrap phase: fewer steps, then switch to full curriculum
+max_steps = 200
+
+[model]
+name = "Qwen/Qwen3-8B"
+
+[wandb]
+project = "beautiful-soup-env"
+name = "bs4-rl-qwen3-8b-bootstrap"
+
+[trainer.optim]
+lr = 1e-5
+weight_decay = 0.0
+
+[trainer.model]
+seq_len = 4096
+
+[trainer.model.lora]
+rank = 8
+alpha = 32
+dropout = 0.0
+target_modules = [
+  "q_proj",
+  "k_proj",
+  "v_proj",
+  "o_proj",
+  "gate_proj",
+  "up_proj",
+  "down_proj"
+]
+
+[orchestrator]
+batch_size = 128
+rollouts_per_example = 8
+seq_len = 4096
+oversampling_factor = 2.0
+lora_name = "qwen3-8b-bs4-lora-bootstrap"
+
+[orchestrator.sampling]
+max_tokens = 10000
+temperature = 0.7
+
+[orchestrator.buffer]
+online_difficulty_filtering = true
+
+[[orchestrator.env]]
+id = "seconds-0/beautiful-soup-env"
+
+[orchestrator.env.args]
+split = "train"
+mode = "bootstrap"      # Bootstrap mode: easier tasks
+difficulty = "easy"     # Only easy difficulty
+seed = 42
+executor_backend = "prime"
+network_access = true
+timeout_s = 30.0
+max_output_chars = 10000
+
+[inference]
+gpu_memory_utilization = 0.90
+
+[inference.model]
+# Qwen3 tool calling - use hermes parser
+enable_auto_tool_choice = true
+tool_call_parser = "hermes"
+# Disable CUDA graphs to avoid segfault in Ray workers
+enforce_eager = true

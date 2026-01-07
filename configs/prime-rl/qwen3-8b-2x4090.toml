@@ -1,0 +1,101 @@
+# PRIME-RL config for Qwen3-8B on 2x RTX 4090 (Vast.ai)
+#
+# Model: Qwen/Qwen3-8B
+# - 8.2B params, instruction-tuned
+# - Ungated (Apache 2.0) - no license approval needed!
+#
+# Hardware: 2x RTX 4090 (24GB VRAM each)
+# - Total VRAM: 48GB (but NOT unified - 24GB per GPU)
+# - Must fit model OR trainer on each GPU separately
+#
+# Launch:
+#   export VLLM_USE_V1=0
+#   export VLLM_WORKER_MULTIPROC_METHOD=spawn
+#   export WANDB_API_KEY=<key>
+#   export HF_TOKEN=<token>
+#   uv run rl @ configs/prime-rl/qwen3-8b-2x4090.toml \
+#     --ckpt --ckpt.interval 5 --ckpt.keep-last 3
+#
+# Config version: v1 (2026-01-06)
+# Based on: qwen3-8b-2xh100.toml:v3
+# Changes:
+#   - gpu_memory_utilization 0.90 -> 0.45 (24GB vs 80GB)
+#   - Added activation checkpointing (freq=1)
+#   - batch_size 128 -> 64 (reduced for VRAM)
+#   - rollouts_per_example 8 -> 4 (reduced for VRAM)
+#   - max_tokens 4096 -> 2048 (reduced for VRAM)
+
+# 2-GPU layout: inference on GPU 0, trainer on GPU 1
+inference_gpu_ids = [0]
+trainer_gpu_ids = [1]
+
+max_steps = 1000
+
+[model]
+name = "Qwen/Qwen3-8B"
+
+[wandb]
+project = "beautiful-soup-env"
+name = "bs4-rl-qwen3-8b-2x4090-v1"
+
+[trainer.optim]
+lr = 1e-5
+weight_decay = 0.0
+
+[trainer.model]
+seq_len = 4096
+
+# Activation checkpointing - CRITICAL for 24GB VRAM
+[trainer.model.ac]
+freq = 1
+
+[trainer.model.lora]
+rank = 8
+alpha = 32
+dropout = 0.0
+target_modules = [
+  "q_proj",
+  "k_proj",
+  "v_proj",
+  "o_proj",
+  "gate_proj",
+  "up_proj",
+  "down_proj"
+]
+
+[orchestrator]
+batch_size = 64               # Reduced from 128 for VRAM
+rollouts_per_example = 4      # Reduced from 8 for VRAM
+seq_len = 4096
+oversampling_factor = 2.0
+lora_name = "qwen3-8b-bs4-lora-4090"
+
+[orchestrator.sampling]
+max_tokens = 2048             # Reduced from 4096 for VRAM
+temperature = 0.7
+
+[orchestrator.buffer]
+online_difficulty_filtering = true
+
+[[orchestrator.env]]
+id = "seconds-0/beautiful-soup-env"
+
+[orchestrator.env.args]
+split = "train"
+mode = "tiered"
+difficulty = "mixed"
+seed = 42
+executor_backend = "local"
+network_access = true
+timeout_s = 30.0
+max_output_chars = 10000
+
+[inference]
+gpu_memory_utilization = 0.45  # Leave room for vLLM on 24GB GPU
+
+[inference.model]
+# Qwen3 tool calling - use hermes parser
+enable_auto_tool_choice = true
+tool_call_parser = "hermes"
+# Disable CUDA graphs to avoid segfault in Ray workers
+enforce_eager = true
