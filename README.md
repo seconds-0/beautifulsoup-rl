@@ -181,7 +181,7 @@ env = load_environment(
 - **Default image**: Uses `python:3.11-slim` with `network_access=True` to pip install dependencies at runtime
 - **Prebuilt image (recommended for production)**: Use a custom Docker image with dependencies pre-installed and set `network_access=False`
 - Code execution timeout defaults to 30 seconds
-- A starter training config is available at `configs/prime-rl/beautiful-soup-env.toml`
+- A starter training config template is available at `configs/prime-rl/default.toml` (see also model-specific examples in the same directory)
 
 ### Prebuilt Image Strategy (for `network_access=False`)
 

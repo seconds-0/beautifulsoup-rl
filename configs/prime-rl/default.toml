@@ -1,0 +1,266 @@
+# =============================================================================
+# BeautifulSoup RL Environment - Default Training Configuration
+# =============================================================================
+#
+# This is a starter config for training on the BeautifulSoup RL environment.
+# Copy this file and customize for your model and hardware setup.
+#
+# Quick Start:
+#   1. Copy this file: cp default.toml my-training.toml
+#   2. Set [model].name to your chosen model
+#   3. Adjust GPU IDs for your hardware
+#   4. Run: uv run rl @ configs/prime-rl/my-training.toml
+#
+# Documentation: https://docs.primeintellect.ai/verifiers/training
+# Environment:   https://app.primeintellect.ai/dashboard/environments/seconds-0/beautiful-soup-env
+#
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# GPU CONFIGURATION
+# -----------------------------------------------------------------------------
+# prime-rl splits work between inference (vLLM) and training (PyTorch).
+# Each needs dedicated GPU(s). Common layouts:
+#
+#   2 GPUs (minimum):  inference_gpu_ids = [0], trainer_gpu_ids = [1]
+#   4 GPUs:            inference_gpu_ids = [0, 1], trainer_gpu_ids = [2, 3]
+#   8 GPUs:            inference_gpu_ids = [0, 1, 2, 3], trainer_gpu_ids = [4, 5, 6, 7]
+#
+# Rule of thumb: Split GPUs evenly, or give inference slightly more if using
+# large batch sizes or long sequences.
+
+inference_gpu_ids = [0]
+trainer_gpu_ids = [1]
+
+# -----------------------------------------------------------------------------
+# TRAINING DURATION
+# -----------------------------------------------------------------------------
+# max_steps = number of optimizer updates. Each step processes one batch.
+# For initial experiments, start with 100-200 steps to verify setup.
+# Full training runs typically need 500-2000+ steps depending on task.
+
+max_steps = 500
+
+# =============================================================================
+# MODEL CONFIGURATION
+# =============================================================================
+# Choose a model that:
+#   - Supports tool/function calling (required for this environment)
+#   - Fits in your GPU memory (with LoRA: ~1.2x model size in VRAM)
+#   - Is available on HuggingFace (not gated, or you have access)
+#
+# Tested models for this environment:
+#   - Qwen/Qwen3-8B              (8B, good baseline, hermes tool parser)
+#   - Qwen/Qwen2.5-7B-Instruct   (7B, stable, hermes tool parser)
+#   - mistralai/Ministral-8B-Instruct-2412  (8B, mistral tool parser)
+#
+# NOT recommended:
+#   - Vision-Language models (qwen-vl, llava) - wrong architecture
+#   - Models without tool calling support
+
+[model]
+name = "Qwen/Qwen3-8B"  # <-- CHANGE THIS to your model
+
+# =============================================================================
+# LOGGING (Optional but recommended)
+# =============================================================================
+# WandB logging for monitoring training progress.
+# Set WANDB_API_KEY environment variable before running.
+
+[wandb]
+project = "beautiful-soup-env"
+name = "bs4-training-run"  # <-- CHANGE THIS to identify your run
+
+# =============================================================================
+# TRAINER CONFIGURATION
+# =============================================================================
+
+[trainer.optim]
+# Learning rate: Start with 1e-5 for LoRA, 1e-6 for full fine-tuning.
+# If loss is unstable, reduce by 2-5x.
+lr = 1e-5
+weight_decay = 0.0
+
+[trainer.model]
+# Maximum sequence length for training. Must be >= orchestrator.seq_len.
+# 4096 is sufficient for most BeautifulSoup tasks.
+seq_len = 4096
+
+# -----------------------------------------------------------------------------
+# LoRA CONFIGURATION (Recommended for most users)
+# -----------------------------------------------------------------------------
+# LoRA (Low-Rank Adaptation) fine-tunes a small adapter instead of full weights.
+# Benefits: 10-100x less memory, faster training, easy to share/merge.
+#
+# To disable LoRA and do full fine-tuning, comment out this entire section.
+# Warning: Full fine-tuning requires significantly more GPU memory.
+
+[trainer.model.lora]
+rank = 8        # Higher = more capacity but more memory (8-64 typical)
+alpha = 32      # Scaling factor, usually 2-4x rank
+dropout = 0.0   # Dropout on LoRA weights (0.0-0.1)
+
+# Target modules for LoRA - these are standard for most transformer models.
+# Qwen, Llama, Mistral all use these names.
+target_modules = [
+  "q_proj",
+  "k_proj",
+  "v_proj",
+  "o_proj",
+  "gate_proj",
+  "up_proj",
+  "down_proj"
+]
+
+# =============================================================================
+# ORCHESTRATOR CONFIGURATION
+# =============================================================================
+# The orchestrator coordinates inference (generating completions) and
+# training (computing gradients from rewards).
+
+[orchestrator]
+# batch_size: Total rollouts per training step.
+# Scale based on GPU memory. Start conservative, increase if no OOM.
+#   - 2x 24GB GPUs (A5000/4090): batch_size = 64-128
+#   - 2x 40GB GPUs (A100-40):    batch_size = 128-256
+#   - 2x 80GB GPUs (A100-80/H100): batch_size = 256-512
+batch_size = 128
+
+# rollouts_per_example: How many completions to generate per prompt.
+# More = better gradient estimates but slower. 4-16 is typical.
+rollouts_per_example = 8
+
+# Sequence length for generation. Keep <= trainer.model.seq_len.
+seq_len = 4096
+
+# Oversampling: Generate extra rollouts to filter low-signal examples.
+# 2.0 = generate 2x rollouts, keep best half. Helps with sparse rewards.
+oversampling_factor = 2.0
+
+# LoRA adapter name (must be unique across runs if saving checkpoints)
+lora_name = "bs4-lora-adapter"  # <-- CHANGE THIS for your run
+
+# -----------------------------------------------------------------------------
+# GENERATION PARAMETERS
+# -----------------------------------------------------------------------------
+
+[orchestrator.sampling]
+# max_tokens: Maximum tokens per generation turn.
+# BeautifulSoup code is typically 100-500 tokens. 4096 gives headroom for
+# chain-of-thought reasoning before tool calls.
+max_tokens = 4096
+
+# temperature: Higher = more exploration, lower = more exploitation.
+# 0.7 is a good balance. Reduce to 0.3-0.5 for more deterministic behavior.
+temperature = 0.7
+
+# -----------------------------------------------------------------------------
+# DIFFICULTY FILTERING
+# -----------------------------------------------------------------------------
+# Online difficulty filtering automatically skips examples where the model
+# gets 0% or 100% reward (no learning signal). Highly recommended.
+
+[orchestrator.buffer]
+online_difficulty_filtering = true
+
+# =============================================================================
+# ENVIRONMENT CONFIGURATION
+# =============================================================================
+# This section configures the BeautifulSoup RL environment.
+
+[[orchestrator.env]]
+id = "seconds-0/beautiful-soup-env"
+
+[orchestrator.env.args]
+# split: Which data split to use
+#   - "train": 1000 seeds per archetype (for training)
+#   - "eval":  100 seeds per archetype (for validation)
+#   - "bench": Fixed 1040 tasks (for benchmarking)
+split = "train"
+
+# mode: Which archetypes to include
+#   - "mvp":      29 core archetypes (stable, production-ready)
+#   - "all":      52 archetypes (includes harder phase 2)
+#   - "tiered":   52 archetypes with difficulty-weighted sampling
+#   - "bootstrap": Easy archetypes for 0% baseline models
+mode = "tiered"
+
+# difficulty: Filter by difficulty level
+#   - "mixed": All difficulties (recommended)
+#   - "primer"/"easy"/"medium"/"hard": Specific difficulty only
+difficulty = "mixed"
+
+# Random seed for reproducibility
+seed = 42
+
+# executor_backend: Where to run model-generated code
+#   - "local":  Fast (~0.05s/call), runs in subprocess, no sandboxing
+#   - "prime":  Secure (~1.5s/call), runs in Prime sandbox, isolated
+# Use "local" for training speed, "prime" for untrusted code evaluation.
+executor_backend = "local"
+
+# network_access: Whether executed code can access the internet
+# Keep false for determinism and security.
+network_access = false
+
+# Timeout for code execution (seconds)
+timeout_s = 30.0
+
+# Maximum output characters from code execution
+max_output_chars = 10000
+
+# =============================================================================
+# INFERENCE (vLLM) CONFIGURATION
+# =============================================================================
+
+[inference]
+# GPU memory fraction for vLLM. Leave headroom for KV cache.
+# 0.90 works for most setups. Reduce to 0.85 if OOM during long sequences.
+gpu_memory_utilization = 0.90
+
+[inference.model]
+# Tool calling configuration - IMPORTANT: Must match your model's format!
+#
+# For Qwen models (Qwen3, Qwen2.5):
+#   enable_auto_tool_choice = true
+#   tool_call_parser = "hermes"
+#
+# For Mistral models:
+#   enable_auto_tool_choice = true
+#   tool_call_parser = "mistral"
+#   tokenizer_mode = "mistral"
+#   config_format = "mistral"
+#   load_format = "mistral"
+#
+# For Llama models with tool calling:
+#   enable_auto_tool_choice = true
+#   tool_call_parser = "llama3_json"
+
+enable_auto_tool_choice = true
+tool_call_parser = "hermes"  # <-- CHANGE THIS if not using Qwen
+
+# Disable CUDA graphs to avoid segfaults in Ray workers (common vLLM issue)
+enforce_eager = true
+
+# =============================================================================
+# RUNNING TRAINING
+# =============================================================================
+#
+# Prerequisites:
+#   export WANDB_API_KEY=<your-key>        # For logging
+#   export HF_TOKEN=<your-token>           # If using gated models
+#   export VLLM_USE_V1=0                   # Disable vLLM V1 (has LoRA issues)
+#   export VLLM_WORKER_MULTIPROC_METHOD=spawn  # Prevent CUDA issues
+#
+# Start training:
+#   uv run rl @ configs/prime-rl/my-training.toml
+#
+# With checkpointing (HIGHLY RECOMMENDED for long runs):
+#   uv run rl @ configs/prime-rl/my-training.toml \
+#     --ckpt --ckpt.interval 10 --ckpt.keep-last 3
+#
+# Resume from checkpoint:
+#   uv run rl @ configs/prime-rl/my-training.toml \
+#     --ckpt.resume-step 100 --max-steps 200
+#
+# =============================================================================
