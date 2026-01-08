@@ -369,7 +369,7 @@ class AggregationMinMaxGenerator(Generator):
         if rng.random() < 0.3:
             html = introduce_malformation(html, rng)
 
-        query = f'Extract all product prices and return the {agg_name} price. Return the full price string (e.g., "$XX.XX").'
+        query = f'Extract all product prices from the product-list section (items with class="price") and return the {agg_name} price. Return the full price string (e.g., "$XX.XX").'
 
         return TaskInstance(
             html=html,
