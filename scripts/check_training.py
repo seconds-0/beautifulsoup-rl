@@ -38,7 +38,7 @@ def check_run(run_id: str, name: str):
     ]
 
     relevant = {k: v for k, v in summary.items()
-                if any(m in k for m in key_metrics) and isinstance(v, (int, float))}
+                if any(m in k for m in key_metrics) and isinstance(v, int | float)}
 
     if relevant:
         print("\nKey Metrics:")
@@ -78,7 +78,7 @@ def main():
     elif trainer_state == "finished" and orchestrator_state == "finished":
         print("\n🎉 Training completed!")
     else:
-        print(f"\n⚠️  Check run status - may need attention")
+        print("\n⚠️  Check run status - may need attention")
 
 
 if __name__ == "__main__":

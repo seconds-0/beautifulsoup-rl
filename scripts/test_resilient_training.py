@@ -28,7 +28,7 @@ import os
 import subprocess
 import sys
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 logging.basicConfig(
@@ -112,7 +112,7 @@ def test_b2_upload_download() -> TestResult:
     try:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create test file
-            test_content = f"test-{datetime.now(timezone.utc).isoformat()}"
+            test_content = f"test-{datetime.now(UTC).isoformat()}"
             test_file = Path(tmpdir) / "test_file.txt"
             test_file.write_text(test_content)
 
@@ -178,10 +178,10 @@ def test_wandb_connection() -> TestResult:
             per_page=1
         )
         # Just accessing runs triggers the API call
-        run_count = len(list(runs)[:1])
+        list(runs)[:1]  # Access runs to verify API works
 
         result.passed = True
-        result.message = f"WandB API connected, project accessible"
+        result.message = "WandB API connected, project accessible"
         return result
 
     except ImportError:

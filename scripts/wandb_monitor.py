@@ -25,8 +25,7 @@ import logging
 import os
 import sys
 import time
-from datetime import datetime, timedelta, timezone
-from typing import Optional
+from datetime import UTC, datetime, timedelta
 
 logging.basicConfig(
     level=logging.INFO,
@@ -156,11 +155,11 @@ def check_run_health(
         if not history.empty and '_timestamp' in history.columns:
             last_timestamp = history['_timestamp'].max()
             if last_timestamp:
-                last_step_time = datetime.fromtimestamp(last_timestamp, tz=timezone.utc)
-                stale_threshold = datetime.now(timezone.utc) - timedelta(minutes=stale_threshold_minutes)
+                last_step_time = datetime.fromtimestamp(last_timestamp, tz=UTC)
+                stale_threshold = datetime.now(UTC) - timedelta(minutes=stale_threshold_minutes)
 
                 if last_step_time < stale_threshold:
-                    minutes_stale = int((datetime.now(timezone.utc) - last_step_time).total_seconds() / 60)
+                    minutes_stale = int((datetime.now(UTC) - last_step_time).total_seconds() / 60)
                     return {
                         'status': TrainingStatus.STALLED,
                         'run_state': run_state,
@@ -258,7 +257,7 @@ def check_training_status(
         'status': combined_status,
         'trainer': trainer_status,
         'orchestrator': orchestrator_status,
-        'timestamp': datetime.now(timezone.utc).isoformat(),
+        'timestamp': datetime.now(UTC).isoformat(),
     }
 
     # Add metrics if requested

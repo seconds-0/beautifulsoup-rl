@@ -295,7 +295,7 @@ def _extract_assigned_names(target: ast.AST) -> set[str]:
     names: set[str] = set()
     if isinstance(target, ast.Name):
         names.add(target.id)
-    elif isinstance(target, (ast.Tuple, ast.List)):
+    elif isinstance(target, ast.Tuple | ast.List):
         for elt in target.elts:
             names |= _extract_assigned_names(elt)
     return names
@@ -313,10 +313,7 @@ def _expr_uses_any_name(expr: ast.AST, names: set[str]) -> bool:
     Returns:
         True if any name in `names` appears in the expression.
     """
-    for node in ast.walk(expr):
-        if isinstance(node, ast.Name) and node.id in names:
-            return True
-    return False
+    return any(isinstance(node, ast.Name) and node.id in names for node in ast.walk(expr))
 
 
 def _collect_html_derived_names(tree: ast.AST) -> set[str]:
@@ -521,11 +518,7 @@ def check_bs4_usage(code_samples: list[str]) -> bool:
     if not code_samples:
         return True  # No code = no penalty (e.g., format errors)
 
-    for code in code_samples:
-        if _check_soup_creation_with_html_ast(code):
-            return True
-
-    return False
+    return any(_check_soup_creation_with_html_ast(code) for code in code_samples)
 
 
 def compute_bs4_penalty(code_samples: list[str] | None) -> tuple[float, bool]:

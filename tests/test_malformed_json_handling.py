@@ -13,6 +13,7 @@ The fixes in verifiers_adapter.py guard against these cases to prevent crashes
 during RL training where we can't afford to lose a training run to bad output.
 """
 
+import importlib.util
 import json
 
 import pytest
@@ -46,16 +47,14 @@ class TestMalformedToolArguments:
         Model output: [{"code": "print('hello')"}]
         Expected:     {"code": "print('hello')"}
         """
-        from bs4_env.config import EnvConfig
         from bs4_env.adapters.verifiers_adapter import build_verifiers_environment
+        from bs4_env.config import EnvConfig
 
         # Build environment
         config = EnvConfig(split="bench", mode="mvp", seed=42)
 
         # Import here to check if verifiers is installed
-        try:
-            import verifiers
-        except ImportError:
+        if importlib.util.find_spec("verifiers") is None:
             pytest.skip("verifiers not installed, cannot test reward function")
 
         env = build_verifiers_environment(config)
@@ -73,7 +72,7 @@ class TestMalformedToolArguments:
             # Call reward function - should not raise
             reward = reward_fn(completion, state, info={"solvable": True, "ground_truth": "test"})
             # Should return some reward (likely 0 for wrong answer, but not crash)
-            assert isinstance(reward, (int, float))
+            assert isinstance(reward, int | float)
         except AttributeError as e:
             if "'list' object has no attribute 'get'" in str(e):
                 pytest.fail(
@@ -84,14 +83,12 @@ class TestMalformedToolArguments:
 
     def test_args_as_string_does_not_crash(self):
         """When model produces string instead of dict, should not crash."""
-        from bs4_env.config import EnvConfig
         from bs4_env.adapters.verifiers_adapter import build_verifiers_environment
+        from bs4_env.config import EnvConfig
 
         config = EnvConfig(split="bench", mode="mvp", seed=42)
 
-        try:
-            import verifiers
-        except ImportError:
+        if importlib.util.find_spec("verifiers") is None:
             pytest.skip("verifiers not installed, cannot test reward function")
 
         env = build_verifiers_environment(config)
@@ -104,18 +101,16 @@ class TestMalformedToolArguments:
 
         reward_fn = env.rubric.funcs[0]
         reward = reward_fn(completion, state, info={"solvable": True, "ground_truth": "test"})
-        assert isinstance(reward, (int, float))
+        assert isinstance(reward, int | float)
 
     def test_valid_dict_args_extracts_code(self):
         """Valid dict arguments should still work correctly."""
-        from bs4_env.config import EnvConfig
         from bs4_env.adapters.verifiers_adapter import build_verifiers_environment
+        from bs4_env.config import EnvConfig
 
         config = EnvConfig(split="bench", mode="mvp", seed=42)
 
-        try:
-            import verifiers
-        except ImportError:
+        if importlib.util.find_spec("verifiers") is None:
             pytest.skip("verifiers not installed, cannot test reward function")
 
         env = build_verifiers_environment(config)
@@ -128,7 +123,7 @@ class TestMalformedToolArguments:
 
         reward_fn = env.rubric.funcs[0]
         reward = reward_fn(completion, state, info={"solvable": True, "ground_truth": "test"})
-        assert isinstance(reward, (int, float))
+        assert isinstance(reward, int | float)
 
 
 class TestJsonRepair:
@@ -136,12 +131,10 @@ class TestJsonRepair:
 
     def _get_repair_func(self):
         """Get the repair function from the environment class."""
-        from bs4_env.config import EnvConfig
         from bs4_env.adapters.verifiers_adapter import build_verifiers_environment
+        from bs4_env.config import EnvConfig
 
-        try:
-            import verifiers
-        except ImportError:
+        if importlib.util.find_spec("verifiers") is None:
             pytest.skip("verifiers not installed")
 
         config = EnvConfig(split="bench", mode="mvp", seed=42)
@@ -204,12 +197,10 @@ class TestEnvResponseJsonHandling:
     @pytest.mark.asyncio
     async def test_none_arguments_handled(self):
         """None arguments should be replaced with empty object."""
-        from bs4_env.config import EnvConfig
         from bs4_env.adapters.verifiers_adapter import build_verifiers_environment
+        from bs4_env.config import EnvConfig
 
-        try:
-            import verifiers
-        except ImportError:
+        if importlib.util.find_spec("verifiers") is None:
             pytest.skip("verifiers not installed")
 
         config = EnvConfig(split="bench", mode="mvp", seed=42)
@@ -241,7 +232,7 @@ class TestEnvResponseJsonHandling:
 
         # Should not crash
         try:
-            result = await env.env_response(messages, state)
+            await env.env_response(messages, state)
             # If we get here without exception, the fix works
         except TypeError as e:
             if "NoneType" in str(e):
@@ -251,12 +242,10 @@ class TestEnvResponseJsonHandling:
     @pytest.mark.asyncio
     async def test_empty_string_arguments_handled(self):
         """Empty string arguments should be replaced with empty object."""
-        from bs4_env.config import EnvConfig
         from bs4_env.adapters.verifiers_adapter import build_verifiers_environment
+        from bs4_env.config import EnvConfig
 
-        try:
-            import verifiers
-        except ImportError:
+        if importlib.util.find_spec("verifiers") is None:
             pytest.skip("verifiers not installed")
 
         config = EnvConfig(split="bench", mode="mvp", seed=42)
@@ -287,19 +276,17 @@ class TestEnvResponseJsonHandling:
 
         # Should not crash
         try:
-            result = await env.env_response(messages, state)
-        except json.JSONDecodeError as e:
+            await env.env_response(messages, state)
+        except json.JSONDecodeError:
             pytest.fail("Empty string arguments should be handled gracefully")
 
     @pytest.mark.asyncio
     async def test_malformed_json_arguments_repaired(self):
         """Malformed JSON arguments should be repaired or defaulted."""
-        from bs4_env.config import EnvConfig
         from bs4_env.adapters.verifiers_adapter import build_verifiers_environment
+        from bs4_env.config import EnvConfig
 
-        try:
-            import verifiers
-        except ImportError:
+        if importlib.util.find_spec("verifiers") is None:
             pytest.skip("verifiers not installed")
 
         config = EnvConfig(split="bench", mode="mvp", seed=42)
@@ -330,7 +317,7 @@ class TestEnvResponseJsonHandling:
 
         # Should not crash - either repairs or defaults to {}
         try:
-            result = await env.env_response(messages, state)
+            await env.env_response(messages, state)
         except json.JSONDecodeError as e:
             pytest.fail(
                 f"Malformed JSON arguments should be repaired or defaulted: {e}"

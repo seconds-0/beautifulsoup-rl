@@ -262,7 +262,7 @@ class TestAnswerSchemaCompliance:
                     f"{spec.archetype_id}: expected int, got {type(ground_truth)}"
                 )
             elif schema.get("type") == "number":
-                assert isinstance(ground_truth, (int, float)), (
+                assert isinstance(ground_truth, int | float), (
                     f"{spec.archetype_id}: expected number, got {type(ground_truth)}"
                 )
             elif schema.get("type") == "array":

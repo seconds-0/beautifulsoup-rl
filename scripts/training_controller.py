@@ -19,12 +19,10 @@ Environment variables:
 """
 
 import argparse
-import json
 import logging
 import os
 import sys
-from datetime import datetime, timedelta, timezone
-from typing import Optional
+from datetime import UTC, datetime, timedelta
 
 # Set up logging
 logging.basicConfig(
@@ -125,8 +123,8 @@ def check_wandb_status(
             if not history.empty and '_timestamp' in history.columns:
                 last_timestamp = history['_timestamp'].max()
                 if last_timestamp:
-                    last_step_time = datetime.fromtimestamp(last_timestamp, tz=timezone.utc)
-                    stale_threshold = datetime.now(timezone.utc) - timedelta(minutes=stale_threshold_minutes)
+                    last_step_time = datetime.fromtimestamp(last_timestamp, tz=UTC)
+                    stale_threshold = datetime.now(UTC) - timedelta(minutes=stale_threshold_minutes)
 
                     if last_step_time < stale_threshold:
                         return {
@@ -166,7 +164,7 @@ def check_existing_instances(run_id: str) -> list:
     """
     try:
         # Import from our provision_vast module
-        from provision_vast import list_instances, VastAPIError
+        from provision_vast import VastAPIError, list_instances
         return list_instances(run_id)
     except (ImportError, VastAPIError) as e:
         if isinstance(e, ImportError):
@@ -178,8 +176,8 @@ def check_existing_instances(run_id: str) -> list:
 
     # Fallback to direct CLI call
     try:
-        import subprocess
         import json
+        import subprocess
 
         api_key = os.environ.get('VAST_API_KEY')
         if not api_key:
@@ -219,7 +217,7 @@ def provision_instance(
     gpu_type: str,
     gpu_count: int,
     max_bid: float
-) -> Optional[dict]:
+) -> dict | None:
     """
     Provision a new Vast.ai instance for training.
 
@@ -227,7 +225,7 @@ def provision_instance(
     """
     try:
         # Import from our provision_vast module
-        from provision_vast import create_instance, VastAPIError
+        from provision_vast import VastAPIError, create_instance
         return create_instance(
             run_id=run_id,
             gpu_type=gpu_type,
@@ -238,8 +236,8 @@ def provision_instance(
         if isinstance(e, VastAPIError):
             logger.warning(f"Vast API error: {e}, trying fallback")
         # Fallback to direct CLI call
-        import subprocess
         import json
+        import subprocess
 
         api_key = os.environ.get('VAST_API_KEY')
         if not api_key:
@@ -330,7 +328,8 @@ def terminate_instances(run_id: str) -> int:
     """
     try:
         # Import from our provision_vast module
-        from provision_vast import terminate_instances as vast_terminate, VastAPIError
+        from provision_vast import VastAPIError
+        from provision_vast import terminate_instances as vast_terminate
         return vast_terminate(run_id, force=True)
     except (ImportError, VastAPIError) as e:
         if isinstance(e, VastAPIError):

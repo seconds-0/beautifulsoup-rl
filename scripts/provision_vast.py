@@ -31,7 +31,6 @@ import logging
 import os
 import subprocess
 import sys
-from typing import Optional
 
 logging.basicConfig(
     level=logging.INFO,
@@ -75,7 +74,7 @@ def setup_api_key():
         if result.returncode != 0:
             raise VastAPIError(f"Failed to set API key: {result.stderr}")
     except FileNotFoundError:
-        raise VastAPIError("vastai CLI not installed. Run: pip install vastai")
+        raise VastAPIError("vastai CLI not installed. Run: pip install vastai") from None
 
 
 def run_vastai_command(args: list, timeout: int = 60) -> tuple[int, str, str]:
@@ -95,7 +94,7 @@ def run_vastai_command(args: list, timeout: int = 60) -> tuple[int, str, str]:
     except subprocess.TimeoutExpired:
         return -1, "", "Command timed out"
     except FileNotFoundError:
-        raise VastAPIError("vastai CLI not installed. Run: pip install vastai")
+        raise VastAPIError("vastai CLI not installed. Run: pip install vastai") from None
 
 
 def search_offers(gpu_type: str, gpu_count: int, max_price: float, limit: int = 20) -> list:
@@ -143,7 +142,7 @@ def search_offers(gpu_type: str, gpu_count: int, max_price: float, limit: int = 
     return filtered
 
 
-def list_instances(run_id: Optional[str] = None) -> list:
+def list_instances(run_id: str | None = None) -> list:
     """List instances, optionally filtered by run_id label."""
     setup_api_key()
 
@@ -178,7 +177,7 @@ def create_instance(
     max_price: float,
     docker_image: str = "nvidia/cuda:12.1-devel-ubuntu22.04",
     disk_gb: int = 100
-) -> Optional[dict]:
+) -> dict | None:
     """Create a new Vast.ai instance for training."""
     setup_api_key()
 
@@ -352,7 +351,7 @@ def main():
             disk_gb=args.disk
         )
         if instance:
-            print(f"\nInstance created successfully!")
+            print("\nInstance created successfully!")
             if isinstance(instance, dict) and 'new_contract' in instance:
                 print(f"  ID: {instance['new_contract']}")
                 print(f"  SSH: vastai ssh {instance['new_contract']}")
