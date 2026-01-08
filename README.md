@@ -1,5 +1,7 @@
 # BeautifulSoup RL Environment
 
+**Source:** [github.com/seconds-0/beautifulsoup-rl](https://github.com/seconds-0/beautifulsoup-rl)
+
 An RL environment for training and evaluating agents on BeautifulSoup HTML parsing tasks. Built for [Prime Intellect's Environments Hub](https://docs.primeintellect.ai/verifiers/source/environments).
 
 **Naming:**
@@ -91,106 +93,6 @@ Some content is intentionally unparseable (JS-rendered, image-based, etc.). The 
 | Correct limitation (with evidence) | +0.5 |
 | Wrong answer | 0.0 |
 | Safety violation | -0.5 |
-
-## Model Training Results
-
-Baseline evaluation results on 52 archetypes (1040 bench examples). See [TEST_RECORDS.md](TEST_RECORDS.md) for full details.
-
-### Benchmark Calibration
-
-| Tier | Model | Pass Rate | Perfect Rate | RL Target? |
-|------|-------|-----------|--------------|------------|
-| Small | Qwen3-4B | 0% | 0% | Ideal |
-| Small | Llama 3.2-3B | 0% | 0% | Ideal |
-| Medium | Ministral-3B | 50.6% | 19.7% | Good |
-| Medium | Qwen3-8B | 43.1% | 26.6% | Good |
-| Medium | Ministral-8B | 68.4% | 57.9% | Validation |
-| Large | Kimi K2 | 72.8% | 45.0% | Ceiling |
-| Large | GLM-4.7 | 74.7% | 45.1% | Ceiling |
-
-**Key Insight:** 0% → 50% → 75% progression shows clear learning signal for RL training. Small models (3-4B) start at 0% but have function calling support, making them ideal RL training targets.
-
-### Training 0% Baseline Models (Bootstrap Mode)
-
-Models scoring 0% on the benchmark face a cold-start problem: pure RL fails because there's no gradient signal. We provide a **bootstrap workflow** to warm up these models:
-
-#### Step 0: Primer Tasks (Tool-Use Template)
-
-Primer archetypes are ultra-simple tasks with minimal HTML that teach the basic action template:
-
-```python
-# Ultra-banal HTML - no ambiguity
-html = '<span id="target">Hello</span>'
-query = "Extract the text from the element with id='target'."
-answer = "Hello"
-```
-
-```python
-env = load_environment(
-    mode="bootstrap",           # Includes primer + easy archetypes
-    difficulty="primer",        # Optional: primer-only tasks
-)
-```
-
-**5 Primer Archetypes:**
-- `primer.extract_by_id` - Extract text by element ID
-- `primer.extract_by_class` - Extract text by class name
-- `primer.extract_by_tag` - Extract text by tag name (h1)
-- `primer.extract_attribute` - Extract href from a link
-- `primer.count_elements` - Count list items
-
-#### Process Partial Credit
-
-Wrong answers with correct tool-use patterns receive partial credit (capped at 0.30):
-
-| Tier | Pattern | Credit |
-|------|---------|--------|
-| 1 | BS4 import | +0.05 |
-| 2 | `BeautifulSoup(HTML, ...)` or `make_soup()` | +0.10 |
-| 3 | Selection method (`.find()`, `.select()`) | +0.10 |
-| 4 | Content access (`.text`, `.get_text()`) | +0.05 |
-
-**Anti-hacking safeguards:**
-- Requires `BeautifulSoup(HTML, ...)` or `make_soup()` (the provided helper)
-- Tiers are cumulative (tier 3 requires tier 2)
-- Capped at 0.30 (below limitation reward of 0.50)
-- Blocked for `status="limit"` on solvable tasks
-
-#### Recommended Training Flow
-
-```
-1. Start with primer tasks (mode="bootstrap", difficulty="primer")
-   Target: 0% → 10%+
-
-2. Progress to bootstrap mode (mode="bootstrap")
-   Target: 10% → 30%+
-
-3. Use tiered sampling (mode="tiered")
-   Target: 30% → 50%+
-
-4. Full curriculum (mode="all")
-   Target: 50% → 65%+
-```
-
-#### Prime-RL Configuration
-
-```toml
-# For 0% models, use online-difficulty buffer
-[orchestrator.buffer]
-type = "online-difficulty"
-oversampling_factor = 2.0
-```
-
-The difficulty field in task info (`info["difficulty"]`) enables Prime's online-difficulty buffer to automatically filter zero-signal tasks.
-
-### Archetype Difficulty Distribution
-
-| Category | Example Archetypes | 3B Pass Rate |
-|----------|-------------------|--------------|
-| Easy | `extract_images`, `extract_links`, `select_options` | 90%+ |
-| Medium | `json_ld_extraction`, `table_column_by_header` | 50-80% |
-| Hard | `semantic_decoy`, `aggregation_min_max` | 20-50% |
-| Very Hard | Multi-step navigation, limitation detection | 0-20% |
 
 ## PRIME-RL Training Configuration
 
@@ -374,10 +276,6 @@ The benchmark split uses a fixed manifest (`bs4_env/data/bench_manifest.json`) c
 - **Reproducibility**: Same tasks across runs and environment versions
 - **Isolation**: Adding/removing archetypes doesn't affect existing benchmark tasks
 - **Versioning**: Manifest version tracks benchmark changes (currently v1.2.0)
-
-### Baseline Results
-
-See [TEST_RECORDS.md](./TEST_RECORDS.md) for current model evaluation results.
 
 ## Architecture
 
