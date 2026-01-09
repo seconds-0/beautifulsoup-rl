@@ -148,6 +148,11 @@ for script in checkpoint_sync.sh onstart.sh; do
     echo "  ✓ Downloaded $script"
 done
 
+# Create symlink at /root/scripts for backwards compatibility with instance onstart commands
+mkdir -p /root/scripts
+ln -sf ~/prime-rl/scripts/onstart.sh /root/scripts/onstart.sh
+echo "  ✓ Created /root/scripts/onstart.sh symlink"
+
 # 7. Set up checkpoint sync (if B2 configured)
 echo ""
 echo "[7/8] Setting up checkpoint sync..."
