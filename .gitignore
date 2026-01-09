@@ -96,8 +96,9 @@ example_rendered.html
 # Vendor documentation cache
 docs/vendor/
 
-# Local hookify rules
-.claude/*.local.md
+# Claude Code configuration (local development only)
+CLAUDE.md
+.claude/
 
 # Prime-RL framework clone (not configs/prime-rl/)
 /prime-rl/
