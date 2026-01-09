@@ -61,6 +61,60 @@ After:  "The `answer` field must be an **object** with these exact keys: {"cheap
 
 ---
 
+## Training Infrastructure Improvements
+
+### Phase 2: System Metrics Daemon (P1 - Nice to Have)
+
+**Problem:** We don't know GPU memory or disk usage at crash time.
+
+**Solution:** Background daemon logs system stats to WandB every 60s.
+
+- [ ] Create `scripts/system_monitor.py`:
+  - Query `nvidia-smi` for GPU memory
+  - Query `df -h` for disk usage
+  - Check process health (trainer/vLLM PIDs alive?)
+  - Log to WandB as `system/gpu_memory`, `system/disk_used`
+
+**Why deferred:** Phase 1 gives us training logs which usually contain the error (if OOM, log will say OOM). System metrics are helpful but often redundant.
+
+**Effort:** ~100 lines Python, 45 minutes
+
+---
+
+### Phase 3: Crash Handler (P1 - Nice to Have)
+
+**Problem:** When training crashes, we want to capture system state immediately.
+
+**Solution:** Trap signals and capture context before exit.
+
+- [ ] Create `scripts/crash_handler.sh`:
+  - Trap SIGTERM, SIGINT, EXIT
+  - Capture: nvidia-smi, df -h, ps aux, last 1000 lines of log
+  - Upload as crash report tarball to B2
+
+**Why deferred:** Signal traps don't catch all crash types (OOM killer, CUDA hang). Phase 1 log sync already captures most useful info.
+
+**Effort:** ~50 lines bash, 30 minutes
+
+---
+
+### Phase 4: Monitor Enhancement (P2 - Future)
+
+**Problem:** `wandb_monitor.py` only shows current status, not pre-crash context.
+
+**Solution:** Add anomaly detection and historical analysis.
+
+- [ ] Enhance `scripts/wandb_monitor.py`:
+  - Query metrics before crash point
+  - Detect sudden spikes (memory, loss)
+  - Report last N good steps
+
+**Why deferred:** Requires Phase 2 system metrics to be most useful. Current monitor is sufficient for health checks.
+
+**Effort:** ~30 lines Python, 20 minutes
+
+---
+
 ## Improvements
 
 ### High Priority
@@ -72,6 +126,12 @@ After:  "The `answer` field must be an **object** with these exact keys: {"cheap
 - [ ] **Add test for navigate tool** - Unit test that verifies navigate tool is exposed and works correctly.
 
 ### Medium Priority
+
+- [ ] **Curriculum automation** - Automatically adjust task difficulty based on model performance. Start with easy tasks, ramp to harder tasks as model improves. This prevents wasting compute on tasks too hard for current capability. Implementation ideas:
+  - Track rolling success rate per difficulty tier
+  - Increase difficulty when success rate > 80%
+  - Decrease difficulty when success rate < 20%
+  - Could use the `online_difficulty_filtering` buffer feature as starting point
 
 - [ ] **Add solvability verification tests** - For each archetype, verify at least one parser can solve the generated task.
 

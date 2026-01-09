@@ -122,6 +122,37 @@ cleanup_old_checkpoints() {
     fi
 }
 
+# Sync training logs to B2 for crash diagnostics
+# This ensures logs survive pod termination
+sync_logs() {
+    log "Syncing training logs to B2..."
+
+    # Sync main training log
+    if [[ -f /tmp/training.log ]]; then
+        if b2 file upload "$B2_BUCKET" /tmp/training.log "$RUN_ID/logs/training_latest.log" >/dev/null 2>&1; then
+            log "Synced training.log"
+        else
+            log "WARNING: Failed to sync training.log"
+        fi
+    fi
+
+    # Sync checkpoint sync log (this script's output)
+    if [[ -f /tmp/checkpoint_sync.log ]]; then
+        if b2 file upload "$B2_BUCKET" /tmp/checkpoint_sync.log "$RUN_ID/logs/sync_latest.log" >/dev/null 2>&1; then
+            log "Synced checkpoint_sync.log"
+        else
+            log "WARNING: Failed to sync checkpoint_sync.log"
+        fi
+    fi
+
+    # Also sync any crash dumps if they exist
+    if [[ -f /tmp/crash_dump.txt ]]; then
+        if b2 file upload "$B2_BUCKET" /tmp/crash_dump.txt "$RUN_ID/logs/crash_dump.txt" >/dev/null 2>&1; then
+            log "Synced crash_dump.txt"
+        fi
+    fi
+}
+
 # Prune old checkpoints from B2 to save storage costs
 # Keeps: last KEEP_B2 checkpoints + milestones every MILESTONE_INTERVAL steps
 prune_b2_checkpoints() {
@@ -247,6 +278,9 @@ do_sync() {
 
     # Prune old B2 checkpoints to save storage costs
     prune_b2_checkpoints
+
+    # Sync training logs for crash diagnostics
+    sync_logs
 }
 
 # Signal handler for graceful shutdown
