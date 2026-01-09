@@ -1,20 +1,39 @@
 # BeautifulSoup RL Environment
 
-**Source:** [github.com/seconds-0/beautifulsoup-rl](https://github.com/seconds-0/beautifulsoup-rl)
+An RL environment for training agents on BeautifulSoup HTML parsing tasks, built for [Prime Intellect's Environments Hub](https://docs.primeintellect.ai/verifiers/source/environments).
 
-An RL environment for training and evaluating agents on BeautifulSoup HTML parsing tasks. Built for [Prime Intellect's Environments Hub](https://docs.primeintellect.ai/verifiers/source/environments).
+## Why This Environment
 
-**Naming:**
+Most web scraping benchmarks use clean, tutorial-style HTML. Production HTML is malformed, noisy, and often adversarial. Agents trained on sanitized examples fail when they encounter real websites.
+
+This environment trains models to handle the messy reality of web scraping: extracting data from malformed HTML, avoiding common BS4 API pitfalls, recognizing when static parsing is impossible, and respecting safety boundaries around credential extraction.
+
+## What's Inside
+
+The environment contains 57 task archetypes spanning core extraction (text, attributes, images, links), table parsing with rowspan/colspan and nested structures, form parsing, structured data extraction (JSON-LD, Open Graph, microdata), DOM traversal, internationalization (Unicode, RTL, CJK), and BS4-specific gotchas like `.string` vs `.get_text()` and the `class_` reserved word. Tasks range from primer-level for bootstrapping models that start at 0% to hard multi-step extraction requiring filtering, aggregation, and chained navigation.
+
+Four "limitation" archetypes present content that is genuinely unparseable with static methods—JavaScript-rendered text, image-based content—where the correct behavior is to abstain and cite evidence from the HTML proving why.
+
+## Design Highlights
+
+**Deterministic grading.** All rewards come from exact or normalized matching against ground truth. No LLM judges. Scores are reproducible across runs.
+
+**Anti-reward-hacking.** Limitation tasks require evidence: a literal substring from the HTML proving why abstention is correct. Models can't game the system by always claiming "can't parse."
+
+**Procedural generation.** Each archetype is a parameterized generator. Same seed produces the same task across all runs. Train, eval, and bench splits use non-overlapping seed ranges.
+
+**Fixed benchmark manifest.** The bench split uses 1040 pre-selected (archetype, seed) pairs, ensuring apples-to-apples comparison across environment versions.
+
+**Safety built-in.** Credential extraction is penalized. Sandboxed execution with network disabled by default.
+
+## Results
+
+RL training on Qwen3-8B showed a 30-point improvement: baseline average reward of 61.7% increased to 91.8% after training, with pass rate jumping from 63.8% to approximately 90%.
+
+## Naming
+
 - **Hub name**: `seconds-0/beautiful-soup-env` (use in `prime env eval`)
 - **Python module**: `beautiful_soup_env` (use in `from beautiful_soup_env import ...`)
-
-## Overview
-
-This environment trains agents to:
-- Extract data correctly from messy, malformed HTML using BeautifulSoup
-- Avoid common BS4 API gotchas (`.string` returning None, reserved word `class`, etc.)
-- Recognize when static parsing is impossible and abstain with evidence
-- Respect safety boundaries (no credential extraction)
 
 ## Installation
 
