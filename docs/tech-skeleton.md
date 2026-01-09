@@ -68,7 +68,7 @@ beautiful_soup_env_skeleton/
 
 ## How to read the skeleton in the “right order”
 
-If you want an implementer (human or AI) to onboard quickly, the best reading order is:
+If you want to onboard quickly, the best reading order is:
 
 1. `beautiful_soup_env.py` to see the public entrypoint and config surface.
 2. `bs4_env/dataset.py` to see how tasks become dataset rows and how bench/train/eval splits work.

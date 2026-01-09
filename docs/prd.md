@@ -1,6 +1,6 @@
 Below is a full rewrite of your PRD with the concrete modifications we discussed, including (a) a sharply specified environment contract, (b) reward anti-hacking rules, (c) a curated **52-archetype scenario set**, and (d) implementation details.
 
-After the PRD, you will find a step‑by‑step technical design and implementation plan that is intended to be sufficient for an implementing engineer or implementing AI agent to execute end‑to‑end: scaffolding, toolchain selection, environment configuration, architecture/dataflow, testing strategy, development verification loops, benchmark mode and cross‑model benchmarking, and finally the MVP milestone where you can run reinforcement learning (RL) training and show meaningful improvement.
+After the PRD, you will find a step‑by‑step technical design and implementation plan that is intended to be sufficient for end‑to‑end execution: scaffolding, toolchain selection, environment configuration, architecture/dataflow, testing strategy, development verification loops, benchmark mode and cross‑model benchmarking, and finally the MVP milestone where you can run reinforcement learning (RL) training and show meaningful improvement.
 
 ---
 
@@ -376,7 +376,7 @@ We consider the training demonstration successful when the trained model:
 
 # Technical Design and Implementation Plan
 
-## A step‑by‑step build plan for an implementing engineer or implementing AI agent
+## A step‑by‑step build plan for implementation
 
 This section is intentionally operational. If someone follows it, they should be able to build, test, benchmark, train, and publish the environment end-to-end.
 

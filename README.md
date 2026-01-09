@@ -277,10 +277,6 @@ The benchmark split uses a fixed manifest (`bs4_env/data/bench_manifest.json`) c
 - **Isolation**: Adding/removing archetypes doesn't affect existing benchmark tasks
 - **Versioning**: Manifest version tracks benchmark changes (currently v1.2.0)
 
-## Architecture
-
-See [CLAUDE.md](./CLAUDE.md) for detailed architecture documentation.
-
 ## License
 
 MIT

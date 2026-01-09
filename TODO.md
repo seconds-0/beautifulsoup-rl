@@ -143,7 +143,7 @@ After:  "The `answer` field must be an **object** with these exact keys: {"cheap
 
 ### Low Priority
 
-- [ ] **Add Claude/Anthropic model support** - Currently only OpenRouter, add direct Anthropic API option.
+- [ ] **Add Anthropic API support** - Currently only OpenRouter, add direct Anthropic API option.
 
 - [ ] **Web UI for results** - Dashboard to visualize benchmark results over time.
 
