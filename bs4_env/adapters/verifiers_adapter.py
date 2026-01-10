@@ -433,7 +433,9 @@ def _build_real_verifiers_env(config: EnvConfig, vf: Any, **env_kwargs: Any) -> 
                     repaired.rfind('" }'),
                 )
                 if last_good > 0:
-                    repaired = repaired[: last_good + 2]  # Include the closing quote and comma/brace
+                    repaired = repaired[
+                        : last_good + 2
+                    ]  # Include the closing quote and comma/brace
 
                 # Add missing closers
                 repaired += "}" * opens + "]" * bracket_opens

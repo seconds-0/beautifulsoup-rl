@@ -319,9 +319,7 @@ class TestEnvResponseJsonHandling:
         try:
             await env.env_response(messages, state)
         except json.JSONDecodeError as e:
-            pytest.fail(
-                f"Malformed JSON arguments should be repaired or defaulted: {e}"
-            )
+            pytest.fail(f"Malformed JSON arguments should be repaired or defaulted: {e}")
 
 
 class TestDirectArgumentParsing:

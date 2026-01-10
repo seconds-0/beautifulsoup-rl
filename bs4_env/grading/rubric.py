@@ -632,7 +632,10 @@ def _check_soup_creation_with_html_ast(code: str) -> bool:
 
             # Module constructor call: bs4_alias.BeautifulSoup(...)
             if isinstance(node.func, ast.Attribute) and node.func.attr == "BeautifulSoup":
-                if isinstance(node.func.value, ast.Name) and node.func.value.id in bs4_module_aliases:
+                if (
+                    isinstance(node.func.value, ast.Name)
+                    and node.func.value.id in bs4_module_aliases
+                ):
                     if _is_html_derived(_markup_expr(node)):
                         self.found = True
                         return

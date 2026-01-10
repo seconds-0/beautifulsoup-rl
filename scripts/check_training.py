@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Check WandB training progress for the BeautifulSoup RL run."""
+
 import sys
 
 try:
@@ -7,6 +8,7 @@ try:
 except ImportError:
     print("Installing wandb...")
     import subprocess
+
     subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "wandb"])
     import wandb
 
@@ -21,9 +23,9 @@ def check_run(run_id: str, name: str):
     api = wandb.Api()
     run = api.run(f"{PROJECT}/{run_id}")
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"{name}: {run.name}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"State: {run.state}")
     print(f"URL: {run.url}")
 
@@ -32,13 +34,22 @@ def check_run(run_id: str, name: str):
 
     # Filter to useful metrics
     key_metrics = [
-        "train/reward", "train/loss", "train/policy_loss", "train/kl",
-        "rollout/mean_reward", "rollout/success_rate",
-        "step", "_step", "_runtime"
+        "train/reward",
+        "train/loss",
+        "train/policy_loss",
+        "train/kl",
+        "rollout/mean_reward",
+        "rollout/success_rate",
+        "step",
+        "_step",
+        "_runtime",
     ]
 
-    relevant = {k: v for k, v in summary.items()
-                if any(m in k for m in key_metrics) and isinstance(v, int | float)}
+    relevant = {
+        k: v
+        for k, v in summary.items()
+        if any(m in k for m in key_metrics) and isinstance(v, int | float)
+    }
 
     if relevant:
         print("\nKey Metrics:")
@@ -67,9 +78,9 @@ def main():
     trainer_state = check_run(TRAINER_RUN_ID, "Trainer")
     orchestrator_state = check_run(ORCHESTRATOR_RUN_ID, "Orchestrator")
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("SUMMARY")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"Trainer: {trainer_state}")
     print(f"Orchestrator: {orchestrator_state}")
 
