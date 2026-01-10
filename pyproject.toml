@@ -13,6 +13,7 @@ authors = [
     { name = "Alex" }
 ]
 keywords = ["rl", "reinforcement-learning", "beautifulsoup", "html", "scraping", "verifiers"]
+tags = ["web-scraping", "html-parsing", "beautifulsoup", "tool-use"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
