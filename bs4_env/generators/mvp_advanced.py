@@ -733,8 +733,10 @@ class SiblingNavigationGenerator(Generator):
         # Build definition list
         body_content = '<dl class="info-list">\n'
         for label, value in pairs:
-            body_content += f'  <dt class="info-label">{label}:</dt>\n'
-            body_content += f'  <dd class="info-value">{value}</dd>\n'
+            # No whitespace between dt and dd to avoid NavigableString trap
+            # (mvp.whitespace_sibling already tests that gotcha with explicit guidance)
+            body_content += f'  <dt class="info-label">{label}:</dt>'
+            body_content += f'<dd class="info-value">{value}</dd>\n'
         body_content += "</dl>"
 
         # Wrap with realistic chrome
