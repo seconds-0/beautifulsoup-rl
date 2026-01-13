@@ -322,7 +322,11 @@ class JsonLdExtractionGenerator(Generator):
         # Find </head> and insert before it
         head_end = html.find("</head>")
         if head_end != -1:
-            all_scripts = json_ld_script + "\n" + "\n".join(extra_scripts)
+            # Shuffle scripts to prevent "first-match" heuristic learning
+            # (target script should not always be first)
+            scripts_list = [json_ld_script] + extra_scripts
+            rng.shuffle(scripts_list)
+            all_scripts = "\n".join(scripts_list)
             html = html[:head_end] + all_scripts + "\n" + html[head_end:]
 
         html = add_noise_comments(html, rng, count=2)
