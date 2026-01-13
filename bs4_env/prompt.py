@@ -165,6 +165,20 @@ If extraction is impossible with static HTML parsing:
 - Always check if `find()` returns None before accessing attributes
 - Different parsers produce different results for malformed HTML
 
+## CSS Selectors
+
+BeautifulSoup supports CSS selectors via `.select()` and `.select_one()`:
+
+- `soup.select('div.classname')` - find all elements matching selector
+- `soup.select_one('div#id')` - find first match
+- `soup.select('.parent > .child')` - direct children only (not all descendants)
+- `soup.select('.sibling + .next')` - adjacent sibling
+- `soup.select('dt + dd')` - element immediately after another
+
+The `>` combinator is essential for selecting only direct children:
+- `.menu a` selects ALL links inside .menu (including nested ones)
+- `.menu > a` selects ONLY links that are direct children of .menu
+
 ## Recognizing Limitations
 
 Some tasks CANNOT be solved with static HTML parsing. When you encounter these, use `status: "limit"`:

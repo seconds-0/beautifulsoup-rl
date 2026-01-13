@@ -872,10 +872,14 @@ class HoneypotDetectionGenerator(Generator):
                 # Hidden type
                 field_parts.append(f'<input type="hidden" name="{name}">')
             else:
-                # CSS hidden
+                # CSS hidden - add tabindex and aria-hidden for accessibility
+                # This provides semantic signals beyond CSS parsing:
+                # - tabindex="-1" removes from tab order (real accessibility practice)
+                # - aria-hidden="true" marks as hidden from assistive tech
                 style_attr = honeypot[2]
                 field_parts.append(
-                    f'<input type="{input_type}" name="{name}" style="{style_attr}">'
+                    f'<input type="{input_type}" name="{name}" style="{style_attr}" '
+                    f'tabindex="-1" aria-hidden="true">'
                 )
 
         # Shuffle to mix honeypots with real fields
