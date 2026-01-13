@@ -4,16 +4,50 @@ Track all RL training experiments for BeautifulSoup environment.
 
 ## Active Runs
 
-### Run: bs4-rl-qwen3-8b-2xh100-v4-resilient (2026-01-06) - RUNNING ✅
+### Run: bs4-rl-qwen3-8b-2xh100-v4-resilient (2026-01-06 → 2026-01-12) - COMPLETED ✅
 
 - **Model**: Qwen/Qwen3-8B (8.2B params)
-- **Config**: /root/config.toml (2x H100 Prime pod)
-- **Pod**: Prime Intellect 2x H100 80GB (86.38.238.54:1234)
-- **Status**: RUNNING ✅
+- **Config**: /root/config_v4_fixed.toml (2x H100 DataCrunch spot)
+- **Pod**: DataCrunch 2x H100 80GB (spot instance)
+- **Status**: COMPLETED ✅ (terminated by spot preemption at step 920)
 - **W&B Project**: beautiful-soup-env
-- **Step Time**: Variable (5-8 min average)
-- **Current Step**: 395+ (as of 2026-01-07 16:55 UTC)
-- **Rewards**: Training progressing well
+- **Final Step**: 920 / 1000 (92% complete)
+- **Mean Reward**: ~0.60 (plateau from step 775 onwards)
+- **Best Reward**: 0.86
+- **Checkpoint**: `b2://beautifulsoup-rl/bs4-qwen3-8b-v4-resilient/step_920/`
+
+#### Final Summary
+
+| Metric | Value |
+|--------|-------|
+| Total Steps | 920 |
+| Mean Reward | ~0.60 |
+| Best Reward | 0.86 |
+| Total Runtime | ~6 days |
+| Hardware | 2x H100 (DataCrunch spot) |
+| LoRA Rank | 8 |
+| Target Modules | q,k,v,o,gate,up,down_proj |
+
+#### Training Timeline
+
+1. **2026-01-06**: Started fresh from step 0
+2. **2026-01-09**: Pod crashed at step ~780
+3. **2026-01-10**: Resumed from step 775 checkpoint
+4. **2026-01-11 09:19**: Training stuck at step 857, restarted from step 855
+5. **2026-01-12 00:45**: Training stuck at step 935, restarted
+6. **2026-01-12 10:05**: Pod terminated by spot preemption (step 935 local, step 920 synced to B2)
+
+#### Key Observations
+
+- **No grokking observed** - Rewards plateaued at ~0.60 from step 775 onwards
+- **Resilient checkpoint system worked** - B2 sync every 5 min saved us multiple times
+- **Spot instances are risky** - DataCrunch terminated without warning
+
+#### Artifacts
+
+- **B2 Checkpoint**: `b2://beautifulsoup-rl/bs4-qwen3-8b-v4-resilient/step_920/`
+- **LoRA Export**: Pending (use `scripts/convert_checkpoint_to_peft.py`)
+- **Can resume**: Yes, from step 920 with `--ckpt.resume-step 920`
 
 #### Recent Investigation (2026-01-07 16:55 UTC)
 
@@ -426,7 +460,7 @@ chmod 600 /root/.netrc
 
 | Run ID | Model | Start | Duration | Final Reward | Notes |
 |--------|-------|-------|----------|--------------|-------|
-| *none yet* | | | | | |
+| bs4-qwen3-8b-v4-resilient | Qwen3-8B | 2026-01-06 | 6 days | 0.60 avg | Step 920/1000, spot preempted |
 
 ---
 
