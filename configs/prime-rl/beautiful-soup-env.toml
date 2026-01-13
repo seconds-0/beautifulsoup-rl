@@ -93,6 +93,7 @@ executor_backend = "prime"
 network_access = true
 timeout_s = 30.0
 max_output_chars = 10000
+# archetypes = ["mvp.css_combinator", "mvp.honeypot_detection"]  # Optional: filter to specific archetypes
 
 [inference.model]
 # Tool calling settings for Ministral (uses mistral parser, not hermes).

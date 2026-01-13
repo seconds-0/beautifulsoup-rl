@@ -269,6 +269,7 @@ def run_evaluation(
     split: str = "bench",
     mode: str = "mvp",
     difficulty: str = "mixed",
+    archetypes: list[str] | None = None,
     verbose: bool = False,
     output_file: str | None = None,
     checkpoint_interval: int = 10,
@@ -293,8 +294,9 @@ def run_evaluation(
     Returns:
         Evaluation results dict.
     """
-    print(f"Loading environment: split={split}, mode={mode}, difficulty={difficulty}")
-    env = load_environment(split=split, mode=mode, difficulty=difficulty)
+    arch_str = f", archetypes={archetypes}" if archetypes else ""
+    print(f"Loading environment: split={split}, mode={mode}, difficulty={difficulty}{arch_str}")
+    env = load_environment(split=split, mode=mode, difficulty=difficulty, archetypes=archetypes)
     print(f"Dataset size: {len(env)}")
 
     client = create_openrouter_client()
@@ -472,6 +474,12 @@ def main():
         default=None,
         help="OpenRouter provider routing: throughput (fastest), latency (lowest latency), price (cheapest)",
     )
+    parser.add_argument(
+        "--archetype",
+        type=str,
+        action="append",
+        help="Filter to specific archetype(s). Can be specified multiple times.",
+    )
     args = parser.parse_args()
 
     results = run_evaluation(
@@ -481,6 +489,7 @@ def main():
         split=args.split,
         mode=args.mode,
         difficulty=args.difficulty,
+        archetypes=args.archetype,
         verbose=args.verbose,
         output_file=args.output,  # Enable incremental saves
         max_tokens=args.max_tokens,
