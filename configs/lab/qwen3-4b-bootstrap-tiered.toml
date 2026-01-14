@@ -32,10 +32,16 @@ max_tokens = 4096
 
 [[env]]
 id = "seconds-0/beautiful-soup-env"
-args = { split = "train", mode = "tiered", partial_credit_enabled = true, cpu_cores = 2, memory_gb = 4 }
 
-# Difficulty weights: favor easy tasks for 0% models
-# 40% primer ensures enough bootstrap runway
+# Environment args including difficulty weights
+# 40% primer ensures enough bootstrap runway for 0% models
+[env.args]
+split = "train"
+mode = "tiered"
+partial_credit_enabled = true
+cpu_cores = 2
+memory_gb = 4
+
 [env.args.difficulty_weights]
 primer = 0.4
 easy = 0.3

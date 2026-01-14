@@ -191,6 +191,10 @@ def generate_dataset_rows(config: EnvConfig) -> Iterator[dict[str, Any]]:
 
         # Compute examples per difficulty level based on weights
         total_weight = sum(config.difficulty_weights.values())
+        if total_weight == 0:
+            # All weights are zero - fall back to uniform sampling
+            logger.warning("All difficulty_weights are zero, falling back to uniform sampling")
+            total_weight = len(config.difficulty_weights)  # Treat as equal weights
         total_examples = examples_per_archetype * len(archetype_ids)
 
         for difficulty, weight in config.difficulty_weights.items():
