@@ -1,0 +1,62 @@
+# Qwen3-4B Bootstrap + Tiered Training with Online Difficulty Filtering
+#
+# Purpose: Single-config curriculum for 0% baseline models
+# Strategy: Use online_difficulty_filtering instead of manual phase switching
+#
+# How it works:
+# 1. Dataset includes ALL difficulties (40% primer, 30% easy, 20% medium, 10% hard)
+# 2. partial_credit_enabled gives 0.20-0.30 reward for correct BS4 usage patterns
+# 3. Online filtering drops tasks with reward < 0.2 (too hard) or >= 0.8 (too easy)
+# 4. Early training: only primer tasks pass threshold -> natural bootstrap
+# 5. As model improves, harder tasks enter the learning zone automatically
+#
+# Partial credit tiers (from bootstrap-plan.md):
+#   BS4 import: +0.05
+#   Soup creation: +0.10
+#   Selection method: +0.15
+#   Content access: +0.10
+#   Full partial credit: 0.30 > hard_threshold (0.2) -> KEPT
+#
+# No checkpoint resume needed - restart-tolerant design.
+
+model = "Qwen/Qwen3-4B-Instruct-2507"
+max_steps = 1000
+batch_size = 128
+rollouts_per_example = 8
+trajectory_strategy = "interleaved"
+max_async_level = 2
+oversampling_factor = 2.0
+
+[sampling]
+max_tokens = 4096
+
+[[env]]
+id = "seconds-0/beautiful-soup-env"
+args = { split = "train", mode = "tiered", partial_credit_enabled = true, cpu_cores = 2, memory_gb = 4 }
+
+# Difficulty weights: favor easy tasks for 0% models
+# 40% primer ensures enough bootstrap runway
+[env.args.difficulty_weights]
+primer = 0.4
+easy = 0.3
+medium = 0.2
+hard = 0.1
+
+[env.log]
+level = "info"
+vf_level = "info"
+
+# Online difficulty filtering - the key to automatic curriculum
+[buffer]
+hard_threshold = 0.2       # Tasks with reward < 0.2 dropped (too hard)
+easy_threshold = 0.8       # Tasks with reward >= 0.8 dropped (too easy)
+online_difficulty_filtering = true
+
+[wandb]
+project = "beautifulsoup-rl"
+name = "qwen3-4b-bootstrap-tiered-v1"
+
+[wandb.log_extras]
+samples = true
+distributions = true
+interval = 1
