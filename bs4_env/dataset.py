@@ -200,6 +200,9 @@ def generate_dataset_rows(config: EnvConfig) -> Iterator[dict[str, Any]]:
 
             # Calculate examples for this difficulty tier
             tier_examples = int(total_examples * weight / total_weight)
+            if tier_examples == 0:
+                # Skip tiers with zero examples (weight=0 or too small)
+                continue
             examples_per_archetype_in_tier = max(1, tier_examples // len(difficulty_archetypes))
 
             for archetype_id in difficulty_archetypes:

@@ -90,6 +90,47 @@ class TestTieredMode:
         # Default weights should favor hard
         assert config.difficulty_weights["hard"] >= config.difficulty_weights["easy"]
 
+    def test_tiered_zero_weight_excludes_tier(self):
+        """tiered mode with weight=0 produces no samples for that tier.
+
+        This is critical for curriculum learning - we need to be able to
+        exclude certain difficulties entirely by setting their weight to 0.
+        """
+        import json
+
+        config = EnvConfig(
+            mode="tiered",
+            split="train",
+            num_examples=100,
+            difficulty_weights={
+                "primer": 0.0,  # Should produce NO primer tasks
+                "easy": 0.5,
+                "medium": 0.5,
+                "hard": 0.0,  # Should produce NO hard tasks
+            },
+        )
+        dataset = build_dataset(config)
+
+        # Check that no primer or hard tasks are in the dataset
+        difficulties_in_dataset = set()
+        for row in dataset:
+            info = json.loads(row["info"])
+            difficulty = info.get("difficulty")
+            if difficulty:
+                difficulties_in_dataset.add(difficulty)
+
+        # Primer and hard should be absent (weight=0)
+        assert "primer" not in difficulties_in_dataset, (
+            "Found primer tasks despite weight=0"
+        )
+        assert "hard" not in difficulties_in_dataset, (
+            "Found hard tasks despite weight=0"
+        )
+
+        # Easy and medium should be present (weight>0)
+        assert "easy" in difficulties_in_dataset, "Missing easy tasks (weight=0.5)"
+        assert "medium" in difficulties_in_dataset, "Missing medium tasks (weight=0.5)"
+
 
 class TestModeCompatibility:
     """Tests that existing modes still work."""
