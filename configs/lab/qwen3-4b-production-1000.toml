@@ -1,0 +1,35 @@
+# Production Training: Qwen3-4B with full task diversity
+# Purpose: 1000-step training run with mode=all
+# Using conservative settings to prevent inference overload
+#
+# Based on elimination test nib461c5a1o3bqxwyen3cset:
+# - Reduced concurrency extends runs from 3 steps to 28+ steps
+# - Prime has fixed LoRA loading bug, testing with their fix
+
+model = "Qwen/Qwen3-4B-Instruct-2507"
+max_steps = 1000
+batch_size = 32               # Conservative (was 128)
+rollouts_per_example = 4      # Conservative (was 8)
+trajectory_strategy = "interleaved"
+max_async_level = 1           # Conservative (was 2)
+oversampling_factor = 1.0     # Conservative (was 2.0)
+
+[sampling]
+max_tokens = 4096
+
+[[env]]
+id = "seconds-0/beautiful-soup-env"
+args = { split = "train", mode = "all", cpu_cores = 2, memory_gb = 32 }
+
+[env.log]
+level = "info"
+vf_level = "info"
+
+[wandb]
+project = "beautifulsoup-rl"
+name = "qwen3-4b-production-conservative"
+
+[wandb.log_extras]
+samples = true
+distributions = true
+interval = 1
