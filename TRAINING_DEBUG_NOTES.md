@@ -98,13 +98,24 @@ https://wandb.ai/seconds-0-domus-magna-inc/beautifulsoup-rl/runs/9wwvys9r
 
 **Implication**: Even with reduced concurrency, Lab Hosted inference pod has a finite lifespan under continuous load.
 
-### Status: WAITING ON PRIME FIX
+### Status: PRIME FIX DEPLOYED - PRODUCTION RUNS ACTIVE
 
-**Prime Intellect has identified the LoRA loading crash as a bug they're working to fix.**
+**Prime Intellect deployed their LoRA loading fix on 2026-01-16.**
 
-The crashes during `load_lora_adapter` at the async barrier are a known issue on their side. We've done all we can client-side - reduced concurrency extends run length from 3 steps to 28 steps, but the underlying infrastructure bug prevents longer runs.
+Two parallel 1000-step production runs are now active with conservative settings:
 
-**Action**: Hold off on further debugging until Prime deploys their fix.
+| Run ID | Config | Mode | Status |
+|--------|--------|------|--------|
+| `j2ycmvx1gijwmidjivojuprb` | production-1000 | `mode=all` | RUNNING |
+| `lcpzp0pl3yo42idk8jn2hksb` | bootstrap-tiered | `mode=tiered` + online filtering | RUNNING |
+
+**Conservative settings** (both runs):
+- batch_size = 32, rollouts = 4, async_level = 1, oversampling = 1.0, memory_gb = 32
+
+**Bootstrap-tiered features**:
+- Online difficulty filtering (drops tasks with reward < 0.2 or >= 0.8)
+- Partial credit enabled for BS4 patterns
+- Tiered difficulty weights: 40% primer, 30% easy, 20% medium, 10% hard
 
 ## Codex Review Key Findings
 
@@ -149,4 +160,4 @@ args = { split = "train", mode = "all", cpu_cores = 2, memory_gb = 32 }
 **Tradeoff**: ~50% reduced throughput vs aggressive settings, but **stable** training.
 
 ---
-*Last updated: 2026-01-14 19:20 UTC*
+*Last updated: 2026-01-16 09:50 UTC*
