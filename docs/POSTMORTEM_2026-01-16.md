@@ -65,16 +65,25 @@ args = { split = "train", mode = "all", cpu_cores = 2, memory_gb = 32 }
    - Dashboard: https://app.primeintellect.ai/dashboard/training/w8phobtfkq4ar7nqz33theon
    - Result: `TBD`
 
-### Round 2 (If Both Crash Early)
-3. **Minimal Config** - Remove buffer section
-4. **Small Model** - Qwen 1.5B instead of 4B
+### Round 2 (Running)
+3. **Small Model** (`llama-1b-ablation-small.toml`)
+   - Llama-3.2-1B instead of Qwen3-4B (4x smaller)
+   - Hypothesis: If survives longer, GPU memory pressure is the issue
+   - Run ID: `el76b7o6m0le32h1kdz782qh`
+   - Dashboard: https://app.primeintellect.ai/dashboard/training/el76b7o6m0le32h1kdz782qh
+   - Result: `TBD`
+
+### Round 3 (If Needed)
+4. **Minimal Config** - Remove buffer section
 
 ## Ablation Results
 
 | Ablation | Run ID | Last Step | Status | Conclusion |
 |----------|--------|-----------|--------|------------|
-| No checkpointing | sxp18yy8ombrfdhtq2c59c3f | Step 5 | **HUNG** at barrier | Config doesn't disable weight sync |
+| No checkpointing | sxp18yy8ombrfdhtq2c59c3f | Step 5 | **STOPPED** | Config doesn't disable weight sync |
 | Ultra-conservative | w8phobtfkq4ar7nqz33theon | Step 7 | **HUNG** at barrier | Slightly better but same failure |
+| Sync mode (async=0) | N/A | N/A | **REJECTED** | Lab Hosted requires async_level >= 1 |
+| Small model (1B) | cje51pf89wmtjpuwbvzzf6an | Step 0 | **FAILED** | "No samples" - Llama 1B too weak for BS4 task |
 
 ### Key Findings from Ablations
 
@@ -89,6 +98,10 @@ args = { split = "train", mode = "all", cpu_cores = 2, memory_gb = 32 }
    - Ultra-conservative ablation (step 7)
 
 4. **Conclusion: Platform-side issue confirmed** - The checkpoint/weight sync path is hanging regardless of our configuration. This is NOT our environment or config.
+
+5. **`max_async_level = 0` not allowed** - Lab Hosted requires `max_async_level >= 1`. We cannot disable async mode to bypass the barrier. This means we're forced to use the async weight sync path that's hanging.
+
+6. **Smaller model (Llama 1B) not viable** - Failed with "Step with no samples" - the model is too weak to generate valid BeautifulSoup code. Cannot test GPU memory hypothesis this way.
 
 ### Comparison Table
 
@@ -113,6 +126,10 @@ args = { split = "train", mode = "all", cpu_cores = 2, memory_gb = 32 }
 - **2026-01-16 ~11:40**: No-ckpt ablation reached step 5, hung at barrier
 - **2026-01-16 ~11:46**: Ultra-conservative ablation reached step 7, hung at barrier
 - **2026-01-16 ~11:52**: Both ablations confirmed hung (no progress 6-12 min)
+- **2026-01-16 ~12:41**: Stopped no-ckpt ablation, tried sync mode (rejected - async_level >= 1 required)
+- **2026-01-16 ~12:43**: Started small model ablation (Llama 1B)
+- **2026-01-16 ~12:50**: Small model failed - "no samples" (model too weak for BS4 task)
+- **2026-01-16 ~12:55**: Ultra-conservative still hung at step 7 for **1+ hour**
 
 ## Data Request for Prime
 

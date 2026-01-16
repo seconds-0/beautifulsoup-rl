@@ -1,0 +1,36 @@
+# Ablation: Synchronous Mode (No Async Barrier)
+#
+# Purpose: Test if async barrier is the root cause of hangs
+# Hypothesis: If this survives, the async weight sync path is the culprit
+#
+# Changes from production config:
+# - max_async_level = 0 (force synchronous - no async barrier at all)
+# - max_steps = 50 (short run)
+
+model = "Qwen/Qwen3-4B-Instruct-2507"
+max_steps = 50                # Short run, just need to survive
+batch_size = 32               # Same as production
+rollouts_per_example = 4      # Same as production
+trajectory_strategy = "interleaved"
+max_async_level = 0           # CHANGED: Force synchronous - no async barrier
+oversampling_factor = 1.0     # Same as production
+
+[sampling]
+max_tokens = 4096
+
+[[env]]
+id = "seconds-0/beautiful-soup-env"
+args = { split = "train", mode = "all", cpu_cores = 2, memory_gb = 32 }
+
+[env.log]
+level = "info"
+vf_level = "info"
+
+[wandb]
+project = "beautifulsoup-rl"
+name = "ablation-sync-mode"
+
+[wandb.log_extras]
+samples = true
+distributions = true
+interval = 1
