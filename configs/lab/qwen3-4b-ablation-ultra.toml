@@ -1,0 +1,38 @@
+# Ablation: Ultra-Conservative Settings
+#
+# Purpose: Test if fix added memory/load overhead
+# Hypothesis: If this survives past step 10, the fix added overhead that
+#             requires more conservative settings
+#
+# Changes from production config:
+# - batch_size = 16 (halved from 32)
+# - rollouts_per_example = 2 (halved from 4)
+# - max_steps = 50 (short run)
+
+model = "Qwen/Qwen3-4B-Instruct-2507"
+max_steps = 50                # Short run, just need to survive
+batch_size = 16               # HALVED from 32
+rollouts_per_example = 2      # HALVED from 4
+trajectory_strategy = "interleaved"
+max_async_level = 1           # Same as production
+oversampling_factor = 1.0     # Same as production
+
+[sampling]
+max_tokens = 4096
+
+[[env]]
+id = "seconds-0/beautiful-soup-env"
+args = { split = "train", mode = "all", cpu_cores = 2, memory_gb = 32 }
+
+[env.log]
+level = "info"
+vf_level = "info"
+
+[wandb]
+project = "beautifulsoup-rl"
+name = "ablation-ultra-conservative"
+
+[wandb.log_extras]
+samples = true
+distributions = true
+interval = 1

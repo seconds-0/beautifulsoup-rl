@@ -1,0 +1,36 @@
+# Ablation: No Checkpointing
+#
+# Purpose: Test if checkpoint path is causing the crash
+# Hypothesis: If this survives past step 10, checkpoint system is the culprit
+#
+# Changes from production config:
+# - max_steps = 50 (short run, just need to survive)
+# - NO [checkpoint] section at all
+
+model = "Qwen/Qwen3-4B-Instruct-2507"
+max_steps = 50                # Short run, just need to survive
+batch_size = 32               # Same as production
+rollouts_per_example = 4      # Same as production
+trajectory_strategy = "interleaved"
+max_async_level = 1           # Same as production
+oversampling_factor = 1.0     # Same as production
+
+[sampling]
+max_tokens = 4096
+
+[[env]]
+id = "seconds-0/beautiful-soup-env"
+args = { split = "train", mode = "all", cpu_cores = 2, memory_gb = 32 }
+
+[env.log]
+level = "info"
+vf_level = "info"
+
+[wandb]
+project = "beautifulsoup-rl"
+name = "ablation-nockpt"
+
+[wandb.log_extras]
+samples = true
+distributions = true
+interval = 1
