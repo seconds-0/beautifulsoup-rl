@@ -50,31 +50,35 @@ class CodeAnalysisResult:
 
 
 # BS4-specific method names that don't appear in standard library
-_BS4_METHODS = frozenset({
-    "find_all",
-    "select",
-    "select_one",
-    "get_text",
-    "prettify",
-    "decode_contents",
-    "encode_contents",
-    "new_tag",
-    "new_string",
-})
+_BS4_METHODS = frozenset(
+    {
+        "find_all",
+        "select",
+        "select_one",
+        "get_text",
+        "prettify",
+        "decode_contents",
+        "encode_contents",
+        "new_tag",
+        "new_string",
+    }
+)
 
 # BS4-specific attribute names
-_BS4_ATTRS = frozenset({
-    "next_sibling",
-    "previous_sibling",
-    "next_siblings",
-    "previous_siblings",
-    "next_element",
-    "previous_element",
-    "children",
-    "descendants",
-    "contents",
-    "attrs",
-})
+_BS4_ATTRS = frozenset(
+    {
+        "next_sibling",
+        "previous_sibling",
+        "next_siblings",
+        "previous_siblings",
+        "next_element",
+        "previous_element",
+        "children",
+        "descendants",
+        "contents",
+        "attrs",
+    }
+)
 
 # Selection methods for partial credit
 _SELECTION_METHODS = frozenset({"find", "find_all", "select", "select_one"})
@@ -283,6 +287,7 @@ def _is_html_derived(expr: ast.AST | None, derived_names: set[str]) -> bool:
     if isinstance(expr, ast.Name) and expr.id in derived_names:
         return True
     return _expr_uses_any_name(expr, derived_names)
+
 
 # Reward values (configurable)
 REWARD_CORRECT = 1.0

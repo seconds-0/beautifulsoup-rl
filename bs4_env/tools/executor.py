@@ -535,12 +535,14 @@ def _worker_init() -> None:
     html5lib_module = None
     try:
         import lxml
+
         lxml_module = lxml
     except ImportError:
         pass
 
     try:
         import html5lib
+
         html5lib_module = html5lib
     except ImportError:
         pass

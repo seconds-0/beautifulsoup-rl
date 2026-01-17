@@ -70,12 +70,12 @@ def benchmark_execution(config) -> dict:
     """Measure code execution latency."""
     from bs4_env.tools.executor import PooledSubprocessExecutor
 
-    test_code = '''
+    test_code = """
 from bs4 import BeautifulSoup
 soup = BeautifulSoup(HTML, "html.parser")
 result = soup.find("div", class_="target").get_text()
 print(json.dumps({"status": "ok", "answer": result, "limit": None}))
-'''
+"""
     test_html = '<div class="target">Hello World</div>'
 
     num_executions = config["num_executions"]
@@ -113,11 +113,11 @@ def benchmark_grading(config) -> dict:
         "answer_schema": {"type": "string"},
     }
     test_html = '<div class="target">Hello World</div>'
-    test_code = '''
+    test_code = """
 from bs4 import BeautifulSoup
 soup = BeautifulSoup(HTML, "html.parser")
 result = soup.find("div").get_text()
-'''
+"""
 
     num_grades = config["num_grades"]
 
@@ -152,14 +152,14 @@ def benchmark_ast_analysis(config) -> dict:
         analyze_code_unified,
     )
 
-    test_code = '''
+    test_code = """
 from bs4 import BeautifulSoup
 soup = BeautifulSoup(HTML, "html.parser")
 items = soup.find_all("div", class_="item")
 for item in items:
     text = item.get_text()
     print(text)
-'''
+"""
 
     num_iterations = config["num_grades"]
 
@@ -194,8 +194,12 @@ for item in items:
         "legacy_mean_ms": round(statistics.mean(legacy_latencies), 3),
         "legacy_median_ms": round(statistics.median(legacy_latencies), 3),
         "speedup_pct": round(
-            ((statistics.median(legacy_latencies) - statistics.median(unified_latencies))
-             / statistics.median(legacy_latencies)) * 100, 1
+            (
+                (statistics.median(legacy_latencies) - statistics.median(unified_latencies))
+                / statistics.median(legacy_latencies)
+            )
+            * 100,
+            1,
         ),
     }
 
@@ -226,7 +230,9 @@ def run_benchmark(config: dict) -> dict:
     print("  [4/4] AST analysis...")
     results["ast_analysis"] = benchmark_ast_analysis(config)
     ast = results["ast_analysis"]
-    print(f"        Unified: {ast['unified_median_ms']} ms, Legacy: {ast['legacy_median_ms']} ms ({ast['speedup_pct']}% faster)")
+    print(
+        f"        Unified: {ast['unified_median_ms']} ms, Legacy: {ast['legacy_median_ms']} ms ({ast['speedup_pct']}% faster)"
+    )
 
     print()
     return results
@@ -303,7 +309,9 @@ def main():
     print(f"  Code execution:  {results['code_execution']['median_ms']} ms/exec")
     print(f"  Grading:         {results['grading']['median_ms']} ms/grade")
     ast = results["ast_analysis"]
-    print(f"  AST (unified):   {ast['unified_median_ms']} ms ({ast['speedup_pct']}% faster than legacy)")
+    print(
+        f"  AST (unified):   {ast['unified_median_ms']} ms ({ast['speedup_pct']}% faster than legacy)"
+    )
 
 
 if __name__ == "__main__":

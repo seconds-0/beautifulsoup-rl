@@ -152,16 +152,18 @@ def build_runner_script(
     constraints_b64 = base64.b64encode(constraints_json.encode("utf-8")).decode("ascii")
 
     # Build script using cached template parts (more efficient than f-string)
-    return "".join([
-        _RUNNER_PREFIX,
-        html_b64,
-        _RUNNER_MIDDLE1,
-        query_b64,
-        _RUNNER_MIDDLE2,
-        constraints_b64,
-        _RUNNER_SUFFIX,
-        user_code,
-    ])
+    return "".join(
+        [
+            _RUNNER_PREFIX,
+            html_b64,
+            _RUNNER_MIDDLE1,
+            query_b64,
+            _RUNNER_MIDDLE2,
+            constraints_b64,
+            _RUNNER_SUFFIX,
+            user_code,
+        ]
+    )
 
 
 def build_tool_response(result: dict[str, Any]) -> str:
