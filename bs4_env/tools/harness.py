@@ -57,31 +57,15 @@ def decompress_html(compressed: str) -> str:
     return zlib.decompress(raw).decode("utf-8")
 
 
-def build_runner_script(
-    user_code: str,
-    globals_dict: dict[str, Any],
-    enforce_bs4_usage: bool = False,
-) -> str:
-    """Build a complete runner script that executes user code.
+# =============================================================================
+# Runner Script Template (Cached for Performance)
+# =============================================================================
+#
+# The template is split into prefix and suffix parts that don't change
+# between executions. Only the encoded globals and user code vary.
+#
 
-    Args:
-        user_code: The Python code to execute.
-        globals_dict: Dictionary of globals to inject (HTML, QUERY, CONSTRAINTS).
-        enforce_bs4_usage: Whether to check that BeautifulSoup is actually used.
-
-    Returns:
-        Complete Python script ready for execution.
-    """
-    # Use base64 encoding for all globals to avoid escape edge cases
-    # This handles all special characters (quotes, backslashes, unicode) cleanly
-    html_b64 = base64.b64encode(globals_dict.get("HTML", "").encode("utf-8")).decode("ascii")
-    query_b64 = base64.b64encode(globals_dict.get("QUERY", "").encode("utf-8")).decode("ascii")
-    # CONSTRAINTS also base64 encoded to avoid single-quote injection issues
-    constraints_json = json.dumps(globals_dict.get("CONSTRAINTS", {}))
-    constraints_b64 = base64.b64encode(constraints_json.encode("utf-8")).decode("ascii")
-
-    # Build the script
-    script = f'''#!/usr/bin/env python3
+_RUNNER_PREFIX = '''#!/usr/bin/env python3
 """Auto-generated runner script for BeautifulSoup RL environment."""
 
 import sys
@@ -92,11 +76,17 @@ import base64
 # Injected Globals (base64 encoded to avoid escape issues)
 # =============================================================================
 
-HTML = base64.b64decode("{html_b64}").decode("utf-8")
+HTML = base64.b64decode("'''
 
-QUERY = base64.b64decode("{query_b64}").decode("utf-8")
+_RUNNER_MIDDLE1 = '''").decode("utf-8")
 
-CONSTRAINTS = json.loads(base64.b64decode("{constraints_b64}").decode("utf-8"))
+QUERY = base64.b64decode("'''
+
+_RUNNER_MIDDLE2 = '''").decode("utf-8")
+
+CONSTRAINTS = json.loads(base64.b64decode("'''
+
+_RUNNER_SUFFIX = '''").decode("utf-8"))
 
 # =============================================================================
 # Helper Functions
@@ -131,10 +121,47 @@ import json
 # User Code
 # =============================================================================
 
-{user_code}
 '''
 
-    return script
+
+def build_runner_script(
+    user_code: str,
+    globals_dict: dict[str, Any],
+    enforce_bs4_usage: bool = False,
+) -> str:
+    """Build a complete runner script that executes user code.
+
+    Performance Optimization:
+        Uses cached template parts to reduce string building overhead.
+        Only encodes the varying parts (globals and user code).
+
+    Args:
+        user_code: The Python code to execute.
+        globals_dict: Dictionary of globals to inject (HTML, QUERY, CONSTRAINTS).
+        enforce_bs4_usage: Whether to check that BeautifulSoup is actually used.
+
+    Returns:
+        Complete Python script ready for execution.
+    """
+    # Use base64 encoding for all globals to avoid escape edge cases
+    # This handles all special characters (quotes, backslashes, unicode) cleanly
+    html_b64 = base64.b64encode(globals_dict.get("HTML", "").encode("utf-8")).decode("ascii")
+    query_b64 = base64.b64encode(globals_dict.get("QUERY", "").encode("utf-8")).decode("ascii")
+    # CONSTRAINTS also base64 encoded to avoid single-quote injection issues
+    constraints_json = json.dumps(globals_dict.get("CONSTRAINTS", {}))
+    constraints_b64 = base64.b64encode(constraints_json.encode("utf-8")).decode("ascii")
+
+    # Build script using cached template parts (more efficient than f-string)
+    return "".join([
+        _RUNNER_PREFIX,
+        html_b64,
+        _RUNNER_MIDDLE1,
+        query_b64,
+        _RUNNER_MIDDLE2,
+        constraints_b64,
+        _RUNNER_SUFFIX,
+        user_code,
+    ])
 
 
 def build_tool_response(result: dict[str, Any]) -> str:
