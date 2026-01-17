@@ -487,7 +487,22 @@ class PrimeSandboxExecutor(Executor):
 # =============================================================================
 #
 # Pre-imported modules for worker processes to avoid repeated import overhead.
-# This is populated by _worker_init() and used by _execute_in_worker_warm().
+# This is populated by _worker_init() and reused across executions.
+#
+# IMPORTANT: State Sharing Risk
+# -----------------------------
+# The _WARM_GLOBALS dict holds module references that are shallow-copied into
+# each execution's globals. This means:
+#
+# 1. User code CAN mutate module state (e.g., bs4.SoupStrainer, sys.modules)
+# 2. Such mutations WILL persist across executions within the same worker
+# 3. This is an acceptable tradeoff for RL training where code is trusted
+#
+# For untrusted code execution, use LocalSubprocessExecutor instead, which
+# spawns a fresh process for each execution.
+#
+# The maxtasksperchild parameter provides partial mitigation by recycling
+# workers after N executions, limiting state accumulation.
 #
 
 _WARM_GLOBALS: dict = {}
