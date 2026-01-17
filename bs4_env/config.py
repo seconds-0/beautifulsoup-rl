@@ -108,6 +108,10 @@ class EnvConfig:
     memory_gb: int = 2  # Memory allocation in GB
     timeout_minutes: int = 30  # Sandbox lifecycle timeout in minutes
 
+    # Pooled executor settings (only used when executor_backend="pooled")
+    executor_num_workers: int | None = None  # Worker pool size (default: cpu_count())
+    executor_maxtasksperchild: int | None = 100  # Tasks before worker recycling
+
     # Dataset caching for memory efficiency (used with verifiers for large training)
     # When True, train/eval use disk-cached HuggingFace Datasets (memory-mapped)
     # When False, all splits use in-memory eager loading

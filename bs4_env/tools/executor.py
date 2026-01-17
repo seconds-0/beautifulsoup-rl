@@ -766,6 +766,9 @@ def get_executor(
     cpu_cores: int = 1,
     memory_gb: int = 2,
     timeout_minutes: int = 30,
+    # Pooled executor-specific settings
+    num_workers: int | None = None,
+    maxtasksperchild: int | None = 100,
     **kwargs,
 ) -> Executor:
     """Factory function to get an executor by backend name.
@@ -778,6 +781,8 @@ def get_executor(
         cpu_cores: CPU cores for Prime sandbox (default: 1).
         memory_gb: Memory in GB for Prime sandbox (default: 2).
         timeout_minutes: Sandbox lifecycle timeout in minutes (default: 30).
+        num_workers: Worker pool size for pooled executor (default: cpu_count()).
+        maxtasksperchild: Tasks before worker recycling for pooled executor.
         **kwargs: Additional arguments passed to executor constructor.
 
     Returns:
@@ -808,8 +813,10 @@ def get_executor(
         return PrimeSandboxExecutor(**prime_kwargs)
     elif backend == "pooled":
         return PooledSubprocessExecutor(
+            num_workers=num_workers,
             max_output_chars=max_output_chars,
             network_access=network_access,
+            maxtasksperchild=maxtasksperchild,
             **kwargs,
         )
     else:
