@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "beautiful-soup-env"
-version = "0.1.4"
+version = "0.1.5"
 description = "RL environment for training agents on BeautifulSoup HTML parsing tasks"
 readme = "README.md"
 license = "MIT"
@@ -31,6 +31,7 @@ dependencies = [
     "soupsieve>=2.4",
     "datasets>=2.14.0",
     "jsonschema>=4.17.0",
+    "pdfplumber>=0.11.9",
 ]
 
 [project.optional-dependencies]
@@ -79,14 +80,14 @@ asyncio_mode = "auto"
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "0.1.5"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM"]
 ignore = ["E501", "E402", "SIM102", "SIM103", "SIM105", "SIM108", "SIM116"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "0.1.5"
 warn_return_any = true
 warn_unused_configs = true
 ignore_missing_imports = true
