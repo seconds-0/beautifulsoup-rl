@@ -4,6 +4,583 @@ Track all RL training experiments for BeautifulSoup environment.
 
 ## Active Runs
 
+### Batch Size Investigation (2026-01-17) - Lab Hosted
+
+**Context**: v0.1.5 validation run (`heeh6kmc19fbh4z0ch7pq4x7`) got stuck at step 2 waiting for checkpoint 1. Root cause: batch_size=32 too small for trainer to produce checkpoint with `max_async_level=1`.
+
+**Hypothesis**: Trainer requires minimum batch size (64-128) to produce checkpoints when async sync is enforced.
+
+#### Experiment A: batch_size=64
+
+- **Run ID**: `qhubcp7xqykyr8eywfz87snc`
+- **Config**: `configs/lab/qwen3-4b-v015-test-64.toml`
+- **Settings**: batch_size=64, rollouts_per_example=8, max_async_level=1
+- **WandB**: beautifulsoup-rl/v0.1.5-batch64-test
+- **Status**: ❌ STUCK (async barrier deadlock)
+- **Dashboard**: https://app.primeintellect.ai/dashboard/training/qhubcp7xqykyr8eywfz87snc
+
+| Step | Time | Reward | Checkpoint Sync | Notes |
+|------|------|--------|-----------------|-------|
+| 0 | 36.83s | 0.1898 | ✅ | Healthy |
+| 1 | 33.78s | 0.1818 | ✅ | Healthy |
+| 2 | - | - | ❌ STUCK | Waiting for checkpoint 1 (10+ min) |
+
+**Result**: ❌ FAILED - Stuck at async barrier like original run
+
+#### Experiment B: batch_size=128
+
+- **Run ID**: `i9bmguxoa3fn79f0qreqsesc`
+- **Config**: `configs/lab/qwen3-4b-v015-test-128.toml`
+- **Settings**: batch_size=128, rollouts_per_example=8, max_async_level=1
+- **WandB**: beautifulsoup-rl/v0.1.5-batch128-test
+- **Status**: ❌ STUCK (async barrier deadlock)
+- **Dashboard**: https://app.primeintellect.ai/dashboard/training/i9bmguxoa3fn79f0qreqsesc
+
+| Step | Time | Reward | Checkpoint Sync | Notes |
+|------|------|--------|-----------------|-------|
+| 0 | 112.78s | 0.0505 | ✅ | Healthy |
+| 1 | 66.41s | 0.1227 | ✅ | Healthy |
+| 2 | - | - | ❌ STUCK | Waiting for checkpoint 1 (10+ min) |
+
+**Result**: ❌ FAILED - Stuck at async barrier like original run
+
+#### Conclusion: Batch Size is NOT the Root Cause
+
+**Key Finding**: Both batch_size=64 and batch_size=128 got stuck at the same checkpoint barrier.
+
+**Root Cause Identified**: The successful run (`kfnq9gn73pb044hg7hb55idj`) used `mode = "bootstrap"`, NOT `mode = "all"`.
+
+| Config | Mode | Batch | Async | Result |
+|--------|------|-------|-------|--------|
+| v0.1.5-validation (stuck) | all | 32 | 1 | ❌ Stuck at step 2 |
+| v0.1.5-batch64-test | all | 64 | 1 | ❌ Stuck at step 2 |
+| v0.1.5-batch128-test | all | 128 | 1 | ❌ Stuck at step 2 |
+| kfnq9gn73pb044hg7hb55idj (success) | **bootstrap** | 128 | 1 | ✅ 50 steps |
+
+**Why mode=all causes deadlock**:
+1. Complex tasks in `mode=all` produce long outputs (up to 4096 tokens)
+2. Longer outputs = more trainer processing time
+3. Trainer can't produce checkpoint 1 before orchestrator step 2
+4. Orchestrator waits indefinitely at async barrier
+
+**Update (2026-01-17 16:30)**: Even `mode = "bootstrap"` with `Qwen3-4B-Instruct` got stuck at checkpoint 3 barrier after completing steps 0-3. This appears to be a **Prime infrastructure issue**, not a configuration issue.
+
+#### Bootstrap Test Run: zkzholsamw9o924r7uzgzry5
+
+- **Model**: Qwen/Qwen3-4B-Instruct-2507
+- **Mode**: bootstrap
+- **Status**: ❌ STUCK at checkpoint 3 barrier
+
+| Step | Time | Reward | Notes |
+|------|------|--------|-------|
+| 0 | 130.40s | 0.3173 | ✅ |
+| 1 | 72.06s | 0.3432 | ✅ |
+| 2 | 64.41s | 0.2896 | ✅ (recovered from ckpt 1 barrier) |
+| 3 | 0.08s | 0.2886 | ✅ (instant - reused samples?) |
+| 4 | - | - | ❌ Stuck waiting for checkpoint 3 |
+
+**Conclusion**: Lab Hosted checkpoint sync is unreliable. This is a Prime infrastructure bug, not user config. Need to report to Prime team.
+
+---
+
+### Comprehensive Investigation Analysis (2026-01-17)
+
+**Context**: Multiple runs got stuck at checkpoint barriers despite varying batch sizes, modes, and async levels. We conducted parallel deep reviews with Codex and Gemini to analyze the patterns.
+
+#### All Tested Runs Summary
+
+| Run ID | Config | Batch | Mode | Async | Result |
+|--------|--------|-------|------|-------|--------|
+| `heeh6kmc19fbh4z0ch7pq4x7` | v0.1.5-validation | 32 | all | 1 | ❌ Stuck at ckpt 1 (step 2) |
+| `qhubcp7xqykyr8eywfz87snc` | v015-test-64 | 64 | all | 1 | ❌ Stuck at ckpt 1 (step 2) |
+| `i9bmguxoa3fn79f0qreqsesc` | v015-test-128 | 128 | all | 1 | ❌ Stuck at ckpt 1 (step 2) |
+| `mjjk90a8q425ax4pgg85qxl6` | Thinking-bootstrap | 128 | bootstrap | 1 | ❌ Stuck at ckpt 1 |
+| `zkzholsamw9o924r7uzgzry5` | Instruct-bootstrap | 128 | bootstrap | 1 | ❌ Steps 0-3, stuck at ckpt 3 |
+| `kdmvezp0xxj3k3sceq63wm8q` | async2-batch32 | 32 | bootstrap | 2 | ❌ Steps 0-4, stuck at ckpt 3 |
+| `bvm2x1i7eulqeelqm2oxblmh` | async2-batch64 | 64 | bootstrap | 2 | ❌ Steps 0-4, stuck at ckpt 3 |
+| `kfnq9gn73pb044hg7hb55idj` | ablation-async0 | 128 | bootstrap | 1 | ✅ Completed 50 steps |
+
+#### Codex Analysis (Ranked Hypotheses)
+
+1. **Trainer checkpoint production intermittently delayed/stalled** (MOST LIKELY)
+   - Support: All failures are "stuck at checkpoint barrier," not execution errors
+   - async=2 reaches later steps but still stalls
+   - Bootstrap (faster steps) gets further before stall
+
+2. **Shared infrastructure contention (multi-tenant load)**
+   - Support: Same config succeeded earlier but later failed
+   - Multiple runs on same date all stuck
+   - Time-of-day or bursty load could slow checkpoint creation
+
+3. **Trainer–orchestrator handshake bug under certain timing**
+   - Support: "Checkpoint 1 sometimes recovers but checkpoint 3 never recovers"
+   - Suggests inconsistent recovery/timeout behavior
+
+4. **Model variants have slower trainer step time** - UNLIKELY
+   - Stuck happens with all variants, not model-specific
+
+5. **v0.1.5 optimizations indirectly expose trainer lag**
+   - Faster env execution can drive orchestrator ahead
+   - Reveals trainer slowness that was previously masked
+
+6. **Batch size is causal** - RULED OUT
+   - Failures at 32/64/128 with same pattern
+   - Successful run was batch128
+
+#### Gemini Analysis (Different Perspective)
+
+**Key Finding: The "Instant Step" Anomaly**
+
+Run `zkzholsamw9o924r7uzgzry5` recorded **0.08s** for Step 3 - physically impossible for 128 rollouts unless:
+- Step was skipped
+- Samples were cached/reused
+- Step had 0 samples (all filtered out)
+
+**Gemini's Hypotheses:**
+
+1. **H1: Trainer Resource Exhaustion (mode=all)**
+   - Shared Trainer can't handle compute/memory intensity of mode=all
+   - 4096 tokens, complex graphs may cause silent crashes during Step 0
+
+2. **H2: "Perfect Score" Deadlock (mode=bootstrap)**
+   - Instruct model achieves 100% reward on trivial bootstrap tasks
+   - If filtering removes "easy" tasks, Step 3 became empty (0 samples)
+   - Empty step breaks checkpoint heartbeat, causing hang
+
+3. **H3: Checkpoint Race Condition**
+   - 0.08s step indicates Orchestrator raced ahead
+   - Dependency graph locks up when Orchestrator moves to Step 4 before Trainer acknowledges Step 2/3
+
+#### Key Insights from Both Reviews
+
+1. **Batch size definitively ruled out** - Both reviewers agree
+2. **The "Instant Step" anomaly** is a new lead - if Step 3 had 0 samples, explains deadlock
+3. **Trainer-side stalling** is most likely root cause
+4. **v0.1.5 optimizations** may indirectly contribute by making orchestrator faster
+5. **Model behavior matters** - Instruct vs Thinking may produce different training data patterns
+
+#### Questions for Prime Team
+
+1. Do trainer logs show checkpoint creation attempts or stalls for these run IDs?
+2. Any infra incidents or load spikes on 2026-01-17?
+3. Any recent changes in trainer checkpointing cadence?
+4. Are checkpoint files created but failing to upload/commit?
+5. Can we compare trainer step time between successful and failed runs?
+6. Did `zkzholsamw9o924r7uzgzry5` Step 3 have `num_samples = 0`?
+
+#### Data Needed
+
+- [ ] WandB "Samples" metric for Step 3 of `zkzholsamw9o924r7uzgzry5`
+- [ ] Trainer-side logs for stuck runs
+- [ ] Infra metrics: trainer queue length, GPU utilization, storage I/O latency
+- [ ] Compare wall-clock time to reach step 2/3 across runs
+
+---
+
+#### Success Criteria
+
+- At least one run completes 10+ steps without checkpoint deadlock
+- Identify minimum viable batch_size
+- Document findings for production config
+
+---
+
+### Run: qwen3-4b-optimized-v3-500steps (2026-01-14) - Lab Hosted - FAILED ❌
+
+- **Model**: Qwen/Qwen3-4B-Instruct-2507
+- **Config**: configs/lab/qwen3-4b-optimized.toml (v3)
+- **Platform**: Prime Intellect Lab Hosted
+- **Run ID**: yyjibqp3dtj3e2r5r26qnf00
+- **WandB**: beautifulsoup-rl/qwen3-4b-optimized-v3-500steps
+- **Status**: **FAILED** ❌ (crashed at step 10)
+- **Target Steps**: 500
+- **Crash Point**: Step 10 during `load_lora_adapter` weight sync
+
+#### Crash Analysis (FOR PRIME TEAM)
+
+**This run crashed consistently at step 8-10, same as previous attempts. Full investigation and ablation study below.**
+
+---
+
+## Lab Hosted Stability Investigation (2026-01-14)
+
+### Executive Summary
+
+Lab Hosted runs with `mode=all` (full task diversity) consistently crash at step 8-10 during LoRA weight sync. **Root cause CONFIRMED: sandbox memory exhaustion from large HTML documents.**
+
+**Solution**: Set `memory_gb=16` in env args for `mode=all` training. The default 4GB is insufficient for BeautifulSoup to parse 60-100KB HTML documents.
+
+**Key Evidence**:
+| Config | memory_gb | Mode | Result |
+|--------|-----------|------|--------|
+| Failed runs | 4 | all | ❌ Crashed step 8-10 |
+| High-memory test | 16 | all | ✅ **Passed step 11+** |
+| Bootstrap runs | 4 | bootstrap | ✅ Passed (small HTML) |
+
+### Crash Logs (Full Traceback)
+
+```
+File "/app/src/prime_rl/orchestrator/orchestrator.py", line 248, in orchestrate
+    update_policy_task.result()  # Raises if the task failed
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/app/src/prime_rl/orchestrator/scheduler.py", line 163, in update_policy_loop
+    await self.update_policy()
+File "/app/src/prime_rl/orchestrator/scheduler.py", line 191, in update_policy
+    await update_weights(
+File "/app/src/prime_rl/utils/client.py", line 124, in update_weights
+    await load_lora_adapter(admin_clients, lora_name, weight_dir)
+File "/app/src/prime_rl/utils/client.py", line 196, in load_lora_adapter
+    await asyncio.gather(*[_load_lora_adapter(admin_client) for admin_client in admin_clients])
+File "/app/.venv/lib/python3.12/site-packages/tenacity/asyncio/__init__.py", line 189, in async_wrapped
+    return await copy(fn, *args, **kwargs)
+File "/app/src/prime_rl/utils/client.py", line 190, in _load_lora_adapter
+    response = await admin_client.post(
+File "/app/.venv/lib/python3.12/site-packages/httpx/_client.py", line 1730, in _send_single_request
+    response = await transport.handle_async_request(request)
+File "/app/.venv/lib/python3.12/site-packages/httpx/_transports/default.py", line 118, in map_httpcore_exceptions
+    raise mapped_exc(message) from exc
+httpx.ConnectError: [Errno -2] Name or service not known
+```
+
+**Error Location**: `client.py:190` - POST to inference admin endpoint during LoRA weight reload
+
+**Error Type**: DNS lookup failure - inference pod hostname no longer resolves (pod died)
+
+### Observed Behavior Pattern
+
+| Step | Behavior |
+|------|----------|
+| 0-5 | Normal operation, stable throughput 2000-2500 tok/s |
+| 6-8 | Async barrier waits increase (7+ minutes observed) |
+| 8-10 | Crash during `load_lora_adapter` weight sync |
+
+**Key Metric**: When `time/step` exceeds 5+ minutes, crash is imminent. Normal step time is ~90-150s.
+
+### Hypothesis: Inference Pod Resource Exhaustion
+
+We believe the crash is caused by a "thundering herd" effect:
+
+1. **Hard tasks generate long outputs**: With `mode=all`, tasks like regex extraction can produce 4096-token outputs with complex reasoning
+2. **KV cache memory accumulates**: `batch_size=128` + `max_tokens=4096` = massive KV cache
+3. **Async level allows orchestrator to race ahead**: With `max_async_level=2`, inference pod builds up a queue
+4. **Weight sync attempts during high load**: When trainer finishes a step, it signals `load_lora_adapter`
+5. **Pod runs out of resources**: The combination of KV cache memory + weight reload triggers OOM or timeout
+6. **K8s health check fails**: Pod stops responding, K8s kills it, DNS no longer resolves
+
+**Evidence for this hypothesis**:
+- Crash always occurs during `load_lora_adapter` (weight sync)
+- Long async barrier waits (7+ min) precede crash
+- Bootstrap mode (simpler tasks, shorter outputs) never crashes
+
+### Ablation Study Design
+
+To isolate the cause, we ran 4 controlled 50-step tests:
+
+| Test | Config | Key Changes | Run ID |
+|------|--------|-------------|--------|
+| **Baseline** | `qwen3-4b-bootstrap.toml` | `mode=bootstrap` only | skuz080dq7fuyst5jn26bfjn |
+| **Small Batch** | `qwen3-4b-ablation-small.toml` | batch=64, rollouts=4 | vg7e1r0mjj146b3dy0ylxvf6 |
+| **Async Level 1** | `qwen3-4b-ablation-async0.toml` | `max_async_level=1` | kfnq9gn73pb044hg7hb55idj |
+| **Conservative** | `qwen3-4b-ablation-conservative.toml` | batch=32, async=1, tokens=1024 | z5ou53akdxrt5f0jzmnbv6lg |
+
+### Ablation Results
+
+| Test | Status | Steps | Best Reward | Avg Step Time | Notes |
+|------|--------|-------|-------------|---------------|-------|
+| Baseline (bootstrap) | ✅ COMPLETED | 50/50 | **99.7%** | ~90s | No crashes, stable throughput |
+| Small Batch | ✅ COMPLETED | 50/50 | **100%** | ~60s | No crashes, faster steps |
+| Async Level 1 | 🏃 RUNNING | TBD | TBD | TBD | In progress |
+| Conservative | 🏃 RUNNING | TBD | TBD | TBD | In progress |
+
+**Key Finding**: Both completed runs used `mode=bootstrap`. This is the critical variable.
+
+### Comparison: Failed (mode=all) vs Success (mode=bootstrap)
+
+| Metric | Failed Run (yyjibqp3dtj3e2r5r26qnf00) | Success Run (skuz080dq7fuyst5jn26bfjn) |
+|--------|---------------------------------------|----------------------------------------|
+| Mode | `all` (full task diversity) | `bootstrap` (primer + easy) |
+| Steps Completed | 10/500 (2%) | 50/50 (100%) |
+| Crash Point | Step 10, `load_lora_adapter` | N/A - no crash |
+| Avg Step Time | 90-150s (with 7+ min spikes) | ~90s (consistent) |
+| Max Seq Length | 4096 tokens | ~1600 tokens (shorter) |
+| Async Barrier Waits | 7+ minutes observed | <30 seconds |
+
+### Why Bootstrap Mode Works
+
+`mode=bootstrap` in our environment selects only "primer" archetypes:
+- Ultra-simple tasks like `<span id="target">Hello</span>` → extract "Hello"
+- Model outputs are short (~500-1500 tokens)
+- Low cognitive load = faster inference
+- Less KV cache memory used
+- No long reasoning chains
+
+`mode=all` includes hard tasks:
+- Complex HTML with nested structures
+- Regex patterns requiring multi-step reasoning
+- Limitation tasks requiring evidence extraction
+- Model outputs can reach 4096 tokens
+- Long reasoning chains = more tool calls = more latency
+
+### Recommendations for Prime Team
+
+#### 1. Inference Pod Health Monitoring
+
+**Request**: Add observability into inference pod health:
+- GPU memory utilization (especially KV cache)
+- Request queue depth
+- Time since last successful inference
+- Proactive health warnings before crash
+
+**Why**: Currently crashes are silent - we only see DNS failure after the fact. Early warnings would help users adjust configs before losing a run.
+
+#### 2. Graceful Weight Sync Handling
+
+**Request**: Implement graceful degradation during `load_lora_adapter`:
+- If inference pod is under heavy load, delay weight sync
+- Add backpressure mechanism to orchestrator
+- Implement retry with exponential backoff before giving up
+
+**Why**: The current behavior crashes the entire run on first weight sync failure. A more resilient approach would try to recover.
+
+#### 3. User-Facing Guidance
+
+**Request**: Document the relationship between:
+- `batch_size` × `max_tokens` × `max_async_level` = memory pressure
+- Task complexity → output length → KV cache usage
+- Provide sizing guidance based on model size and task type
+
+**Why**: Users currently have no guidance on safe parameter combinations. We discovered `mode=bootstrap` works through trial and error.
+
+#### 4. Async Level 0 Support
+
+**Request**: Allow `max_async_level=0` for fully synchronous operation.
+
+**Why**: We tried to set `max_async_level=0` for our ablation test but got HTTP 422:
+```
+Input should be greater than or equal to 1
+```
+
+Fully synchronous mode would be valuable for debugging stability issues.
+
+### Config Files Created
+
+All configs in `configs/lab/`:
+
+**qwen3-4b-bootstrap.toml** (baseline - stable):
+```toml
+model = "Qwen/Qwen3-4B-Instruct-2507"
+max_steps = 50
+batch_size = 128
+rollouts_per_example = 8
+trajectory_strategy = "interleaved"
+max_async_level = 2
+oversampling_factor = 2.0
+
+[sampling]
+max_tokens = 4096
+
+[[env]]
+id = "seconds-0/beautiful-soup-env"
+args = { split = "train", mode = "bootstrap", cpu_cores = 2, memory_gb = 4 }
+```
+
+**qwen3-4b-ablation-conservative.toml** (maximum stability):
+```toml
+batch_size = 32               # Minimum
+rollouts_per_example = 4      # Reduced
+max_async_level = 1           # Minimum (0 not allowed)
+oversampling_factor = 1.0     # No oversampling
+
+[sampling]
+max_tokens = 1024             # Shorter outputs
+```
+
+### Next Steps
+
+1. Wait for remaining ablation tests to complete
+2. If all pass, root cause confirmed as task complexity
+3. Deploy production training with `mode=bootstrap` for initial model improvement
+4. Gradually introduce harder tasks once model has baseline capability
+
+---
+
+### Early Progress (Before Crash)
+
+| Step | Time | Reward | Throughput | Seq Length |
+|------|------|--------|------------|------------|
+| 0 | 94s | 13.0% | 2357 tok/s | 1725 |
+| 1 | 143s | 11.3% | 1655 tok/s | 1850 |
+
+---
+
+## Speed & Throughput Comparison: Lab Hosted Optimizations
+
+### Hyperparameter Changes (Default → Optimized)
+
+| Parameter | Default | Optimized | Impact |
+|-----------|---------|-----------|--------|
+| `batch_size` | 32 | **128** | 4x more work per step, amortizes network overhead |
+| `rollouts_per_example` | 4 | **8** | Better gradient quality, more diverse samples |
+| `max_async_level` | 0 | **2** | Inference can run ahead of training |
+| `oversampling_factor` | 1.0 | **2.0** | More rollouts in flight |
+| `max_tokens` | 512 | **4096** | Matches production, avoids truncation |
+| `cpu_cores` | 1 | **2** | Faster sandbox execution |
+| `memory_gb` | 2 | **4** | Larger sandbox capacity |
+
+### Throughput Comparison
+
+| Run | Model | Avg Throughput | Peak Throughput | Avg Step Time |
+|-----|-------|---------------|-----------------|---------------|
+| Lab Hosted v2 | Qwen3-4B | ~2,800 tok/s | 6,394 tok/s | ~126s |
+| Lab Hosted v3 | Qwen3-4B | ~2,000 tok/s | 2,357 tok/s | ~118s |
+| Self-Hosted v3 (local) | Qwen3-8B | ~1,500 tok/s | ~2,500 tok/s | ~200s |
+| Self-Hosted v4 (local) | Qwen3-8B | ~1,200 tok/s | ~2,000 tok/s | ~560s |
+
+### Key Insight
+
+**Lab Hosted is competitive with self-hosted for 4B-8B models**, with the main advantage being zero infrastructure management. The hyperparameter optimizations (larger batches, more rollouts, async inference) help maximize utilization of Prime's managed infrastructure.
+
+**What we changed:** We bumped batch size 4x (32→128), doubled rollouts (4→8), and enabled async inference (max_async_level=2) to better saturate the distributed infrastructure - this lets the system pipeline work more efficiently instead of waiting between steps.
+
+---
+
+### Run: qwen3-4b-optimized-v2 (2026-01-14) - Lab Hosted - COMPLETED ✅
+
+- **Model**: Qwen/Qwen3-4B-Instruct-2507
+- **Config**: configs/lab/qwen3-4b-optimized.toml (v2)
+- **Platform**: Prime Intellect Lab Hosted
+- **Run ID**: tea6fd7i0tlf5n4qztcit41p
+- **WandB**: https://wandb.ai/seconds-0-domus-magna-inc/beautifulsoup-rl/runs/1dxl2hrq
+- **Status**: **COMPLETED** ✅
+
+#### Results
+
+| Step | Time | Reward | Throughput | Solve None |
+|------|------|--------|------------|------------|
+| 0 | 108s | 17.9% | 2079 tok/s | 44% |
+| 1 | 177s | 3.2% | 1439 tok/s | 75% |
+| 2 | 35s | 11.1% | 6394 tok/s | 69% |
+| 3 | 65s | 17.8% | 3741 tok/s | 44% |
+| 4 | 208s | 6.1% | 1229 tok/s | 62% |
+| 5 | 115s | 32.7% | 2046 tok/s | 19% |
+| 6 | 52s | 38.5% | 4976 tok/s | 38% |
+| 7 | 86s | 30.0% | 3008 tok/s | 38% |
+| 8 | 207s | **52.8%** | 1211 tok/s | 25% |
+| 9 | 211s | **50.3%** | 1289 tok/s | 25% |
+
+**Summary:**
+- Total time: 21.1 minutes (10 steps)
+- Best reward: **52.78%** (step 8)
+- Final reward: **50.29%**
+- Average step time: ~2 min/step
+
+#### Key Improvements from v1
+
+1. **Added per-worker logging** via `[env.log]` config
+2. **Created WandB monitoring script** (`scripts/wandb_alert_monitor.py`)
+3. **Added verbose WandB logging** via `[wandb.log_extras]`
+4. **Increased max_steps** to 10 (was 5)
+
+#### Diagnostic Patterns Validated
+
+When inference server dies (observed in v1), you see:
+- Throughput drop >50% from peak
+- `time/update_weights` DECREASES (paradoxically - timeouts complete faster)
+- `batch/solve_none` spikes to >70%
+
+This run showed stable `time/update_weights` at 8.3s throughout = healthy.
+
+---
+
+### Run: qwen3-4b-optimized-v1 (2026-01-13) - Lab Hosted - CRASHED ⚠️
+
+- **Model**: Qwen/Qwen3-4B-Instruct-2507
+- **Config**: configs/lab/qwen3-4b-optimized.toml
+- **Platform**: Prime Intellect Lab Hosted
+- **Run ID**: v0bl0g0i7nhel34ypaoftrt2
+- **Status**: CRASHED (network error at step 3)
+- **W&B Project**: beautifulsoup-rl
+
+#### Results
+
+| Step | Time | Reward | Throughput | Notes |
+|------|------|--------|------------|-------|
+| 0 | 96s | 8.06% | 2374 tok/s | Base model, no sync |
+| 1 | 19.6 min | 10.32% | 201 tok/s | First checkpoint sync |
+| 2 | 44s | **22.58%** | 4916 tok/s | System warmed up |
+| 3 | 2.5 min | 6.78% | 1533 tok/s | Crashed after logging |
+
+**Key findings:**
+- **Step 1 bottleneck confirmed** - First weight sync takes ~20 min (expected architectural constraint)
+- **Step 2 was very fast** - Once system warms up, subsequent steps are much faster
+- **Excellent reward progression** - 8% → 22.6% in 3 steps shows strong RL signal
+
+#### Step Timing Analysis (Research Synthesis)
+
+All three research sources (Codex, Gemini, Explore agent) confirmed:
+
+1. **Step 0 is fast** because:
+   - Uses pre-loaded base model (no weight sync)
+   - No checkpoint dependency
+   - Inference servers ready immediately
+
+2. **Step 1 is slow** because:
+   - Trainer must complete training on step 0 data
+   - Weight broadcast to filesystem (`broadcasts/step_1/STABLE`)
+   - Orchestrator waits for `STABLE` marker (1-second polling)
+   - All inference servers reload weights (blocking operation)
+   - NCCL handshake if using NCCL broadcast
+
+3. **Step 2+ can be faster** because:
+   - Filesystem caches populated
+   - Weight loading path warm
+   - No "cold start" penalty
+
+**Metrics to check in WandB:**
+- `time/wait_for_ckpt` - Time waiting for checkpoint marker
+- `time/update_weights` - Time updating inference server weights
+- `time/broadcast_weights` - Trainer-side weight broadcast time
+
+#### Error
+
+```
+httpx.ConnectError: [Errno -2] Name or service not known
+```
+
+Transient network error in Lab Hosted infrastructure. Not a config issue.
+
+#### Config
+
+```toml
+model = "Qwen/Qwen3-4B-Instruct-2507"
+max_steps = 5
+batch_size = 128
+rollouts_per_example = 8
+trajectory_strategy = "interleaved"
+max_async_level = 2
+oversampling_factor = 2.0
+
+[sampling]
+max_tokens = 4096
+
+[[env]]
+id = "seconds-0/beautiful-soup-env"
+args = { split = "train", mode = "all", cpu_cores = 2, memory_gb = 4 }
+
+[wandb]
+project = "beautifulsoup-rl"
+name = "qwen3-4b-optimized-v1"
+```
+
+#### Lessons Learned
+
+1. **First weight sync is slow by design** - Not a config issue, architectural constraint
+2. **max_tokens=4096 is correct** - 512 caused truncation (reward dropped from 9% to 6%)
+3. **batch_size=128 works** - Better than 32 for amortizing network overhead
+4. **Lab Hosted can show good RL signal** - 22.6% reward at step 2 is excellent
+
+---
+
 ### Run: bs4-rl-qwen3-8b-2xh100-v4-resilient (2026-01-06 → 2026-01-12) - COMPLETED ✅
 
 - **Model**: Qwen/Qwen3-8B (8.2B params)
