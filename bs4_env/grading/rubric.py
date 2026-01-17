@@ -129,42 +129,24 @@ def _collect_code_metadata(tree: ast.AST, result: CodeAnalysisResult) -> None:
     - HTML-derived variable names (for soup creation check)
     - Shadowed callable names (for anti-spoofing)
     - BS4 module/constructor aliases (for import detection)
+
+    Two-pass approach:
+    1. First collect all imports to know which aliases are BS4-related
+    2. Then collect assignments to detect shadowing of those aliases
     """
-    # Collect assignments for HTML-derived tracking
+    # Collect assignments for HTML-derived tracking and shadowing detection
     assigns: list[tuple[set[str], ast.AST | None]] = []
+    assigned_names: set[str] = set()
+    func_class_names: set[str] = set()
 
+    # First pass: collect all imports to get bs4 aliases
     for node in ast.walk(tree):
-        # Collect assignments
-        if isinstance(node, ast.Assign):
-            for t in node.targets:
-                names = _extract_assigned_names(t)
-                assigns.append((names, node.value))
-                # Check for shadowing
-                for name in names:
-                    if name in {"BeautifulSoup", "make_soup"}:
-                        result.shadowed_names.add(name)
-        elif isinstance(node, ast.AnnAssign):
-            names = _extract_assigned_names(node.target)
-            assigns.append((names, node.value))
-            for name in names:
-                if name in {"BeautifulSoup", "make_soup"}:
-                    result.shadowed_names.add(name)
-
-        # Collect function/class definitions that shadow
-        elif isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
-            if node.name in {"BeautifulSoup", "make_soup"}:
-                result.shadowed_names.add(node.name)
-        elif isinstance(node, ast.ClassDef):
-            if node.name in {"BeautifulSoup", "make_soup"}:
-                result.shadowed_names.add(node.name)
-
-        # Collect imports
-        elif isinstance(node, ast.Import):
+        if isinstance(node, ast.Import):
             for alias in node.names:
                 if alias.name == "bs4" or alias.name.startswith("bs4."):
                     result.bs4_imported = True
                     result.bs4_module_aliases.add(alias.asname or "bs4")
-                # Check for shadowing via import
+                # Check for shadowing via non-bs4 import
                 bound = alias.asname or alias.name.split(".")[-1]
                 if bound in {"BeautifulSoup", "make_soup"}:
                     result.shadowed_names.add(bound)
@@ -182,6 +164,33 @@ def _collect_code_metadata(tree: ast.AST, result: CodeAnalysisResult) -> None:
                     bound = alias.asname or alias.name
                     if bound in {"BeautifulSoup", "make_soup"}:
                         result.shadowed_names.add(bound)
+
+    # Second pass: collect assignments and function/class definitions
+    # These can shadow both built-in names and imported BS4 aliases
+    names_to_check_shadowing = {"BeautifulSoup", "make_soup"} | result.bs4_ctor_aliases
+
+    for node in ast.walk(tree):
+        # Collect assignments
+        if isinstance(node, ast.Assign):
+            for t in node.targets:
+                names = _extract_assigned_names(t)
+                assigns.append((names, node.value))
+                assigned_names.update(names)
+        elif isinstance(node, ast.AnnAssign):
+            names = _extract_assigned_names(node.target)
+            assigns.append((names, node.value))
+            assigned_names.update(names)
+
+        # Collect function/class definitions
+        elif isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+            func_class_names.add(node.name)
+        elif isinstance(node, ast.ClassDef):
+            func_class_names.add(node.name)
+
+    # Mark names as shadowed if they're assigned or defined as func/class
+    for name in names_to_check_shadowing:
+        if name in assigned_names or name in func_class_names:
+            result.shadowed_names.add(name)
 
     # Fixed-point iteration for HTML-derived names
     changed = True
