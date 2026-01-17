@@ -6,9 +6,7 @@ with a single AST pass instead of multiple separate passes.
 
 from __future__ import annotations
 
-import pytest
-
-from bs4_env.grading.rubric import analyze_code_unified, CodeAnalysisResult
+from bs4_env.grading.rubric import analyze_code_unified
 
 
 class TestUnifiedASTBasics:

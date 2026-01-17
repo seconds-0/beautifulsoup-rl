@@ -22,7 +22,6 @@ from bs4_env.grading.normalize import (
 from bs4_env.grading.safety import check_safety
 from bs4_env.grading.schema import validate_output
 
-
 # =============================================================================
 # Unified AST Analysis (Performance Optimization)
 # =============================================================================
@@ -182,9 +181,7 @@ def _collect_code_metadata(tree: ast.AST, result: CodeAnalysisResult) -> None:
             assigned_names.update(names)
 
         # Collect function/class definitions
-        elif isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
-            func_class_names.add(node.name)
-        elif isinstance(node, ast.ClassDef):
+        elif isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef):
             func_class_names.add(node.name)
 
     # Mark names as shadowed if they're assigned or defined as func/class
