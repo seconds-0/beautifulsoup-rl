@@ -143,12 +143,13 @@ result = soup.find("div").get_text()
 
 
 def benchmark_ast_analysis(config) -> dict:
-    """Measure AST analysis specifically (grading's hot path)."""
+    """Measure AST analysis - both unified and legacy paths for comparison."""
     from bs4_env.grading.rubric import (
         _check_bs4_usage_ast,
         _check_content_access_ast,
         _check_selection_method_ast,
         _check_soup_creation_with_html_ast,
+        analyze_code_unified,
     )
 
     test_code = '''
@@ -162,28 +163,40 @@ for item in items:
 
     num_iterations = config["num_grades"]
 
-    # Warmup
+    # Warmup both paths
     for _ in range(config["warmup_iterations"]):
+        analyze_code_unified(test_code)
         _check_bs4_usage_ast(test_code)
         _check_soup_creation_with_html_ast(test_code)
         _check_selection_method_ast(test_code)
         _check_content_access_ast(test_code)
 
-    # Benchmark - all 4 AST passes (current behavior)
-    latencies = []
+    # Benchmark unified analysis (single pass - the optimized path)
+    unified_latencies = []
+    for _ in range(num_iterations):
+        start = time.perf_counter()
+        analyze_code_unified(test_code)
+        unified_latencies.append((time.perf_counter() - start) * 1000)
+
+    # Benchmark legacy 4-pass analysis (for comparison)
+    legacy_latencies = []
     for _ in range(num_iterations):
         start = time.perf_counter()
         _check_bs4_usage_ast(test_code)
         _check_soup_creation_with_html_ast(test_code)
         _check_selection_method_ast(test_code)
         _check_content_access_ast(test_code)
-        latencies.append((time.perf_counter() - start) * 1000)
+        legacy_latencies.append((time.perf_counter() - start) * 1000)
 
     return {
-        "mean_ms": round(statistics.mean(latencies), 3),
-        "median_ms": round(statistics.median(latencies), 3),
-        "p95_ms": round(sorted(latencies)[int(len(latencies) * 0.95)], 3),
-        "num_ast_passes": 4,
+        "unified_mean_ms": round(statistics.mean(unified_latencies), 3),
+        "unified_median_ms": round(statistics.median(unified_latencies), 3),
+        "legacy_mean_ms": round(statistics.mean(legacy_latencies), 3),
+        "legacy_median_ms": round(statistics.median(legacy_latencies), 3),
+        "speedup_pct": round(
+            ((statistics.median(legacy_latencies) - statistics.median(unified_latencies))
+             / statistics.median(legacy_latencies)) * 100, 1
+        ),
     }
 
 
@@ -212,7 +225,8 @@ def run_benchmark(config: dict) -> dict:
 
     print("  [4/4] AST analysis...")
     results["ast_analysis"] = benchmark_ast_analysis(config)
-    print(f"        {results['ast_analysis']['median_ms']} ms median ({results['ast_analysis']['num_ast_passes']} passes)")
+    ast = results["ast_analysis"]
+    print(f"        Unified: {ast['unified_median_ms']} ms, Legacy: {ast['legacy_median_ms']} ms ({ast['speedup_pct']}% faster)")
 
     print()
     return results
@@ -229,7 +243,7 @@ def print_comparison(baseline: dict, optimized: dict) -> None:
         ("Task Generation", "task_generation", "tasks_per_second", True),
         ("Code Execution", "code_execution", "median_ms", False),
         ("Grading", "grading", "median_ms", False),
-        ("AST Analysis", "ast_analysis", "median_ms", False),
+        ("AST (unified)", "ast_analysis", "unified_median_ms", False),
     ]
 
     for name, key, metric, higher_is_better in sections:
@@ -288,7 +302,8 @@ def main():
     print(f"  Task generation: {results['task_generation']['tasks_per_second']} tasks/s")
     print(f"  Code execution:  {results['code_execution']['median_ms']} ms/exec")
     print(f"  Grading:         {results['grading']['median_ms']} ms/grade")
-    print(f"  AST analysis:    {results['ast_analysis']['median_ms']} ms/analysis")
+    ast = results["ast_analysis"]
+    print(f"  AST (unified):   {ast['unified_median_ms']} ms ({ast['speedup_pct']}% faster than legacy)")
 
 
 if __name__ == "__main__":
