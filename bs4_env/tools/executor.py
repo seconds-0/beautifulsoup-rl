@@ -482,12 +482,101 @@ class PrimeSandboxExecutor(Executor):
             )
 
 
+# =============================================================================
+# Warm Worker Pool Infrastructure
+# =============================================================================
+#
+# Pre-imported modules for worker processes to avoid repeated import overhead.
+# This is populated by _worker_init() and reused across executions.
+#
+# IMPORTANT: State Sharing Risk
+# -----------------------------
+# The _WARM_GLOBALS dict holds module references that are shallow-copied into
+# each execution's globals. This means:
+#
+# 1. User code CAN mutate module state (e.g., bs4.SoupStrainer, sys.modules)
+# 2. Such mutations WILL persist across executions within the same worker
+# 3. This is an acceptable tradeoff for RL training where code is trusted
+#
+# For untrusted code execution, use LocalSubprocessExecutor instead, which
+# spawns a fresh process for each execution.
+#
+# The maxtasksperchild parameter provides partial mitigation by recycling
+# workers after N executions, limiting state accumulation.
+#
+
+_WARM_GLOBALS: dict = {}
+
+
+def _worker_init() -> None:
+    """Initialize worker process with pre-imported modules.
+
+    This function is called once when each worker process starts.
+    It pre-imports heavy dependencies to avoid repeated import overhead
+    on every code execution.
+
+    The imported modules are stored in _WARM_GLOBALS and reused across
+    all executions in this worker process.
+    """
+    global _WARM_GLOBALS
+
+    # Pre-import heavy modules that are used in every execution
+    import base64
+    import json
+    import re
+    import sys
+
+    # Pre-import BS4 and its dependencies (the expensive part)
+    import bs4
+    from bs4 import BeautifulSoup, Comment, NavigableString, Tag
+
+    # Attempt to pre-import optional parsers
+    lxml_module = None
+    html5lib_module = None
+    try:
+        import lxml
+
+        lxml_module = lxml
+    except ImportError:
+        pass
+
+    try:
+        import html5lib
+
+        html5lib_module = html5lib
+    except ImportError:
+        pass
+
+    # Store in global dict for reuse
+    _WARM_GLOBALS = {
+        # Standard library
+        "base64": base64,
+        "json": json,
+        "re": re,
+        "sys": sys,
+        # BS4 and components
+        "bs4": bs4,
+        "BeautifulSoup": BeautifulSoup,
+        "NavigableString": NavigableString,
+        "Tag": Tag,
+        "Comment": Comment,
+        # Optional parsers
+        "lxml": lxml_module,
+        "html5lib": html5lib_module,
+    }
+
+
 class PooledSubprocessExecutor(Executor):
     """Persistent worker pool executor for high-throughput training.
 
     Uses a multiprocessing pool to reduce subprocess spawn overhead during
     training. Workers persist across calls, significantly improving throughput
     for batch processing.
+
+    Performance Optimizations:
+        - Worker initialization pre-imports bs4, lxml, html5lib (saves ~50-100ms/call)
+        - maxtasksperchild prevents memory leaks in long-running training
+        - Reuses worker processes across multiple executions
 
     Usage:
         with PooledSubprocessExecutor(num_workers=4) as executor:
@@ -512,27 +601,38 @@ class PooledSubprocessExecutor(Executor):
 
     def __init__(
         self,
-        num_workers: int = 4,
+        num_workers: int | None = None,
         max_output_chars: int = 10000,
         network_access: bool = True,  # Ignored - pooled subprocess has no network isolation
+        maxtasksperchild: int | None = 100,  # Recycle workers to prevent memory leaks
     ):
         """Initialize the pooled executor.
 
         Args:
             num_workers: Number of worker processes in the pool.
+                If None, uses cpu_count().
             max_output_chars: Maximum characters to capture from stdout/stderr.
             network_access: Ignored. Pooled subprocess has no network isolation.
+            maxtasksperchild: Max tasks per worker before recycling (memory management).
+                Set to None to disable recycling.
         """
-        self.num_workers = num_workers
+        import os
+
+        self.num_workers = num_workers if num_workers is not None else os.cpu_count() or 4
         self.max_output_chars = max_output_chars
+        self.maxtasksperchild = maxtasksperchild
         self._pool = None
         # network_access is ignored for pooled subprocess (no isolation)
 
     def __enter__(self):
-        """Enter context manager, create worker pool."""
+        """Enter context manager, create worker pool with warm initialization."""
         from multiprocessing import Pool
 
-        self._pool = Pool(self.num_workers)
+        self._pool = Pool(
+            processes=self.num_workers,
+            initializer=_worker_init,
+            maxtasksperchild=self.maxtasksperchild,
+        )
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -613,6 +713,10 @@ def _execute_in_worker(
     It uses build_runner_script to ensure harness parity with other executors
     (injecting make_soup, BS4 imports, etc.).
 
+    Performance Optimization:
+        Uses _WARM_GLOBALS for pre-imported modules when available,
+        significantly reducing import overhead on each execution.
+
     Args:
         code: Python code to execute.
         globals_dict: Global variables to inject.
@@ -641,8 +745,12 @@ def _execute_in_worker(
     exit_code = 0
 
     try:
+        # Start with warm globals if available (pre-imported modules)
+        # This avoids repeated imports of bs4, lxml, etc.
+        exec_globals = dict(_WARM_GLOBALS) if _WARM_GLOBALS else {}
+
         # Execute the runner script (includes make_soup, BS4 imports, etc.)
-        exec(runner_code, {})
+        exec(runner_code, exec_globals)
 
     except BaseException:
         # Catch BaseException to handle SystemExit/KeyboardInterrupt from user code
@@ -675,6 +783,9 @@ def get_executor(
     cpu_cores: int = 1,
     memory_gb: int = 2,
     timeout_minutes: int = 30,
+    # Pooled executor-specific settings
+    num_workers: int | None = None,
+    maxtasksperchild: int | None = 100,
     **kwargs,
 ) -> Executor:
     """Factory function to get an executor by backend name.
@@ -687,6 +798,8 @@ def get_executor(
         cpu_cores: CPU cores for Prime sandbox (default: 1).
         memory_gb: Memory in GB for Prime sandbox (default: 2).
         timeout_minutes: Sandbox lifecycle timeout in minutes (default: 30).
+        num_workers: Worker pool size for pooled executor (default: cpu_count()).
+        maxtasksperchild: Tasks before worker recycling for pooled executor.
         **kwargs: Additional arguments passed to executor constructor.
 
     Returns:
@@ -717,8 +830,10 @@ def get_executor(
         return PrimeSandboxExecutor(**prime_kwargs)
     elif backend == "pooled":
         return PooledSubprocessExecutor(
+            num_workers=num_workers,
             max_output_chars=max_output_chars,
             network_access=network_access,
+            maxtasksperchild=maxtasksperchild,
             **kwargs,
         )
     else:

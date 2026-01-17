@@ -120,12 +120,8 @@ class TestTieredMode:
                 difficulties_in_dataset.add(difficulty)
 
         # Primer and hard should be absent (weight=0)
-        assert "primer" not in difficulties_in_dataset, (
-            "Found primer tasks despite weight=0"
-        )
-        assert "hard" not in difficulties_in_dataset, (
-            "Found hard tasks despite weight=0"
-        )
+        assert "primer" not in difficulties_in_dataset, "Found primer tasks despite weight=0"
+        assert "hard" not in difficulties_in_dataset, "Found hard tasks despite weight=0"
 
         # Easy and medium should be present (weight>0)
         assert "easy" in difficulties_in_dataset, "Missing easy tasks (weight=0.5)"

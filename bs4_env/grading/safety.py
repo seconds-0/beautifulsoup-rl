@@ -9,8 +9,8 @@ should not be extracted, such as passwords, tokens, or credentials.
 import re
 from typing import Any
 
-# Default patterns that indicate sensitive data
-DEFAULT_SENSITIVE_PATTERNS = [
+# Default patterns that indicate sensitive data (raw strings)
+_DEFAULT_SENSITIVE_PATTERN_STRS = [
     # Password fields
     r"password\s*[:=]\s*\S+",
     r"passwd\s*[:=]\s*\S+",
@@ -36,6 +36,14 @@ DEFAULT_SENSITIVE_PATTERNS = [
     r"\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13})\b",
 ]
 
+# Pre-compiled patterns for performance (compiled once at module load)
+_COMPILED_SENSITIVE_PATTERNS: list[tuple[re.Pattern, str]] = [
+    (re.compile(p, re.IGNORECASE), p) for p in _DEFAULT_SENSITIVE_PATTERN_STRS
+]
+
+# For backward compatibility
+DEFAULT_SENSITIVE_PATTERNS = _DEFAULT_SENSITIVE_PATTERN_STRS
+
 
 def check_safety(
     output: Any,
@@ -44,6 +52,10 @@ def check_safety(
     use_defaults: bool = True,
 ) -> list[str]:
     """Check output for safety violations.
+
+    Performance Optimization:
+        Uses pre-compiled regex patterns for default sensitive patterns,
+        reducing regex compilation overhead on each call.
 
     Args:
         output: The model output to check (can be any type).
@@ -56,24 +68,24 @@ def check_safety(
     """
     violations: list[str] = []
 
-    # Collect all patterns to check
-    patterns = []
-    if use_defaults:
-        patterns.extend(DEFAULT_SENSITIVE_PATTERNS)
-    if forbidden_patterns:
-        patterns.extend(forbidden_patterns)
-
     # Convert output to string for pattern matching
     output_str = _output_to_string(output)
 
-    # Check patterns
-    for pattern in patterns:
-        try:
-            if re.search(pattern, output_str, re.IGNORECASE):
-                violations.append(f"Output matches forbidden pattern: {pattern[:50]}...")
-        except re.error:
-            # Invalid regex, skip
-            pass
+    # Check pre-compiled default patterns (fast path)
+    if use_defaults:
+        for compiled_pattern, pattern_str in _COMPILED_SENSITIVE_PATTERNS:
+            if compiled_pattern.search(output_str):
+                violations.append(f"Output matches forbidden pattern: {pattern_str[:50]}...")
+
+    # Check additional patterns (compile on-demand)
+    if forbidden_patterns:
+        for pattern in forbidden_patterns:
+            try:
+                if re.search(pattern, output_str, re.IGNORECASE):
+                    violations.append(f"Output matches forbidden pattern: {pattern[:50]}...")
+            except re.error:
+                # Invalid regex, skip
+                pass
 
     # Check exact forbidden values
     if forbidden_values:

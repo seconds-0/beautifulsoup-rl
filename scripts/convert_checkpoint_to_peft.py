@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """Convert a distributed checkpoint to PEFT adapter format for resume."""
 
-import os
 import json
+import os
+
 import torch
+from safetensors.torch import save_file
 from torch.distributed.checkpoint import FileSystemReader
 from torch.distributed.checkpoint.state_dict_loader import load
-from safetensors.torch import save_file
+
 
 def convert_checkpoint(ckpt_dir: str, broadcast_dir: str):
     os.makedirs(broadcast_dir, exist_ok=True)
@@ -18,7 +20,7 @@ def convert_checkpoint(ckpt_dir: str, broadcast_dir: str):
     metadata = reader.read_metadata()
 
     # Get all keys that are LoRA related
-    lora_keys = [k for k in metadata.state_dict_metadata.keys() if "lora_" in k]
+    lora_keys = [k for k in metadata.state_dict_metadata if "lora_" in k]
     print(f"Found {len(lora_keys)} LoRA keys")
 
     # Create placeholder tensors for LoRA keys only
@@ -57,8 +59,16 @@ def convert_checkpoint(ckpt_dir: str, broadcast_dir: str):
         "lora_alpha": 32.0,
         "lora_dropout": 0.0,
         "bias": "none",
-        "target_modules": ["down_proj", "gate_proj", "k_proj", "o_proj", "q_proj", "up_proj", "v_proj"],
-        "modules_to_save": None
+        "target_modules": [
+            "down_proj",
+            "gate_proj",
+            "k_proj",
+            "o_proj",
+            "q_proj",
+            "up_proj",
+            "v_proj",
+        ],
+        "modules_to_save": None,
     }
     with open(os.path.join(broadcast_dir, "adapter_config.json"), "w") as f:
         json.dump(config, f, indent=2)
@@ -70,8 +80,12 @@ def convert_checkpoint(ckpt_dir: str, broadcast_dir: str):
 
     print(f"Broadcast directory ready: {os.listdir(broadcast_dir)}")
 
+
 if __name__ == "__main__":
     import sys
+
     ckpt_dir = sys.argv[1] if len(sys.argv) > 1 else "/app/outputs/checkpoints/step_775/trainer"
-    broadcast_dir = sys.argv[2] if len(sys.argv) > 2 else "/app/outputs/run_default/broadcasts/step_775"
+    broadcast_dir = (
+        sys.argv[2] if len(sys.argv) > 2 else "/app/outputs/run_default/broadcasts/step_775"
+    )
     convert_checkpoint(ckpt_dir, broadcast_dir)
