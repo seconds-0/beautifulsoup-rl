@@ -4,6 +4,249 @@ Track all RL training experiments for BeautifulSoup environment.
 
 ## Active Runs
 
+### Post-Fix Ablation Testing (2026-01-25) - Lab Hosted
+
+**Context**: Prime team deployed additional fixes. Testing systematically to verify all checkpoint barriers are resolved.
+
+#### Executive Summary: FIXES CONFIRMED! ✅
+
+| Test | Config | Model | Result | Notes |
+|------|--------|-------|--------|-------|
+| 1 | qwen3-235b-async2.toml | 235B Instruct | SKIPPED | Model not available |
+| 2 | qwen3-4b-validation.toml | 4B Instruct | ✅ **SUCCESS** | 5/5 steps, all checkpoints |
+| 3 | qwen3-4b-ablation-sync.toml | 4B Instruct | ✅ **RUNNING** | 5+ steps, all checkpoints |
+| 4 | qwen3-4b-ablation-small.toml | 4B Instruct (async=2) | ✅ **SUCCESS** | Async=2 working, confirmed checkpoints |
+| 5 | qwen3-30b-a3b-validation.toml | **30B Thinking** | ✅ **SUCCESS** | **10/10 steps complete!** |
+| 6 | qwen3-4b-v015-bootstrap.toml | **4B Thinking** | ✅ **RUNNING** | Checkpoint 1+ passed |
+
+**Key Findings:**
+1. **Checkpoint 2 barrier FIXED** - Previously all runs stuck here
+2. **Thinking models FIXED** - Previously stuck at checkpoint 1
+3. **async=2 working** - Full async buffering operational
+4. **All model types passing** - Instruct and Thinking both work now
+
+#### Test 2: 4B Instruct batch=32 (bvlb6u0xa216ped2csm3opfk) - COMPLETED ✅
+
+- **Run ID**: `bvlb6u0xa216ped2csm3opfk`
+- **Config**: `configs/lab/qwen3-4b-validation.toml`
+- **Model**: Qwen/Qwen3-4B-Instruct-2507
+- **Status**: ✅ **COMPLETED** (5/5 steps)
+- **Dashboard**: https://app.primeintellect.ai/dashboard/training/bvlb6u0xa216ped2csm3opfk
+
+| Step | Time | Reward | Checkpoint | Notes |
+|------|------|--------|------------|-------|
+| 0 | 23.40s | 0.0625 | ✅ | Init |
+| 1 | 19.73s | 0.1594 | ✅ | |
+| 2 | 102.13s | 0.0021 | ✅ | Checkpoint 1 passed |
+| 3 | 12.89s | 0.0625 | ✅ | **Checkpoint 2 passed** (prev failure) |
+| 4 | 91.18s | 0.3516 | ✅ | Checkpoint 3 passed |
+| 5 | - | - | ✅ | **Orchestrator finished!** |
+
+**Result**: All checkpoints passed. Checkpoint 2 barrier is FIXED.
+
+#### Test 5: 30B Thinking (ebwreyf6e4qr9htk0l5jd1da) - COMPLETED ✅
+
+- **Run ID**: `ebwreyf6e4qr9htk0l5jd1da`
+- **Config**: `configs/lab/qwen3-30b-a3b-validation.toml`
+- **Model**: Qwen/Qwen3-30B-A3B-Thinking-2507
+- **Status**: ✅ **COMPLETED** (10/10 steps)
+- **Dashboard**: https://app.primeintellect.ai/dashboard/training/ebwreyf6e4qr9htk0l5jd1da
+
+| Step | Time | Reward | Checkpoint | Notes |
+|------|------|--------|------------|-------|
+| 0 | 15.66s | 0.0312 | ✅ | |
+| 1 | 59.80s | 0.1250 | ✅ | |
+| 2 | 30.71s | 0.1562 | ✅ | |
+| 3 | 32.97s | 0.1250 | ✅ | |
+| 4 | 44.95s | 0.0312 | ✅ | Checkpoint 2 passed |
+| 5 | 45.36s | 0.0312 | ✅ | Checkpoint 3 passed |
+| 6 | 116.06s | 0.0312 | ✅ | Checkpoint 4 passed |
+| 7 | 36.80s | 0.1250 | ✅ | Checkpoint 5 passed |
+| 8 | 60.05s | 0.0625 | ✅ | Checkpoint 6 passed |
+| 9 | 75.46s | 0.1875 | ✅ | Checkpoint 7 passed |
+| 10 | - | - | ✅ | **Orchestrator finished!** |
+
+**MAJOR BREAKTHROUGH**: Thinking models were previously stuck at checkpoint 1. Now fully working!
+
+#### Test 3: 4B Instruct sync 50 steps (injfscl3651zqi1onzeq2d4h) - RUNNING
+
+- **Run ID**: `injfscl3651zqi1onzeq2d4h`
+- **Config**: `configs/lab/qwen3-4b-ablation-sync.toml`
+- **Model**: Qwen/Qwen3-4B-Instruct-2507
+- **Status**: 🏃 RUNNING (5+ steps completed)
+- **Dashboard**: https://app.primeintellect.ai/dashboard/training/injfscl3651zqi1onzeq2d4h
+
+Steps 0-5 completed, all checkpoints passing. 50-step run in progress.
+
+#### Test 4: 4B async=2 bootstrap (vbbw7g3569dayx1j1a0ifhwq) - STOPPED (validated)
+
+- **Run ID**: `vbbw7g3569dayx1j1a0ifhwq`
+- **Config**: `configs/lab/qwen3-4b-ablation-small.toml`
+- **Model**: Qwen/Qwen3-4B-Instruct-2507
+- **Status**: ✅ STOPPED after validation (checkpoints working)
+- **Dashboard**: https://app.primeintellect.ai/dashboard/training/vbbw7g3569dayx1j1a0ifhwq
+
+Confirmed async=2 working with Async Level reaching 2. Stopped early to test Thinking models.
+
+#### Test 6: 4B Thinking bootstrap (wtrrji00xf42b7c7aa2gk8ct) - RUNNING
+
+- **Run ID**: `wtrrji00xf42b7c7aa2gk8ct`
+- **Config**: `configs/lab/qwen3-4b-v015-bootstrap.toml`
+- **Model**: Qwen/Qwen3-4B-Thinking-2507
+- **Status**: 🏃 RUNNING
+- **Dashboard**: https://app.primeintellect.ai/dashboard/training/wtrrji00xf42b7c7aa2gk8ct
+
+Large batch (128 x 8 rollouts), checkpoint 1+ passed.
+
+---
+
+### Race Condition Fix Retest (2026-01-17) - Lab Hosted
+
+**Context**: Prime team confirmed and fixed a race condition that was causing runs to get stuck after step 2. Testing to verify the fix.
+
+#### Retest 1: qwen3-4b-validation (2026-01-17) - CANCELLED
+
+- **Run ID**: `uk7w1k2scdrdgigvkhs2jffi`
+- **Config**: `configs/lab/qwen3-4b-validation.toml`
+- **Model**: Qwen/Qwen3-4B-Instruct-2507
+- **Previous Run**: `heeh6kmc19fbh4z0ch7pq4x7` (stuck at step 2, checkpoint 1)
+- **Status**: ⚠️ CANCELLED - Passed checkpoint 1, stuck at checkpoint 2
+- **Dashboard**: https://app.primeintellect.ai/dashboard/training/uk7w1k2scdrdgigvkhs2jffi
+
+| Step | Time | Reward | Checkpoint | Notes |
+|------|------|--------|------------|-------|
+| 0 | 39.89s | 0.0625 | ✅ | Healthy |
+| 1 | 15.66s | 0.0906 | ✅ | Healthy |
+| 2 | 122.35s | 0.2156 | ✅ | **PASSED checkpoint 1!** (prev failure point) |
+| 3 | - | - | ❌ | Stuck waiting for checkpoint 2 (30+ min), cancelled |
+
+**Result**: ⚠️ PARTIAL SUCCESS - Race condition fix helped pass checkpoint 1, but new issue at checkpoint 2
+
+#### Retest 2: qwen3-4b-v015-test-64 (2026-01-17) - BLOCKED
+
+- **Run ID**: `g3f7tut16uraprkrxe902ny0`
+- **Config**: `configs/lab/qwen3-4b-v015-test-64.toml`
+- **Model**: Qwen/Qwen3-4B-Thinking-2507 (Instruct no longer available)
+- **Previous Run**: `qhubcp7xqykyr8eywfz87snc` (stuck at step 2)
+- **Status**: ❌ FAILED (WandB API key error)
+- **Dashboard**: https://app.primeintellect.ai/dashboard/training/g3f7tut16uraprkrxe902ny0
+
+**Note**: Config fixed (wandb disabled), but hit concurrent run limit.
+
+#### Retest 3: qwen3-30b-a3b-validation (2026-01-17) - CANCELLED
+
+- **Run ID**: `t5x4tt2htn5zy2642yqnn5cl`
+- **Config**: `configs/lab/qwen3-30b-a3b-validation.toml`
+- **Model**: Qwen/Qwen3-30B-A3B-Thinking-2507 (larger MoE model)
+- **Status**: ❌ CANCELLED - Stuck at checkpoint 1 (same as old failure)
+- **Dashboard**: https://app.primeintellect.ai/dashboard/training/t5x4tt2htn5zy2642yqnn5cl
+
+| Step | Time | Reward | Checkpoint | Notes |
+|------|------|--------|------------|-------|
+| 0 | 39.95s | 0.0312 | ✅ | Healthy |
+| 1 | 42.98s | 0.0625 | ✅ | Healthy |
+| 2 | - | - | ❌ | Stuck waiting for checkpoint 1 (15+ min), cancelled |
+
+**Key Finding**: Thinking models still have checkpoint 1 issue. Race condition fix may only work for Instruct models.
+
+#### Summary of Retest Results (2026-01-17)
+
+| Model | Mode | Async | Ckpt 1 | Ckpt 2 | Best Reward | Notes |
+|-------|------|-------|--------|--------|-------------|-------|
+| **4B Instruct** | all | 1 | ✅ | ❌ | 21.6% | Race fix helped partially |
+| **30B A3B Thinking** | all | 1 | ❌ | - | 6.3% | Same as before fix |
+| **4B Thinking** | bootstrap | 1 | ❌ | - | 31.3% | Bootstrap mode didn't help |
+| **235B Instruct** | all | 1 | ❌ | - | **92.2%** | Excellent baseline, stuck early |
+| **235B Instruct** | all | **2** | ✅ | ❌ | **100%** | async=2 helped, stuck at ckpt 2 |
+| **30B A3B Thinking** | all | **2** | ❌ | - | 9.4% | Thinking still stuck with async=2 |
+
+**Key Findings**:
+1. **async_level=2 helps Instruct models** - 235B passed checkpoint 1 with async=2 (9 min wait)
+2. **Thinking models consistently fail** - Stuck at checkpoint 1 regardless of async level
+3. **235B Instruct has exceptional baseline** - 100% and 84% rewards in early steps
+4. **Checkpoint barriers persist** - Even when ckpt 1 passes, ckpt 2 fails
+5. **Model availability unstable** - 4B Instruct and 4B Thinking rotated out during testing
+
+**Recommendation**:
+- Use **235B Instruct with async_level=2** for best results
+- Avoid Thinking models until Prime fixes the checkpoint barrier
+- Report to Prime that checkpoint 2 barrier still occurs even after checkpoint 1 passes
+
+#### Retest 6: qwen3-235b-a22b-async2 (2026-01-17) - CANCELLED
+
+- **Run ID**: `ic1hz2we3u7i58efwk7pji47`
+- **Config**: `configs/lab/qwen3-235b-async2.toml`
+- **Model**: Qwen/Qwen3-235B-A22B-Instruct-2507
+- **Mode**: all, **max_async_level=2**
+- **Status**: ⚠️ CANCELLED - Passed ckpt 1, stuck at ckpt 2
+- **Dashboard**: https://app.primeintellect.ai/dashboard/training/ic1hz2we3u7i58efwk7pji47
+
+| Step | Time | Reward | Checkpoint | Notes |
+|------|------|--------|------------|-------|
+| 0 | 27.91s | **1.0000** | ✅ | 100% reward! |
+| 1 | 35.33s | 0.2812 | ✅ | Healthy |
+| 2 | 23.78s | **0.8438** | ✅ | 84% reward |
+| 3 | 542.30s | 0.3900 | ✅ | **PASSED checkpoint 1** after 9 min wait |
+| 4 | - | - | ❌ | Stuck waiting for checkpoint 2 (15+ min), cancelled |
+
+**Result**: async_level=2 helped pass checkpoint 1, but stuck at checkpoint 2. Excellent baseline rewards (100%, 84%).
+
+#### Retest 7: qwen3-30b-a3b-async2 (2026-01-17) - CANCELLED
+
+- **Run ID**: `bizc538ns5o4fjnm07n132ux`
+- **Config**: `configs/lab/qwen3-30b-a3b-validation.toml`
+- **Model**: Qwen/Qwen3-30B-A3B-Thinking-2507
+- **Mode**: all, **max_async_level=2**
+- **Status**: ❌ CANCELLED - Stuck at checkpoint 1
+- **Dashboard**: https://app.primeintellect.ai/dashboard/training/bizc538ns5o4fjnm07n132ux
+
+| Step | Time | Reward | Checkpoint | Notes |
+|------|------|--------|------------|-------|
+| 0 | 15.60s | 0.0625 | ✅ | Healthy |
+| 1 | 14.22s | 0.0938 | ✅ | Healthy |
+| 2 | 18.71s | 0.0312 | ✅ | Healthy |
+| 3 | - | - | ❌ | Stuck waiting for checkpoint 1 (20+ min), cancelled |
+
+**Result**: Thinking models still stuck even with async_level=2.
+
+**Note**: 4B Thinking model no longer available - rotated out during testing.
+
+#### Retest 4: qwen3-4b-v015-bootstrap (2026-01-17) - CANCELLED
+
+- **Run ID**: `v5t3j546osfypw3qgq2mbvk1`
+- **Config**: `configs/lab/qwen3-4b-v015-bootstrap.toml`
+- **Model**: Qwen/Qwen3-4B-Thinking-2507
+- **Mode**: bootstrap (simpler tasks)
+- **Status**: ❌ CANCELLED - Stuck at checkpoint 1
+- **Dashboard**: https://app.primeintellect.ai/dashboard/training/v5t3j546osfypw3qgq2mbvk1
+
+| Step | Time | Reward | Checkpoint | Notes |
+|------|------|--------|------------|-------|
+| 0 | 130.71s | 0.3125 | ✅ | Healthy |
+| 1 | 115.31s | 0.2709 | ✅ | Healthy |
+| 2 | - | - | ❌ | Stuck waiting for checkpoint 1 (10+ min), cancelled |
+
+**Result**: Bootstrap mode didn't help Thinking models avoid checkpoint barrier.
+
+#### Retest 5: qwen3-235b-a22b-validation (2026-01-17) - CANCELLED
+
+- **Run ID**: `th6cz0teyowv5gm7o3e64mmj`
+- **Config**: `configs/lab/qwen3-235b-a22b-validation.toml`
+- **Model**: Qwen/Qwen3-235B-A22B-Instruct-2507 (large MoE, 22B active)
+- **Mode**: all
+- **Status**: ❌ CANCELLED - Stuck at checkpoint 1
+- **Dashboard**: https://app.primeintellect.ai/dashboard/training/th6cz0teyowv5gm7o3e64mmj
+
+| Step | Time | Reward | Checkpoint | Notes |
+|------|------|--------|------------|-------|
+| 0 | 15.29s | **0.9219** | ✅ | Excellent baseline! |
+| 1 | 18.74s | **0.8554** | ✅ | Excellent baseline! |
+| 2 | - | - | ❌ | Stuck waiting for checkpoint 1 (10+ min), cancelled |
+
+**Result**: Even 235B Instruct stuck at checkpoint 1, despite earlier 4B Instruct passing it.
+
+---
+
 ### Batch Size Investigation (2026-01-17) - Lab Hosted
 
 **Context**: v0.1.5 validation run (`heeh6kmc19fbh4z0ch7pq4x7`) got stuck at step 2 waiting for checkpoint 1. Root cause: batch_size=32 too small for trainer to produce checkpoint with `max_async_level=1`.
