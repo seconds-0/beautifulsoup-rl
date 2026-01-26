@@ -1,0 +1,29 @@
+# Qwen3-30B-A3B Production Training Run (Thinking Model)
+#
+# Purpose: Full production training with MoE Thinking model
+# Post-fix validation: Thinking models confirmed working
+#
+# Settings optimized for:
+# - Larger model (30B total, 3B active MoE)
+# - Moderate batching (batch=32 for memory efficiency)
+# - Full async (max_async_level=2)
+# - Full task diversity (mode=all)
+
+model = "Qwen/Qwen3-30B-A3B-Thinking-2507"
+max_steps = 500
+batch_size = 32
+rollouts_per_example = 4
+trajectory_strategy = "interleaved"
+max_async_level = 2
+oversampling_factor = 2.0
+
+[sampling]
+max_tokens = 4096
+
+[[env]]
+id = "seconds-0/beautiful-soup-env"
+args = { split = "train", mode = "all", cpu_cores = 2, memory_gb = 8 }
+
+[env.log]
+level = "info"
+vf_level = "info"

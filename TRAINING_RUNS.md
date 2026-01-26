@@ -4,6 +4,46 @@ Track all RL training experiments for BeautifulSoup environment.
 
 ## Active Runs
 
+### Production Training (2026-01-25) - Lab Hosted
+
+**Context**: All checkpoint barriers confirmed fixed. Launching parallel production runs.
+
+#### 4B Instruct Production (lsbkg50x9v9func6kk8t0cco) - RUNNING 🏃
+
+- **Run ID**: `lsbkg50x9v9func6kk8t0cco`
+- **Config**: `configs/lab/qwen3-4b-production.toml`
+- **Model**: Qwen/Qwen3-4B-Instruct-2507
+- **Status**: 🏃 RUNNING
+- **Dashboard**: https://app.primeintellect.ai/dashboard/training/lsbkg50x9v9func6kk8t0cco
+
+| Setting | Value |
+|---------|-------|
+| max_steps | 500 |
+| batch_size | 128 |
+| rollouts_per_example | 8 |
+| max_async_level | 2 |
+| mode | all |
+| max_tokens | 4096 |
+
+#### 30B Thinking Production (re0my0c3qu5o8c6dwwencwob) - RUNNING 🏃
+
+- **Run ID**: `re0my0c3qu5o8c6dwwencwob`
+- **Config**: `configs/lab/qwen3-30b-production.toml`
+- **Model**: Qwen/Qwen3-30B-A3B-Thinking-2507
+- **Status**: 🏃 RUNNING
+- **Dashboard**: https://app.primeintellect.ai/dashboard/training/re0my0c3qu5o8c6dwwencwob
+
+| Setting | Value |
+|---------|-------|
+| max_steps | 500 |
+| batch_size | 32 |
+| rollouts_per_example | 4 |
+| max_async_level | 2 |
+| mode | all |
+| max_tokens | 4096 |
+
+---
+
 ### Post-Fix Ablation Testing (2026-01-25) - Lab Hosted
 
 **Context**: Prime team deployed additional fixes. Testing systematically to verify all checkpoint barriers are resolved.
@@ -14,10 +54,10 @@ Track all RL training experiments for BeautifulSoup environment.
 |------|--------|-------|--------|-------|
 | 1 | qwen3-235b-async2.toml | 235B Instruct | SKIPPED | Model not available |
 | 2 | qwen3-4b-validation.toml | 4B Instruct | ✅ **SUCCESS** | 5/5 steps, all checkpoints |
-| 3 | qwen3-4b-ablation-sync.toml | 4B Instruct | ✅ **RUNNING** | 5+ steps, all checkpoints |
+| 3 | qwen3-4b-ablation-sync.toml | 4B Instruct | ✅ **COMPLETED** | 50/50 steps |
 | 4 | qwen3-4b-ablation-small.toml | 4B Instruct (async=2) | ✅ **SUCCESS** | Async=2 working, confirmed checkpoints |
-| 5 | qwen3-30b-a3b-validation.toml | **30B Thinking** | ✅ **SUCCESS** | **10/10 steps complete!** |
-| 6 | qwen3-4b-v015-bootstrap.toml | **4B Thinking** | ✅ **RUNNING** | Checkpoint 1+ passed |
+| 5 | qwen3-30b-a3b-validation.toml | **30B Thinking** | ✅ **COMPLETED** | **10/10 steps complete!** |
+| 6 | qwen3-4b-v015-bootstrap.toml | **4B Thinking** | ✅ **COMPLETED** | 50/50 steps |
 
 **Key Findings:**
 1. **Checkpoint 2 barrier FIXED** - Previously all runs stuck here

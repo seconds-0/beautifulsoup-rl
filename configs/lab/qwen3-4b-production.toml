@@ -1,0 +1,28 @@
+# Qwen3-4B Production Training Run
+#
+# Purpose: Full production training with optimized settings
+# Post-fix validation: All checkpoint barriers confirmed fixed
+#
+# Settings optimized for:
+# - High throughput (batch=128, rollouts=8)
+# - Full async (max_async_level=2)
+# - Full task diversity (mode=all)
+
+model = "Qwen/Qwen3-4B-Instruct-2507"
+max_steps = 500
+batch_size = 128
+rollouts_per_example = 8
+trajectory_strategy = "interleaved"
+max_async_level = 2
+oversampling_factor = 2.0
+
+[sampling]
+max_tokens = 4096
+
+[[env]]
+id = "seconds-0/beautiful-soup-env"
+args = { split = "train", mode = "all", cpu_cores = 2, memory_gb = 8 }
+
+[env.log]
+level = "info"
+vf_level = "info"
