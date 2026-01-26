@@ -1,0 +1,30 @@
+# Qwen3-4B Curriculum Training
+#
+# Purpose: Train 4B model with bootstrap curriculum
+# Lesson learned: mode=all caused collapse (0% reward from step 30)
+#
+# Strategy:
+# - Start with mode="bootstrap" (primer + easy tasks only)
+# - Partial credit rewards correct BS4 patterns even without correct answer
+# - Model learns the tool-use template before tackling hard tasks
+
+model = "Qwen/Qwen3-4B-Instruct-2507"
+max_steps = 500
+batch_size = 128
+rollouts_per_example = 8
+trajectory_strategy = "interleaved"
+max_async_level = 2
+oversampling_factor = 2.0
+
+[sampling]
+max_tokens = 4096
+
+[[env]]
+id = "seconds-0/beautiful-soup-env"
+# KEY: mode="bootstrap" gives primer + easy tasks only
+# This provides gradient signal for 0% models
+args = { split = "train", mode = "bootstrap", cpu_cores = 2, memory_gb = 8 }
+
+[env.log]
+level = "info"
+vf_level = "info"
