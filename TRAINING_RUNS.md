@@ -4,16 +4,97 @@ Track all RL training experiments for BeautifulSoup environment.
 
 ## Active Runs
 
-### Production Training (2026-01-25) - Lab Hosted
+None currently.
 
-**Context**: All checkpoint barriers confirmed fixed. Launching parallel production runs.
+---
 
-#### 4B Instruct Production (lsbkg50x9v9func6kk8t0cco) - RUNNING 🏃
+## Training Collapse Investigation (2026-01-26)
+
+### Executive Summary
+
+**Both 4B and 30B models can LEARN (hitting 95%+ reward) but then COLLAPSE to 0% reward.**
+
+This is a **training stability issue**, not an environment problem. The models show excellent initial learning, then diverge catastrophically around step 25-35.
+
+### Collapse Pattern Observed
+
+| Run | Model | Mode | Peak Reward | Collapse Step | Final Reward |
+|-----|-------|------|-------------|---------------|--------------|
+| 4B Production | Qwen3-4B-Instruct | all | ~5% | ~30 | 0% |
+| 30B Production | Qwen3-30B-A3B-Thinking | all | **95%** | ~424 | 0% |
+| 4B Curriculum | Qwen3-4B-Instruct | bootstrap | **96%** | ~30 | 0% |
+
+### Lab Hosted Parameter Limitations ⚠️
+
+**CRITICAL FINDING: Lab Hosted does NOT expose hyperparameters needed for training stability.**
+
+| Parameter | Needed For | Available in Lab Hosted? |
+|-----------|------------|--------------------------|
+| Learning rate | Control update magnitude | ❌ NO |
+| KL penalty coefficient | Prevent policy divergence | ❌ NO |
+| GRPO clipping (epsilon) | Trust region constraint | ❌ NO |
+| PPO clip range | Stable policy updates | ❌ NO |
+| Value function coefficient | Critic stability | ❌ NO |
+| Entropy coefficient | Exploration balance | ❌ NO |
+
+**Parameters available in Lab Hosted:**
+- `batch_size` ✅
+- `rollouts_per_example` ✅
+- `max_tokens` ✅
+- `max_async_level` ✅
+- `oversampling_factor` ✅
+- `trajectory_strategy` ✅
+- Environment args (mode, split, etc.) ✅
+
+### Root Cause Analysis
+
+The collapse pattern suggests **policy divergence** - a common RL failure mode where:
+1. Early training shows strong gradient signal
+2. Policy updates become too aggressive
+3. Model overshoots into bad parameter region
+4. Reward drops catastrophically
+5. No recovery without hyperparameter tuning
+
+**Fixes that WOULD help (if available):**
+- Lower learning rate (1e-6 instead of default)
+- Add/increase KL penalty to anchor to reference policy
+- Tighter GRPO clipping (smaller epsilon)
+- Reduce rollouts_per_example (less aggressive updates)
+
+### Options Going Forward
+
+1. **Continue with Lab Hosted** - Limited options:
+   - Try different batch sizes (smaller = less aggressive updates?)
+   - Try different oversampling factors
+   - Use curriculum (bootstrap → all) transitions carefully
+
+2. **Switch to Self-Hosted prime-rl** - Full hyperparameter control:
+   - Set `lr = 1e-6` in `[trainer.optim]`
+   - GRPO clipping is built into trainer
+   - Requires provisioning GPU pods (Vast.ai, Prime pods)
+   - More complex but necessary for stability tuning
+
+### Recommendation
+
+**To train the 4B model successfully, we likely need self-hosted prime-rl** where we can:
+- Set a conservative learning rate
+- Monitor gradient norms
+- Adjust KL penalty dynamically
+
+Lab Hosted is great for validating that environments work, but lacks the knobs needed to debug training instability.
+
+---
+
+### Production Training (2026-01-25) - Lab Hosted - COLLAPSED ❌
+
+**Context**: All checkpoint barriers confirmed fixed. Launched parallel production runs. Both collapsed.
+
+#### 4B Instruct Production (lsbkg50x9v9func6kk8t0cco) - COLLAPSED ❌
 
 - **Run ID**: `lsbkg50x9v9func6kk8t0cco`
 - **Config**: `configs/lab/qwen3-4b-production.toml`
 - **Model**: Qwen/Qwen3-4B-Instruct-2507
-- **Status**: 🏃 RUNNING
+- **Status**: ❌ COLLAPSED (0% reward from step ~30)
 - **Dashboard**: https://app.primeintellect.ai/dashboard/training/lsbkg50x9v9func6kk8t0cco
 
 | Setting | Value |
@@ -25,12 +106,14 @@ Track all RL training experiments for BeautifulSoup environment.
 | mode | all |
 | max_tokens | 4096 |
 
-#### 30B Thinking Production (re0my0c3qu5o8c6dwwencwob) - RUNNING 🏃
+**Observation**: Started at 3-5% reward (baseline), never improved, collapsed to 0%.
+
+#### 30B Thinking Production (re0my0c3qu5o8c6dwwencwob) - COLLAPSED ❌
 
 - **Run ID**: `re0my0c3qu5o8c6dwwencwob`
 - **Config**: `configs/lab/qwen3-30b-production.toml`
 - **Model**: Qwen/Qwen3-30B-A3B-Thinking-2507
-- **Status**: 🏃 RUNNING
+- **Status**: ❌ COLLAPSED (0% reward from step ~430)
 - **Dashboard**: https://app.primeintellect.ai/dashboard/training/re0my0c3qu5o8c6dwwencwob
 
 | Setting | Value |
@@ -41,6 +124,28 @@ Track all RL training experiments for BeautifulSoup environment.
 | max_async_level | 2 |
 | mode | all |
 | max_tokens | 4096 |
+
+**Observation**: Excellent learning until step 424 (45-95% rewards!), then collapsed to 0% by step 430+.
+
+#### 4B Curriculum (mode=bootstrap) - COLLAPSED ❌
+
+- **Run ID**: (stopped manually)
+- **Config**: `configs/lab/qwen3-4b-curriculum.toml`
+- **Model**: Qwen/Qwen3-4B-Instruct-2507
+- **Status**: ❌ COLLAPSED (0% reward from step ~30)
+
+| Setting | Value |
+|---------|-------|
+| max_steps | 500 |
+| batch_size | 128 |
+| rollouts_per_example | 8 |
+| max_async_level | 2 |
+| mode | **bootstrap** |
+| max_tokens | 4096 |
+
+**Observation**: Excellent early learning (31-38% → 96% by step 18!), then collapsed to 0% around step 30.
+
+**Key insight**: The bootstrap curriculum WORKS for initial learning - we got 96% reward! But without ability to tune learning rate or KL penalty, we can't prevent the subsequent collapse.
 
 ---
 
