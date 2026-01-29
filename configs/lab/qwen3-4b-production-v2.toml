@@ -1,0 +1,26 @@
+# Qwen3-4B Production v2 - 1000 Steps
+#
+# WINNING CONFIG from stability ablation:
+# - batch_size=128, rollouts=4, oversample=1.0 = 512 rollouts/step
+# - Survived 100 steps with 76% final reward (vs collapse at step 30 before)
+#
+# This is 4x reduction from original (2048 → 512 rollouts/step)
+
+model = "Qwen/Qwen3-4B-Instruct-2507"
+max_steps = 1000
+batch_size = 128
+rollouts_per_example = 4
+trajectory_strategy = "interleaved"
+max_async_level = 2
+oversampling_factor = 1.0
+
+[sampling]
+max_tokens = 4096
+
+[[env]]
+id = "seconds-0/beautiful-soup-env"
+args = { split = "train", mode = "bootstrap", cpu_cores = 2, memory_gb = 8 }
+
+[env.log]
+level = "info"
+vf_level = "info"
